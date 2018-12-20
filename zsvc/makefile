@@ -8,7 +8,7 @@ SRC=src
 OBJS+=main.o
 -include $(SRC)/makefile.mk
 
-EXE=jsvc
+EXE=zsvc
 
 $(SRC)/%.o: $(SRC)/%.cpp
 	$(CXX) -c $(CFLAGS) $(INCLUDES) $(SRC)/$*.cpp -o $(SRC)/$*.o
