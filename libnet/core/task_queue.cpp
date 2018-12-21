@@ -159,7 +159,6 @@ int CTaskQueue::SwapWaitExec(uint64_t qwCid)
 CTaskNode *CTaskQueue::AddTask(CTaskNode *pNode, int iRunStatus)
 {
     CSpinLock oLock(m_oExec.dwSync);
-
     if (iRunStatus == ITaskBase::RUN_WAIT)
     {
         if (pNode->dwRef == 1)

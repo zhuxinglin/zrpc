@@ -914,6 +914,9 @@ void CTcpsReliableFd::Close(int iFd)
     // 关闭连接
     if (m_pSsl)
     {
+        int iMode = SSL_RECEIVED_SHUTDOWN | SSL_SENT_SHUTDOWN;
+        SSL_set_quiet_shutdown(m_pSsl, 1);
+        SSL_set_shutdown(m_pSsl, iMode);
         int n, iSslErr;
         while ((n = SSL_shutdown(m_pSsl)) != 1)
         {
@@ -1079,6 +1082,8 @@ int CTcpsSvc::Create(const char *pszAddr, uint16_t wPort, uint32_t dwListen, con
         SetErr("function SSL_CTX_new fail");
         return -1;
     }
+    SSL_CTX_set_options(m_pCtx, SSL_OP_ALL);
+    SSL_CTX_set_quiet_shutdown(m_pCtx, 1);
 
     int iRet = SSL_CTX_use_certificate_file(m_pCtx, pszCert, SSL_FILETYPE_PEM);
     if (iRet != 1)
@@ -1149,6 +1154,8 @@ int CTcpsCli::Create(const char *pszAddr, uint16_t wPort, const char *pszCacert,
         SetErr("new ssl CTX fail");
         return -1;
     }
+    SSL_CTX_set_options(m_pCtx, SSL_OP_ALL);
+    SSL_CTX_set_quiet_shutdown(m_pCtx, 1);
 
     m_pSsl = SSL_new(m_pCtx);
     if (!m_pSsl)

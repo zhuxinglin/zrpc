@@ -35,7 +35,7 @@ public:
     void SetRspSize(uint32_t dwRspSize);
     int Create(ITaskBase *pBase);
     void Swap(ITaskBase* pDest, ITaskBase* pSrc);
-    void Swap(ITaskBase *pDest, int iType, int iFd, int iMod, int iEvent, bool bIsMain = true);
+    void Swap(ITaskBase *pDest, bool bIsMain = true);
     void Del(ITaskBase *pBase);
     const char* GetErr() {return m_pszErr;}
     ITaskBase* GetTaskBase();

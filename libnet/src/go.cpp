@@ -81,7 +81,7 @@ void CGo::Run(uint32_t dwId)
             pTask->m_pMainCo = &uCon;
             pTask->m_wRunStatus = ITaskBase::RUN_EXEC;
 //            printf("call start 2222222222222222222222222  %lu    %p   %u\n", pTask->m_qwCid, pTask, pTask->m_wRunStatus);
-            pCor->Swap(pTask, 0, 0, 0, 0);
+            pCor->Swap(pTask);
             /*int iType = uCon.uc_mcontext.gregs[1];
             int iFd = uCon.uc_mcontext.gregs[2];
             int iMod = uCon.uc_mcontext.gregs[3];

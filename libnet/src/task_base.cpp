@@ -80,7 +80,7 @@ int ITaskBase::Yield(uint32_t dwTimeoutMs, int iFd, int iSetOpt, int iRestoreOpt
     if (iSetEvent != -1 && iFd != -1)
         pSch->PushMsg(iFd, iSetOpt, iSetEvent, (void *)m_qwCid);
 
-    pCor->Swap(this, 1, iFd, iSetOpt, iSetEvent, false);
+    pCor->Swap(this, false);
 
     if (iRestoreEvent != -1 && iFd != -1)
         pSch->PushMsg(iFd, iRestoreOpt, iRestoreEvent, (void *)m_qwCid);

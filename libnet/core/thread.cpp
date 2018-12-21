@@ -224,7 +224,7 @@ void CCond::Signal()
 {
     pthread_mutex_lock(&m_Mutex);
     pthread_cond_signal(&m_Cond);
-    pthread_mutex_lock(&m_Mutex);
+    pthread_mutex_unlock(&m_Mutex);
 }
 
 void CCond::Broadcast()

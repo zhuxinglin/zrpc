@@ -7,7 +7,7 @@ CORE = core
 INCLUDES=-I./include -I./core -I./src -I/usr/local/ssl/include
 
 LIBS=
-CFLAGS	= -g -Wall -D_REENTRANT -Wno-invalid-offsetof -static
+CFLAGS	= -O2 -Wall -D_REENTRANT -Wno-invalid-offsetof -static
 
 -include $(SRC)/makefile.mk
 -include $(CORE)/makefile.mk

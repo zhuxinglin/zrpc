@@ -97,7 +97,7 @@ void CCoroutine::Swap(ITaskBase *pDest, ITaskBase *pSrc)
     swapcontext((ucontext_t *)pSrc->m_pContext, (ucontext_t *)pDest->m_pContext);
 }
 
-void CCoroutine::Swap(ITaskBase *pDest, int iType, int iFd, int iMod, int iEvent, bool bIsMain)
+void CCoroutine::Swap(ITaskBase *pDest, bool bIsMain)
 {
     if (bIsMain)
     {
@@ -107,12 +107,12 @@ void CCoroutine::Swap(ITaskBase *pDest, int iType, int iFd, int iMod, int iEvent
     else
     {
         pthread_setspecific(g_KeyContext, 0);
-        typeof(*(((ucontext_t *)(pDest->m_pMainCo))->uc_mcontext).gregs)* pGregs;
+        /*typeof(*(((ucontext_t *)(pDest->m_pMainCo))->uc_mcontext).gregs)* pGregs;
         pGregs = ((ucontext_t *)(pDest->m_pMainCo))->uc_mcontext.gregs;
         pGregs[1] = iType;
         pGregs[2] = iFd;
         pGregs[3] = iMod;
-        pGregs[4] = iEvent;
+        pGregs[4] = iEvent;*/
         swapcontext((ucontext_t *)pDest->m_pContext, (ucontext_t *)pDest->m_pMainCo);
     }
 }
@@ -133,5 +133,5 @@ void CCoroutine::Run(void *p)
     ITaskBase *pBase = (ITaskBase *)p;
     pBase->Run();
     pBase->m_wRunStatus = ITaskBase::RUN_EXIT;
-    m_pSelf->Swap(pBase, -1, -1, 0, 0, false);
+    m_pSelf->Swap(pBase, false);
 }
