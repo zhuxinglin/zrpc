@@ -24,7 +24,6 @@ CLog::CLog()
 {
 	m_sLogDir = "../log/";
 	m_sAddr = "";
-	m_dwPort = 0;
 	m_dwWriteMode = CLogConfig::LOG_FILE;
 	m_dwLevel = CLogConfig::LOG_INFO_LEVEL;
 	m_iLogMaxSize = 20 * 1024 * 1024;
@@ -90,17 +89,17 @@ bool CLog::Create(CLogConfig *pConfig)
 	}
 	if (m_dwWriteMode & CLogConfig::LOG_TCP)
 	{
-		if (OpenNet(pConfig->sNetAddr.c_str(), CLogConfig::LOG_TCP) < 0)
+		if (OpenNet(pConfig->sNetAddr.c_str(), CLogConfig::LOG_TCP, true) < 0)
 			return false;
 	}
 	else if (m_dwWriteMode & CLogConfig::LOG_UINX)
 	{
-		if (OpenNet(pConfig->sNetAddr.c_str(), CLogConfig::LOG_UINX) < 0)
+		if (OpenNet(pConfig->sNetAddr.c_str(), CLogConfig::LOG_UINX, true) < 0)
 			return false;
 	}
 	else if (m_dwWriteMode & CLogConfig::LOG_UDP)
 	{
-		if (OpenNet(pConfig->sNetAddr.c_str(), CLogConfig::LOG_UDP) < 0)
+		if (OpenNet(pConfig->sNetAddr.c_str(), CLogConfig::LOG_UDP, true) < 0)
 			return false;
 	}
 	Start(0, 45);
@@ -193,13 +192,26 @@ void CLog::Run(uint32_t)
 			{
 				CUnreliableFd *pSock = (CUnreliableFd *)m_pSock;
 				if (pSock)
-					pSock->Write(pMessage->oStream.str().c_str(), pMessage->oStream.str().size(), (sockaddr*)m_sUdpAddr.c_str(), m_sUdpAddr.size());
+				{
+					int iLen = pSock->Write(pMessage->oStream.str().c_str(), pMessage->oStream.str().size(), (sockaddr*)m_sUdpAddr.c_str(), m_sUdpAddr.size());
+					if (iLen < 0)
+						OpenNet(m_sAddr.c_str(), CLogConfig::LOG_UDP);
+				}
 			}
 			else if (m_dwWriteMode & CLogConfig::LOG_TCP || m_dwWriteMode & CLogConfig::LOG_UINX)
 			{
 				CReliableFd *pSock = (CReliableFd *)m_pSock;
 				if (pSock)
-					pSock->Write(pMessage->oStream.str().c_str(), pMessage->oStream.str().size());
+				{
+					int iLen = pSock->Write(pMessage->oStream.str().c_str(), pMessage->oStream.str().size());
+					if (iLen < 0)
+					{
+						if (m_dwWriteMode & CLogConfig::LOG_TCP)
+							OpenNet(m_sAddr.c_str(), CLogConfig::LOG_TCP);
+						else
+							OpenNet(m_sAddr.c_str(), CLogConfig::LOG_UINX);
+					}
+				}
 			}
 
 			delete pMessage;
@@ -268,58 +280,94 @@ FILE *CLog::OpenLogFile(bool bIsSwap, bool bIsCheck)
 	return m_pFile;
 }
 
-int CLog::OpenNet(const char *pszAddr, int iMode)
+int CLog::OpenNet(const char *pszAddr, int iMode, bool bIsReconnent)
 {
+	if (bIsReconnent)
+		m_sAddr = pszAddr;
+
 	if (iMode == CLogConfig::LOG_UINX)
 	{
-		CUnixCli *pCli = new CUnixCli();
-		pCli->SetSync();
+		CUnixCli *pCli = (CUnixCli *)GetFd(iMode);
 		if (pCli->Create(pszAddr, 0, 0) < 0)
 		{
 			printf("error: create unix socket failed, %s\n", pCli->GetErr().c_str());
 			return -1;
 		}
-		m_pSock = pCli;
 	}
 	else
 	{
 		const char *s = pszAddr;
 		while (*s != ':')
 			++s;
-		m_sAddr.append(pszAddr, s - pszAddr);
-		m_dwPort = atoi(++s);
-		if (m_sAddr.empty() || m_dwPort == 0)
+		std::string sAddr;
+		sAddr.append(pszAddr, s - pszAddr);
+		uint32_t dwPort = atoi(++s);
+		if (sAddr.empty() || dwPort == 0)
 		{
-			printf("error: error ip:%s and port:%d '%s'\n", m_sAddr.c_str(), m_dwPort, pszAddr);
+			printf("error: error ip:%s and port:%d '%s'\n", sAddr.c_str(), dwPort, pszAddr);
 			return -1;
 		}
 
 		if (iMode == CLogConfig::LOG_TCP)
 		{
-			CTcpCli* pCli = new CTcpCli();
-			pCli->SetSync();
-			if (pCli->Create(m_sAddr.c_str(), m_dwPort, 0, 0, m_dwVer) < 0)
+			CTcpCli *pCli = (CTcpCli *)GetFd(iMode);
+			if (pCli->Create(sAddr.c_str(), dwPort, 0, 0, m_dwVer) < 0)
 			{
 				printf("error: create tcp socket failed, %s\n", pCli->GetErr().c_str());
 				return -1;
 			}
-			m_pSock = pCli;
 		}
 		else
 		{
-			CUdpCli* pCli = new CUdpCli();
+			CUdpCli *pCli = (CUdpCli *)GetFd(iMode);
 			char szBuf[40];
 			uint32_t dwLen;
-			if (pCli->Create(m_sAddr.c_str(), m_dwPort, szBuf, &dwLen, m_dwVer) < 0)
+			if (pCli->Create(sAddr.c_str(), dwPort, szBuf, &dwLen, m_dwVer) < 0)
 			{
 				printf("error: create tcp socket failed, %s\n", pCli->GetErr().c_str());
 				return -1;
 			}
 
 			m_sUdpAddr.assign(szBuf, dwLen);
-			m_pSock = pCli;
 		}
 	}
 
 	return 0;
+}
+
+CFileFd *CLog::GetFd(int iMode)
+{
+	if (iMode == CLogConfig::LOG_UINX)
+	{
+		if (!m_pSock)
+		{
+			CUnixCli *pCli = new CUnixCli();
+			m_pSock = pCli;
+			pCli->SetSync();
+		}
+		else
+			m_pSock->Close();
+	}
+	else if (iMode == CLogConfig::LOG_TCP)
+	{
+		if (!m_pSock)
+		{
+			CTcpCli *pCli = new CTcpCli();
+			m_pSock = pCli;
+			pCli->SetSync();
+		}
+		else
+			m_pSock->Close();
+	}
+	else 
+	{
+		if (!m_pSock)
+		{
+			CUdpCli *pCli = new CUdpCli();
+			m_pSock = pCli;
+		}
+		else
+			m_pSock->Close();
+	}
+	return m_pSock;
 }

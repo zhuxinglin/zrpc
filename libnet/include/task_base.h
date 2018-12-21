@@ -28,8 +28,26 @@ struct ITaskBase
     virtual void Run() = 0;
     virtual void Error(const char* pszExitStr){}
     virtual void Release(){}
-    int Yield(uint32_t dwTimeoutMs = 0, int iFd = -1, int iEvent = 0);
-    int Yield(uint32_t dwTimeoutMs, int iFd, int iCurrMod, int iFinishMod, int iEvent);
+    int YieldEventDel(uint32_t dwTimeoutMs, int iFd, int iSetEvent, int iRestoreEvent);
+    int YieldEventRestore(uint32_t dwTimeoutMs, int iFd, int iSetEvent, int iRestoreEvent);
+    int Yield(uint32_t dwTimeoutMs = 0);
+
+    enum _YieldOpt
+    {
+        YIELD_ADD = 0,
+        YIELD_MOD = 1,
+        YIELD_DEL = 2,
+    };
+
+    enum _YieldEvent
+    {
+        YIELD_ET_IN = 0,
+        YIELD_ET_OUT = 1,
+        YIELD_IN = 2,
+        YIELD_OUT = 3,
+    };
+
+    int Yield(uint32_t dwTimeoutMs, int iFd, int iSetOpt, int iRestoreOpt, int iSetEvent, int iRestoreEvent);
     static uint64_t GenCid(int iFd);
     static int GetFd(uint64_t qwCid);
     static uint32_t GetSubCId(uint64_t qwCid);

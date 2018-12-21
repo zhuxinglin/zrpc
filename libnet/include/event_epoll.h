@@ -27,6 +27,22 @@ public:
     ~CEventEpoll();
 
 public:
+    enum _SetCtlOpt
+    {
+        EPOLL_ADD = 0,
+        EPOLL_MOD = 1,
+        EPOLL_DEL = 2,
+    };
+
+    enum _SetCtlEvent
+    {
+        EPOLL_ET_IN = 0,
+        EPOLL_ET_OUT = 1,
+        EPOLL_IN = 2,
+        EPOLL_OUT = 3,
+    };
+
+public:
     int Create();
     int SetCtl(int iFd, int iOpt, int iEvent, void *pData);
     int Wait(epoll_event *pEv, int iEvSize, uint32_t dwTimeout);

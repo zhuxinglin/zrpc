@@ -213,7 +213,7 @@ int CSockFd::Wait(int iEvent, uint32_t dwTimeoutMs, ITaskBase *pTask)
     else if (dwTimeoutMs == (uint32_t)-1)
         dwTimeoutMs = 0;
 
-    int iRet = pTask->Yield(dwTimeoutMs, m_iFd, 0, 2, iEvent);
+    int iRet = pTask->YieldEventDel(dwTimeoutMs, m_iFd, iEvent, 0);
 
     if (dwTimeoutMs != 0 && iRet < 0)
         return -1;
@@ -336,7 +336,7 @@ int CReliableFd::Write(const char *pszBuf, int iBufLen, int iFd)
     while (!m_bAsync)
     {
         errno = 0;
-        int iRet = send(iFd, pszBuf, iBufLen, MSG_NOSIGNAL | MSG_DONTWAIT);
+        int iRet = send(iFd, pszBuf, iBufLen, 0);
         if (-1 == iRet && (errno == EAGAIN || errno == EINTR))
             continue;
 
@@ -873,7 +873,7 @@ int CUnixCli::Create(const char *pszAddr, uint32_t dwTimeout, ITaskBase *pTask)
             break;
         }
 
-        if (!m_bAsync && WaitConnect(dwTimeout, pTask) < 0)
+        if (m_bAsync && WaitConnect(dwTimeout, pTask) < 0)
         {
             char szBuf[128];
             snprintf(szBuf, sizeof(szBuf), "connect unix timeout! addr:[%s], timeout:[%u], ", pszAddr, dwTimeout);
@@ -914,13 +914,43 @@ void CTcpsReliableFd::Close(int iFd)
     // 关闭连接
     if (m_pSsl)
     {
-        SSL_shutdown(m_pSsl);
+        int n, iSslErr;
+        while ((n = SSL_shutdown(m_pSsl)) != 1)
+        {
+            iSslErr = SSL_get_error(m_pSsl, n);
+            printf("++++++++++++++++++++++++++++++++++ %d  %d  %d  %d\n", n, iSslErr, SSL_ERROR_WANT_WRITE, SSL_ERROR_WANT_READ);
+            if (!m_bAsync)
+            {
+                if (iSslErr == 0 || iSslErr == SSL_ERROR_ZERO_RETURN)
+                    break;
+                continue;
+            }
+
+            if (iSslErr == SSL_ERROR_WANT_WRITE)
+            {
+                printf("+++++++++++++++++++WWWWWWWWWWWWWWWWWWWW+++++++++++++++\n");
+                if (Wait(ITaskBase::YIELD_ET_OUT, 3e3, m_pTask) < 0)
+                    break;
+            }
+            else if (iSslErr == SSL_ERROR_WANT_READ)
+            {
+                printf("+++++++++++++++++++RRRRRRRRRRRRRRRR+++++++++++++++\n");
+                if (Wait(ITaskBase::YIELD_ET_IN, 3e3, m_pTask) < 0)
+                    break;
+            }
+            else
+                break;
+        }
+
         SSL_free(m_pSsl);
     }
     m_pSsl = NULL;
 
     if (iFd != -1)
+    {
+        shutdown(iFd, 0);
         close(iFd);
+    }
     m_iFd = -1;
 }
 
@@ -964,13 +994,14 @@ int CTcpsReliableFd::Accept(uint32_t dwTimeout, ITaskBase *pTask)
         SetErr("SSL_set_fd failed");
         return -1;
     }
+    m_pTask = pTask;
     SSL_set_accept_state(m_pSsl);
     while ((iRes = SSL_do_handshake(m_pSsl)) != 1)
     {
         int iErr = SSL_get_error(m_pSsl, iRes);
         if (iErr == SSL_ERROR_WANT_WRITE)
         {
-            if (WaitSslAccept(2, dwTimeout, pTask) < 0)
+            if (WaitSslAccept(ITaskBase::YIELD_ET_OUT, ITaskBase::YIELD_ET_IN, dwTimeout) < 0)
             {
                 SetErr("SSL_accept conttect timeout");
                 return -1;
@@ -978,7 +1009,7 @@ int CTcpsReliableFd::Accept(uint32_t dwTimeout, ITaskBase *pTask)
         }
         else if (iErr == SSL_ERROR_WANT_READ)
         {
-            if (WaitSslAccept(0, dwTimeout, pTask) < 0)
+            if (WaitSslAccept(-1, -1, dwTimeout) < 0)
             {
                 SetErr("SSL_accept conttect timeout");
                 return -1;
@@ -993,14 +1024,14 @@ int CTcpsReliableFd::Accept(uint32_t dwTimeout, ITaskBase *pTask)
     return m_iFd;
 }
 
-int CTcpsReliableFd::WaitSslAccept(int iEvent, uint32_t dwTimeoutMs, ITaskBase *pTask)
+int CTcpsReliableFd::WaitSslAccept(int iSetEvent, int iRestoreEvent, uint32_t dwTimeoutMs)
 {
     if (dwTimeoutMs == 0)
         return 0;
     else if (dwTimeoutMs == (uint32_t)-1)
         dwTimeoutMs = 0;
 
-    int iRet = pTask->Yield(dwTimeoutMs, m_iFd, iEvent);
+    int iRet = m_pTask->YieldEventRestore(dwTimeoutMs, m_iFd, iSetEvent, iRestoreEvent);
 
     if (dwTimeoutMs != 0 && iRet < 0)
         return -1;
@@ -1022,7 +1053,6 @@ CTcpsSvc::CTcpsSvc()
 
 CTcpsSvc::~CTcpsSvc()
 {
-    printf("ssssssssssssss   ctx\n");
     // 释放ssl资源
     if (m_pCtx)
         SSL_CTX_free(m_pCtx);
@@ -1091,7 +1121,12 @@ CTcpsCli::CTcpsCli()
 
 CTcpsCli::~CTcpsCli()
 {
+    Close();
 
+    // 释放ssl资源
+    if (m_pCtx)
+        SSL_CTX_free(m_pCtx);
+    m_pCtx = NULL;
 }
 
 int CTcpsCli::Create(const char *pszAddr, uint16_t wPort, const char *pszCacert, const char *pszPass,
@@ -1183,6 +1218,7 @@ int CTcpsCli::Create(const char *pszAddr, uint16_t wPort, const char *pszCacert,
         return 0;
     }
 
+    m_pTask = pTask;
     SSL_set_connect_state(m_pSsl);
 
     while ((iRes = SSL_do_handshake(m_pSsl)) != 1)
@@ -1190,7 +1226,7 @@ int CTcpsCli::Create(const char *pszAddr, uint16_t wPort, const char *pszCacert,
         int iErr = SSL_get_error(m_pSsl, iRes);
         if (iErr == SSL_ERROR_WANT_WRITE)
         {
-            if (Wait(2, dwTimeout, pTask) < 0)
+            if (Wait(ITaskBase::YIELD_ET_OUT, dwTimeout, pTask) < 0)
             {
                 SetErr("SSL_connect conttect timeout");
                 return -1;
@@ -1198,7 +1234,7 @@ int CTcpsCli::Create(const char *pszAddr, uint16_t wPort, const char *pszCacert,
         }
         else if (iErr == SSL_ERROR_WANT_READ)
         {
-            if (Wait(0, dwTimeout, pTask) < 0)
+            if (Wait(ITaskBase::YIELD_ET_IN, dwTimeout, pTask) < 0)
             {
                 SetErr("SSL_connect conttect timeout");
                 return -1;

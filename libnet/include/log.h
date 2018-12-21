@@ -94,14 +94,14 @@ private:
 	void GetProcName();
 	FILE* OpenLogFile(bool bIsSwap, bool bIsCheck = false);
 	std::string GetSwapLogName();
-	int OpenNet(const char* pszAddr, int iMode);
+	int OpenNet(const char* pszAddr, int iMode, bool bIsReconnent = false);
+	CFileFd* GetFd(int iMode);
 
 private:
 	bool m_bIsInit;
 	std::string m_sLogDir;
 	std::string m_sAddr;
 	std::string m_sUdpAddr;
-	uint16_t m_dwPort;
 	uint16_t m_dwVer;
 	uint32_t m_dwWriteMode;
 	uint32_t m_dwLevel;

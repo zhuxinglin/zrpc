@@ -168,7 +168,7 @@ int CNet::Register(NEWOBJ(ITaskBase, pNewObj), void *pData, uint16_t wProtocol, 
     pEvent->dwSync = 0;
     pEvent->dwTimeoutUs = dwTimeoutMs * 1e3;
 
-    iRet = m_oEvent.SetCtl(pFd->GetFd(), 0, 3, pEvent);
+    iRet = m_oEvent.SetCtl(pFd->GetFd(), 0, CEventEpoll::EPOLL_IN, pEvent);
     if (iRet < 0)
     {
         m_sErr = m_oEvent.GetErr();
@@ -567,7 +567,7 @@ int CNet::Start()
             }
 
             uint32_t dwRunstatus = pTask->m_wRunStatus;
-            iRet = pSchedule->PushMsg(iFd, 0, 0, (void *)pTask->m_qwCid);
+            iRet = pSchedule->PushMsg(iFd, CEventEpoll::EPOLL_ADD, CEventEpoll::EPOLL_ET_IN, (void *)pTask->m_qwCid);
             if (iRet < 0)
             {
                 pTask->Error(pSchedule->GetErr().c_str());
@@ -623,12 +623,12 @@ int CNet::RemoveServer(void *pEvent, void *pData)
     if (strcmp(pNet->szServerName, pRemove->pszName) == 0)
     {
         pRemove->iRet = 0;
-        m_oEvent.SetCtl(pNet->pFd->GetFd(), 2, 0, 0);
+        m_oEvent.SetCtl(pNet->pFd->GetFd(), CEventEpoll::EPOLL_DEL, 0, 0);
         pNet->pFd->Close();
 
         CCoroutine *pCor = CCoroutine::GetObj();
         CNetTask *pNetTask = (CNetTask *)pCor->GetTaskBase();
-        pNetTask->Yield(3000, -1, -1);
+        pNetTask->Yield(3e3);
         delete pNet->pFd;
         pNet->pFd = 0;
         return -1;

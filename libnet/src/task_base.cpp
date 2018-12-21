@@ -20,6 +20,7 @@
 #include "schedule.h"
 #include <stdio.h>
 #include "timer_fd.h"
+#include "event_epoll.h"
 
 volatile uint32_t g_dwCid = 0;
 typedef union _Cid
@@ -46,12 +47,22 @@ ITaskBase::ITaskBase() : m_pSp(0),
 {
 }
 
-int ITaskBase::Yield(uint32_t dwTimeoutMs, int iFd, int iEvent)
+int ITaskBase::YieldEventDel(uint32_t dwTimeoutMs, int iFd, int iSetEvent, int iRestoreEvent)
 {
-    return Yield(dwTimeoutMs, iFd, 0, 2, iEvent);
+    return Yield(dwTimeoutMs, iFd, YIELD_ADD, YIELD_DEL, iSetEvent, iRestoreEvent);
 }
 
-int ITaskBase::Yield(uint32_t dwTimeoutMs, int iFd, int iCurrMod, int iFinishMod, int iEvent)
+int ITaskBase::YieldEventRestore(uint32_t dwTimeoutMs, int iFd, int iSetEvent, int iRestoreEvent)
+{
+    return Yield(dwTimeoutMs, iFd, YIELD_MOD, YIELD_MOD, iSetEvent, iRestoreEvent);
+}
+
+int ITaskBase::Yield(uint32_t dwTimeoutMs)
+{
+    return Yield(dwTimeoutMs, -1, 0, 0, 0, 0);
+}
+
+int ITaskBase::Yield(uint32_t dwTimeoutMs, int iFd, int iSetOpt, int iRestoreOpt, int iSetEvent, int iRestoreEvent)
 {
     CCoroutine *pCor = CCoroutine::GetObj();
 
@@ -66,13 +77,13 @@ int ITaskBase::Yield(uint32_t dwTimeoutMs, int iFd, int iCurrMod, int iFinishMod
 
     CThread *pSch = CSchedule::GetObj();
 
-    if (iEvent != -1 && iFd != -1)
-        pSch->PushMsg(iFd, iCurrMod, iEvent, (void *)m_qwCid);
+    if (iSetEvent != -1 && iFd != -1)
+        pSch->PushMsg(iFd, iSetOpt, iSetEvent, (void *)m_qwCid);
 
-    pCor->Swap(this, 1, iFd, iCurrMod, iEvent, false);
+    pCor->Swap(this, 1, iFd, iSetOpt, iSetEvent, false);
 
-    if (iEvent != -1 && iFd != -1)
-        pSch->PushMsg(iFd, iFinishMod, 0, (void *)m_qwCid);
+    if (iRestoreEvent != -1 && iFd != -1)
+        pSch->PushMsg(iFd, iRestoreOpt, iRestoreEvent, (void *)m_qwCid);
     m_dwTimeout = dwTimeout;
 
     if (m_wStatus == STATUS_TIMEOUT)

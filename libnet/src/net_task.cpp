@@ -21,6 +21,7 @@
 #include "timer_fd.h"
 #include "event_fd.h"
 #include "schedule.h"
+#include "event_epoll.h"
 
 CNetTask::CNetTask() : m_pFd(0), m_wUdpAddLen(0)
 {
@@ -96,7 +97,7 @@ int CNetTask::WriteReliable(const char *pszBuf, int iLen)
 
         if (iRet == 0)
         {
-            Yield(0, m_pFd->GetFd(), 1, 1, 2);
+            YieldEventRestore(0, m_pFd->GetFd(), ITaskBase::YIELD_ET_OUT, ITaskBase::YIELD_ET_IN);
             continue;
         }
 
@@ -119,7 +120,7 @@ int CNetTask::WriteUnreliable(const char *pszBuf, int iLen)
 
         if (iRet == 0)
         {
-            Yield(0, m_pFd->GetFd(), 1, 1, 2);
+            YieldEventRestore(0, m_pFd->GetFd(), ITaskBase::YIELD_ET_OUT, ITaskBase::YIELD_ET_IN);
             continue;
         }
 
@@ -197,7 +198,7 @@ int CNetTask::WriteTcps(const char *pszBuf, int iLen)
 
         if (iRet == 0)
         {
-            Yield(0, m_pFd->GetFd(), 1, 1, 2);
+            YieldEventRestore(0, m_pFd->GetFd(), ITaskBase::YIELD_ET_OUT, ITaskBase::YIELD_ET_IN);
             continue;
         }
 
@@ -210,7 +211,7 @@ int CNetTask::WriteTcps(const char *pszBuf, int iLen)
 
 void CNetTask::Sleep(uint32_t dwTimeoutMs)
 {
-    Yield(dwTimeoutMs, -1, -1);
+    Yield(dwTimeoutMs);
 }
 
 void CNetTask::Close()

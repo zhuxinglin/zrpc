@@ -227,13 +227,16 @@ public:
     int Write(const char *pszBuf, int iBufLen);
     int Accept(uint32_t dwTimeout, ITaskBase *pTask);
 
-private:
+protected:
     virtual void Close(int iFd = -1);
-    int WaitSslAccept(int iEvent, uint32_t dwTimeoutMs, ITaskBase *pTask);
 
-  protected:
+private:
+    int WaitSslAccept(int iEvent, int iRestoreEvent, uint32_t dwTimeoutMs);
+
+protected:
     SSL_CTX *m_pCtx;
     SSL *m_pSsl;
+    ITaskBase *m_pTask;
 };
 
 //============================================================================

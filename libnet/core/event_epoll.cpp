@@ -51,13 +51,9 @@ int CEventEpoll::SetCtl(int iFd, int iOpt, int iEvent, void *pData)
     else if (iEvent == 1)
         ev.events = EPOLLET | EPOLLOUT;
     else if (iEvent == 2)
-        ev.events = EPOLLET | EPOLLOUT | EPOLLIN;
-    else if (iEvent == 3)
         ev.events = EPOLLIN;
-    else if (iEvent == 4)
-        ev.events = EPOLLOUT;
     else
-        ev.events = EPOLLOUT | EPOLLIN;
+        ev.events = EPOLLOUT;
 
     ev.data.ptr = pData;
     int iRet = epoll_ctl(m_iFd, iOpt, iFd, &ev);
