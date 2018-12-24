@@ -52,6 +52,11 @@ int CTestAd::Process(CControllerBase *pController, uint64_t dwKey, std::string *
     return 0;
 }
 
+int CTestAd::Process(CControllerBase *pController, uint64_t dwKey, std::string *pReq, std::string *pResp)
+{
+    return 0;
+}
+
 void CTestAd::Release()
 {
     delete this;

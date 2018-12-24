@@ -25,6 +25,7 @@
 struct CControllerBase
 {
     virtual int WriteResp(const char *pszData, int iDataLen, int iCode, int iRet, bool bIsHeader) = 0;
+    virtual int CallPlugin(uint64_t dwKey, std::string *pReq, std::string *pResp) = 0;
 };
 
 struct CHttpController : public CControllerBase
@@ -38,6 +39,7 @@ struct CPluginBase
     virtual int Initialize() = 0;
     virtual int GetRouteTable(std::set<uint64_t>& setKey) = 0;
     virtual int Process(CControllerBase *pController, uint64_t dwKey, std::string *pMessage) = 0;
+    virtual int Process(CControllerBase *pController, uint64_t dwKey, std::string *pReq, std::string *pResp) = 0;
     virtual void Release() = 0;
 };
 

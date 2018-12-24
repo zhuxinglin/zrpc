@@ -41,10 +41,11 @@ private:
     void SetUri();
 
 private:
-  virtual int WriteResp(const char *pszData, int iDataLen, int iCode, int iRet, bool bIsHeader);
-  virtual const char *GetHttpHeader(const char *pszKey);
-  virtual void SetHttpHeader(const char *pszKey, const char *pszValue);
-  virtual void Error(const char* pszExitStr);
+    virtual int WriteResp(const char *pszData, int iDataLen, int iCode, int iRet, bool bIsHeader);
+    virtual int CallPlugin(uint64_t dwKey, std::string *pReq, std::string *pResp);
+    virtual const char *GetHttpHeader(const char *pszKey);
+    virtual void SetHttpHeader(const char *pszKey, const char *pszValue);
+    virtual void Error(const char* pszExitStr);
 
 private:
     static int OnUri(http_parser *, const char *at, size_t length);

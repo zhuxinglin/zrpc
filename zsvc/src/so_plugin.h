@@ -36,6 +36,7 @@ public:
     int Uninstall(map_so_info *pmapRoute, const char* pszSoName);
 
     int ExecSo(CControllerBase* pContrller, uint64_t qwKey, std::string* pMessage, int& iCode);
+    int InnerSo(CControllerBase* pContrller, uint64_t dwKey, std::string *pReq, std::string *pResp);
 
 private:
     int LoadCallSo(const char* pszSoName);

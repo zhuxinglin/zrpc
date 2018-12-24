@@ -29,6 +29,7 @@ private:
     virtual int Initialize();
     virtual int GetRouteTable(std::set<uint64_t>& setKey);
     virtual int Process(CControllerBase *pController, uint64_t dwKey, std::string *pMessage);
+    virtual int Process(CControllerBase *pController, uint64_t dwKey, std::string *pReq, std::string *pResp);
     virtual void Release();
 };
 

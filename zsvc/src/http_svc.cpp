@@ -86,6 +86,12 @@ void CHttpSvc::Go()
     } while (m_iKeepAlive);
 }
 
+int CHttpSvc::CallPlugin(uint64_t dwKey, std::string *pReq, std::string *pResp)
+{
+    CSoPlugin *pPlugin = (CSoPlugin *)m_pData;
+    return pPlugin->InnerSo(this, dwKey, pReq, pResp);
+}
+
 int CHttpSvc::ReadHttp()
 {
     http_parser_init(&m_oParser, HTTP_REQUEST);

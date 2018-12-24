@@ -103,6 +103,24 @@ int CSoPlugin::ExecSo(CControllerBase *pContrller, uint64_t qwKey, std::string *
     return iRet;
 }
 
+int CSoPlugin::InnerSo(CControllerBase *pContrller, uint64_t qwKey, std::string *pReq, std::string *pResp)
+{
+    map_so_info *pRoute = m_mapRoute;
+    int iRet = -1;
+    for (map_so_info_it it = pRoute->begin(); it != pRoute->end(); ++it)
+    {
+        set_key_it iter = it->second->find(qwKey);
+        if (iter == it->second->end())
+            continue;
+
+        __sync_fetch_and_add(&it->first->dwCount, 1);
+        iRet = it->first->pPlugin->Process(pContrller, qwKey, pReq, pResp);
+        __sync_fetch_and_sub(&it->first->dwCount, 1);
+        break;
+    }
+    return iRet;
+}
+
 int CSoPlugin::LoadCallSo(const char *pszSoName)
 {
     set_key* pkey;

@@ -915,13 +915,14 @@ void CTcpsReliableFd::Close(int iFd)
     if (m_pSsl)
     {
         int iMode = SSL_RECEIVED_SHUTDOWN | SSL_SENT_SHUTDOWN;
-        SSL_set_quiet_shutdown(m_pSsl, 1);
         SSL_set_shutdown(m_pSsl, iMode);
+/*
+        SSL_set_quiet_shutdown(m_pSsl, 1);
         int n, iSslErr;
         while ((n = SSL_shutdown(m_pSsl)) != 1)
         {
             iSslErr = SSL_get_error(m_pSsl, n);
-            printf("++++++++++++++++++++++++++++++++++ %d  %d  %d  %d\n", n, iSslErr, SSL_ERROR_WANT_WRITE, SSL_ERROR_WANT_READ);
+            //printf("++++++++++++++++++++++++++++++++++ %d  %d  %d  %d\n", n, iSslErr, SSL_ERROR_WANT_WRITE, SSL_ERROR_WANT_READ);
             if (!m_bAsync)
             {
                 if (iSslErr == 0 || iSslErr == SSL_ERROR_ZERO_RETURN)
@@ -931,20 +932,18 @@ void CTcpsReliableFd::Close(int iFd)
 
             if (iSslErr == SSL_ERROR_WANT_WRITE)
             {
-                printf("+++++++++++++++++++WWWWWWWWWWWWWWWWWWWW+++++++++++++++\n");
                 if (Wait(ITaskBase::YIELD_ET_OUT, 3e3, m_pTask) < 0)
                     break;
             }
             else if (iSslErr == SSL_ERROR_WANT_READ)
             {
-                printf("+++++++++++++++++++RRRRRRRRRRRRRRRR+++++++++++++++\n");
                 if (Wait(ITaskBase::YIELD_ET_IN, 3e3, m_pTask) < 0)
                     break;
             }
             else
                 break;
         }
-
+*/
         SSL_free(m_pSsl);
     }
     m_pSsl = NULL;
@@ -1024,7 +1023,7 @@ int CTcpsReliableFd::Accept(uint32_t dwTimeout, ITaskBase *pTask)
             return -1;
         }
     }
-    return m_iFd;
+    return X509NameOneline() < 0 ? -1 : m_iFd;
 }
 
 int CTcpsReliableFd::WaitSslAccept(int iSetEvent, int iRestoreEvent, uint32_t dwTimeoutMs)
@@ -1040,6 +1039,36 @@ int CTcpsReliableFd::WaitSslAccept(int iSetEvent, int iRestoreEvent, uint32_t dw
         return -1;
 
     return 0;
+}
+
+int CTcpsReliableFd::X509NameOneline()
+{
+    X509* pCert;
+    pCert = SSL_get_peer_certificate(m_pSsl);
+    if (!pCert)
+        return 0;
+
+    int iRet = -1;
+    do
+    {
+        char *pStr = X509_NAME_oneline(X509_get_subject_name(pCert), 0, 0);
+        if (!pStr)
+        {
+            SetErr("X509_NAME_oneline X509_get_subject_name failed");
+            break;
+        }
+        OPENSSL_free(pStr);
+
+        pStr = X509_NAME_oneline(X509_get_issuer_name(pCert), 0, 0);
+        if (!pStr)
+        {
+            SetErr("X509_NAME_oneline X509_get_issuer_name failed");
+            break;
+        }
+        iRet = 0;
+    }while (0);
+    X509_free(pCert);
+    return iRet;
 }
 
 //============================================================================
@@ -1076,7 +1105,7 @@ int CTcpsSvc::Create(const char *pszAddr, uint16_t wPort, uint32_t dwListen, con
     m_iFd = oSvc.GetFd();
     oSvc.SetFd(-1);
 
-    m_pCtx = SSL_CTX_new(SSLv23_method());
+    m_pCtx = SSL_CTX_new(SSLv23_server_method());
     if (!m_pCtx)
     {
         SetErr("function SSL_CTX_new fail");
@@ -1126,8 +1155,6 @@ CTcpsCli::CTcpsCli()
 
 CTcpsCli::~CTcpsCli()
 {
-    Close();
-
     // 释放ssl资源
     if (m_pCtx)
         SSL_CTX_free(m_pCtx);
@@ -1253,5 +1280,5 @@ int CTcpsCli::Create(const char *pszAddr, uint16_t wPort, const char *pszCacert,
             return -1;
         }
     }
-    return 0;
+    return X509NameOneline() < 0 ? -1 : 0;
 }
