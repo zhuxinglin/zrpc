@@ -75,7 +75,7 @@ int CNet::Init(uint32_t dwWorkThread, uint32_t dwSp)
 
     if (g_dwWorkThreadCount == 1)
         g_dwWorkThreadCount = 2;
-/*
+
     if (!CCoroutine::GetObj())
     {
         m_sErr = "get coroutine object fail";
@@ -90,7 +90,7 @@ int CNet::Init(uint32_t dwWorkThread, uint32_t dwSp)
         m_sErr = "get task queue object fail";
         return -1;
     }
-*/
+
     if (Go() < 0)
         return -1;
 
