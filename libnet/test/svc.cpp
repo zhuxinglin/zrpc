@@ -84,7 +84,7 @@ int main(int argc, char const *argv[])
         return 0;
     }
 
-    if (oNet.Register(NewSvc, 1, 9898, 0, 4, 6e3) < 0)
+    if (oNet.Register(NewSvc, 0, ITaskBase::PROTOCOL_TCP, 9898, 0, 4, 3000, "ssd", 0, 0) < 0)
     {
         printf("************** %s\n", oNet.GetErr());
         return 0;

@@ -287,13 +287,9 @@ int CReliableFd::Accept(char *pszAddr, int iAddrLen)
     if (pszAddr)
     {
         if (4 == m_dwVer)
-        {
             inet_ntop(AF_INET, &addr4.sin_addr, pszAddr, iAddrLen);
-        }
         else
-        {
             inet_ntop(AF_INET6, &addr6.sin6_addr, pszAddr, iAddrLen);
-        }
     }
 
     return iFd;

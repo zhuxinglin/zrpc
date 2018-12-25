@@ -32,7 +32,7 @@ struct CRemoveServer
     int iRet;
 };
 
-uint32_t g_dwWorkThreadCount = 0;
+uint32_t g_dwWorkThreadCount = 2;
 CGo *g_pGo = 0;
 //
 CNet::CNet() : m_oNetPool(sizeof(CNetEvent), 8)
@@ -164,7 +164,7 @@ int CNet::Register(NEWOBJ(ITaskBase, pNewObj), void *pData, uint16_t wProtocol, 
     pEvent->pFd = pFd;
     pEvent->wProtocol = wProtocol;
     pEvent->wVer = wVer;
-    memcpy(pEvent->szServerName, pszServerName, sizeof(pEvent->szServerName));
+    memcpy(pEvent->szServerName, pszServerName, sizeof(pEvent->szServerName) - 1);
     pEvent->dwSync = 0;
     pEvent->dwTimeoutUs = dwTimeoutMs * 1e3;
 
@@ -211,7 +211,7 @@ int CNet::Register(NEWOBJ(ITaskBase, pNewObj), void *pData, uint16_t wProtocol, 
             return -1;
         }
         pNet->m_qwCid = ITaskBase::GenCid(pTimer->GetFd());
-        strcpy(pNet->m_szAddr, "timer fd");
+        strcpy(pNet->m_szAddr, "timer_fd");
     }
     break;
 
@@ -232,7 +232,7 @@ int CNet::Register(NEWOBJ(ITaskBase, pNewObj), void *pData, uint16_t wProtocol, 
             return -1;
         }
         pTask->m_qwCid = ITaskBase::GenCid(pEvent->GetFd());
-        strcpy(pNet->m_szAddr, "event fd");
+        strcpy(pNet->m_szAddr, "event_fd");
     }
     break;
     }
@@ -416,8 +416,8 @@ int CNet::SetUdpTask(NEWOBJ(ITaskBase, pNewObj), CFileFd* pFd, void *pData, uint
     if (pszIP)
     {
         int iLen = strlen(pszIP);
-        if (iLen > (int)sizeof(pTask->m_szAddr))
-            iLen = sizeof(pTask->m_szAddr);
+        if (iLen > (int)(sizeof(pTask->m_szAddr) - 1))
+            iLen = sizeof(pTask->m_szAddr) - 1;
         strncpy(pTask->m_szAddr, pszIP, iLen);
     }
 
@@ -514,10 +514,10 @@ int CNet::Start()
             oFd.SetVer(pEvent->wVer);
 
             int iFd;
-            if (pEvent->wProtocol != ITaskBase::PROTOCOL_TCP)
+            if (pEvent->wProtocol != ITaskBase::PROTOCOL_TCP && pEvent->wProtocol != ITaskBase::PROTOCOL_TCPS)
                 iFd = oFd.Accept();
             else
-                iFd = oFd.Accept(pTask->m_szAddr, sizeof(pTask->m_szAddr));
+                iFd = oFd.Accept(pTask->m_szAddr, sizeof(pTask->m_szAddr) - 1);
 
             if (iFd < 0)
             {

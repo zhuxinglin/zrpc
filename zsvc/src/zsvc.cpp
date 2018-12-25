@@ -60,7 +60,6 @@ int CJSvc::Init(CConfig *pCfg)
         LOGE << "load plugin fail";
         return -1;
     }
-
     return 0;
 }
 

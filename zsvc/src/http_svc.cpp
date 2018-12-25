@@ -77,7 +77,7 @@ void CHttpSvc::Go()
 
         SetUri();
 
-        LOGI << m_oHttpReq.sUri;
+        LOGI << m_szAddr << " " << m_oHttpReq.sUri << "  ===== " << m_oHttpReq.szBody;
 
         int iCode;
         int iRet = pPlugin->ExecSo(this, CUtilHash::UriHash(m_oHttpReq.sUri.c_str(), m_oHttpReq.sUri.size()), &m_oHttpReq.szBody, iCode);
