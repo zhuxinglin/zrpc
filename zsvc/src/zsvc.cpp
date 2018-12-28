@@ -18,16 +18,19 @@
 #include "http_svc.h"
 #include <socket_fd.h>
 #include "log.h"
+#include "libnet.h"
 
 const char *g_pszPluginPath = "./plugin/";
 uint32_t g_dwSoUninstallInterval = 10;
 
 CJSvc::CJSvc()
 {
+    CNet::GetObj();
 }
 
 CJSvc::~CJSvc()
 {
+    CNet::Release();
 }
 
 int CJSvc::Init(CConfig *pCfg)
@@ -48,7 +51,7 @@ int CJSvc::Init(CConfig *pCfg)
     }
 
     // 初始化插件监控
-    if (m_oMonitorSo.InitMonitorDir(g_pszPluginPath, &m_oNet) < 0)
+    if (m_oMonitorSo.InitMonitorDir(g_pszPluginPath) < 0)
     {
         LOGE << "initialize plugin monitor fail";
         return -1;
@@ -70,7 +73,7 @@ int CJSvc::Start()
         LOGE << "start plugin monitor fail";
         return -1;
     }
-    return m_oNet.Start();
+    return CNet::GetObj()->Start();
 }
 
 int CJSvc::InitGlobal(CConfig::config_info *pCfg)
@@ -104,10 +107,10 @@ int CJSvc::InitGlobal(CConfig::config_info *pCfg)
             dwStackSize = dwSp * dwStackSize;
     }
 
-    int iRet = m_oNet.Init(dwThreadCount, dwStackSize);
+    int iRet = CNet::GetObj()->Init(dwThreadCount, dwStackSize);
     if (iRet < 0)
     {
-        LOGE << m_oNet.GetErr();
+        LOGE << CNet::GetObj()->GetErr();
     }
 
     it = pCfg->find("so_uninstall_interval");
@@ -250,9 +253,9 @@ int CJSvc::Register(CConfig::config_info *pCfg)
         pszSslKey = it->second.c_str();
     }
 
-    if (m_oNet.Register(pNewObj, &m_oPlugin, wProtocol, wPort, s, wVer, dwTimeout, pszServerName, pszSslCert, pszSslKey) < 0)
+    if (CNet::GetObj()->Register(pNewObj, &m_oPlugin, wProtocol, wPort, s, wVer, dwTimeout, pszServerName, pszSslCert, pszSslKey) < 0)
     {
-        LOGE << m_oNet.GetErr();
+        LOGE << CNet::GetObj()->GetErr();
         return -1;
     }
     return 0;

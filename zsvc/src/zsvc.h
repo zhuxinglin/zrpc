@@ -18,7 +18,6 @@
 #define __JSVC__H__
 
 #include "config.h"
-#include "libnet.h"
 #include "monitor_so.h"
 #include "so_plugin.h"
 
@@ -39,7 +38,6 @@ private:
     int LogInit(CConfig::config_info* pCfg);
 
 private:
-    CNet m_oNet;
     CMonitorSo m_oMonitorSo;
     CSoPlugin m_oPlugin;
 };

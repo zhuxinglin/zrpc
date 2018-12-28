@@ -44,6 +44,8 @@ public:
 
     int SwapTimerExec(uint64_t qwCurTime);
 
+    uint32_t GetCurTaskCount() const{return m_dwCurTaskCount;};
+
 private:
     CTaskNode* AddTask(CTaskNode* pNode, int iRunStatus);
     int DelRbTask(CTaskWaitRb *pRb, CTaskNode *pNode);
@@ -58,6 +60,7 @@ private:
 
     CTaskWaitRb *m_pWait;
     uint32_t m_dwSumCpu;
+    volatile uint32_t m_dwCurTaskCount;
 
     static CTaskQueue* m_pSelf;
 };

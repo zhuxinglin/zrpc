@@ -21,6 +21,7 @@
 #include "plugin_base.h"
 #include "so_plugin.h"
 #include "log.h"
+#include "timer_fd.h"
 
 const int g_iReadLen = 8192;
 
@@ -77,12 +78,11 @@ void CHttpSvc::Go()
 
         SetUri();
 
-        LOGI << m_szAddr << " " << m_oHttpReq.sUri << "  ===== " << m_oHttpReq.szBody;
-
         int iCode;
         int iRet = pPlugin->ExecSo(this, CUtilHash::UriHash(m_oHttpReq.sUri.c_str(), m_oHttpReq.sUri.size()), &m_oHttpReq.szBody, iCode);
         if (iCode != 200)
             WriteHttp(0, 0, iCode, iRet);
+        LOGI << m_szAddr << " " << m_oHttpReq.sUri << "  ===== " << m_oHttpReq.szBody << "  time:" << CTimerFd::GetUs() - m_qwConnectTime;
     } while (m_iKeepAlive);
 }
 

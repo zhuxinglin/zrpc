@@ -28,7 +28,7 @@ public:
     ~CMonitorSo();
 
 public:
-    int InitMonitorDir(const char* pszDir, CNet* pNet);
+    int InitMonitorDir(const char* pszDir);
     int Start(CSoPlugin* pPlugin);
 
 private:
@@ -37,7 +37,6 @@ private:
 private:
     int m_iFd;
     int m_iIw;
-    CNet* m_pNet;
     std::string m_sSoPath;
 };
 

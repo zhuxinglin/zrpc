@@ -22,6 +22,13 @@
 
 #define NEWOBJ(x, v)    x* (*v)()
 
+// ²»Îªc++ 11°æ±¾
+#if __cplusplus < 201103L
+#define FINAL
+#else
+#define FINAL       final
+#endif
+
 struct ITaskBase
 {
     ITaskBase();
@@ -60,6 +67,7 @@ struct ITaskBase
     void *m_pTaskQueue;
 // ===============public read-only==================
     void *m_pData;
+    uint64_t m_qwConnectTime;
 // ==========private===============
     uint64_t m_qwBeginTime;
 // ===============public read-only==================

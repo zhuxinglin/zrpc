@@ -25,8 +25,7 @@
 extern uint32_t g_dwSoUninstallInterval;
 
 CMonitorSo::CMonitorSo() : m_iFd(-1),
-                           m_iIw(-1),
-                           m_pNet(0)
+                           m_iIw(-1)
 {
 }
 
@@ -44,7 +43,7 @@ CMonitorSo::~CMonitorSo()
     m_iFd = -1;
 }
 
-int CMonitorSo::InitMonitorDir(const char *pszDir, CNet *pNet)
+int CMonitorSo::InitMonitorDir(const char *pszDir)
 {
     m_iFd = inotify_init1(IN_NONBLOCK);
     if (m_iFd < 0)
@@ -60,18 +59,15 @@ int CMonitorSo::InitMonitorDir(const char *pszDir, CNet *pNet)
         LOGE << "add inotify dir fail";
         return -1;
     }
-
-    m_pNet = pNet;
-
     return 0;
 }
 
 int CMonitorSo::Start(CSoPlugin *pPlugin)
 {
-    int iRet = m_pNet->Register(this, pPlugin, ITaskBase::PROTOCOL_TIMER, m_iFd, -1);
+    int iRet = CNet::GetObj()->Register(this, pPlugin, ITaskBase::PROTOCOL_TIMER, m_iFd, -1);
     if (iRet < 0)
     {
-        LOGE << m_pNet->GetErr();
+        LOGE << CNet::GetObj()->GetErr();
         return -1;
     }
     return 0;
@@ -146,6 +142,6 @@ void CMonitorSo::Run()
         CSoUninstall* pSoUninstall = new CSoUninstall();
         pSoUninstall->SetSoMap(pSoInfo);
         pSoUninstall->SetPluginObj(pSoPlugin);
-        m_pNet->Register(pSoUninstall, pSoPlugin, ITaskBase::PROTOCOL_TIMER, -1, g_dwSoUninstallInterval * 1e3);
+        CNet::GetObj()->Register(pSoUninstall, pSoPlugin, ITaskBase::PROTOCOL_TIMER, -1, g_dwSoUninstallInterval * 1e3);
     }
 }

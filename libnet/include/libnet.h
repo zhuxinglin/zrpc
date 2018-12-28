@@ -26,11 +26,13 @@
 
 class CNet
 {
-public:
+private:
     CNet();
     ~CNet();
 
 public:
+    static CNet* GetObj();
+    static void Release();
     int Init(uint32_t dwWorkThread = 0, uint32_t dwSp = 0);
     int Register(NEWOBJ(ITaskBase, pNewObj), void *pData, uint16_t wProtocol, uint16_t wPort, const char *pszIP,
                  uint16_t wVer, uint32_t dwTimeoutMs, const char* pszServerName, const char *pszSslCert = 0, const char *pszSslKey = 0);
@@ -39,6 +41,9 @@ public:
     int Start();
     int Unregister(const char *pszServerName);
     const char* GetErr(){return m_sErr.c_str();}
+    void SetMaxTaskCount(uint32_t dwMaxTaskCount);
+    uint32_t GetCurTaskCount() const;
+    uint32_t GetTaskThreadCount() const;
 
 private:
     CFileFd* GetFd(uint16_t wProtocol, uint16_t wPort, const char *pszIP, uint16_t wVer, const char *pszSslCert, const char *pszSslKey);
@@ -56,6 +61,7 @@ private:
     CEventEpoll m_oEvent;
     CMemoryPool m_oNetPool;
     std::string m_sErr;
+    static CNet* m_pSelf;
 };
 
 

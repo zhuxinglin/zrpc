@@ -38,7 +38,7 @@ protected:
     virtual void Go() = 0;
 
 private:
-    virtual void Run();
+    virtual void Run() FINAL;
     int ReadReliable(char* pszBuf, int iLen);
     int ReadUnreliable(char* pszBuf, int iLen);
     int WriteReliable(const char* pszBuf, int iLen);

@@ -32,8 +32,10 @@ struct CRemoveServer
     int iRet;
 };
 
+CNet *CNet::m_pSelf = 0;
 uint32_t g_dwWorkThreadCount = 2;
 CGo *g_pGo = 0;
+uint32_t g_dwMaxTaskCount = 100000;
 //
 CNet::CNet() : m_oNetPool(sizeof(CNetEvent), 8)
 {
@@ -65,6 +67,21 @@ CNet::~CNet()
     EVP_cleanup();
     CRYPTO_cleanup_all_ex_data();
 }
+
+CNet *CNet::GetObj()
+{
+    if (!m_pSelf)
+        m_pSelf = new (std::nothrow) CNet;
+    return m_pSelf;
+}
+
+void CNet::Release()
+{
+    if (m_pSelf)
+        delete m_pSelf;
+    m_pSelf = 0;
+}
+
 
 int CNet::Init(uint32_t dwWorkThread, uint32_t dwSp)
 {
@@ -127,6 +144,21 @@ int CNet::Go()
         }
     }
     return 0;
+}
+
+void CNet::SetMaxTaskCount(uint32_t dwMaxTaskCount)
+{
+    g_dwMaxTaskCount = dwMaxTaskCount;
+}
+
+uint32_t CNet::GetCurTaskCount() const
+{
+    return CTaskQueue::GetObj()->GetCurTaskCount();
+}
+
+uint32_t CNet::GetTaskThreadCount() const
+{
+    return g_dwWorkThreadCount;
 }
 
 int CNet::Register(NEWOBJ(ITaskBase, pNewObj), void *pData, uint16_t wProtocol, uint16_t wPort, const char *pszIP,
@@ -455,6 +487,7 @@ ITaskBase *CNet::NewTask(ITaskBase *pBase, void *pData, uint16_t wProtocol, uint
         pBase->m_wRunStatus = ITaskBase::RUN_INIT;
 
     pBase->m_dwTimeout = dwTimeoutUs;
+    pBase->m_qwConnectTime = CTimerFd::GetUs();
     pBase->m_pData = pData;
     return pBase;
 }
@@ -518,6 +551,12 @@ int CNet::Start()
                 iFd = oFd.Accept();
             else
                 iFd = oFd.Accept(pTask->m_szAddr, sizeof(pTask->m_szAddr) - 1);
+
+            if (pTaskQueue->GetCurTaskCount() > g_dwMaxTaskCount)
+            {
+                CFileFd oClose(iFd);
+                iFd = -1;
+            }
 
             if (iFd < 0)
             {

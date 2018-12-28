@@ -33,6 +33,7 @@ CTaskQueue::CTaskQueue()
     m_oPool.SetMaxNodeCount(100000);
     m_dwSumCpu = g_dwWorkThreadCount << 1;
     m_pWait = new CTaskWaitRb[m_dwSumCpu];
+    m_dwCurTaskCount = 0;
 }
 
 CTaskQueue::~CTaskQueue()
@@ -112,19 +113,22 @@ void CTaskQueue::DelTask(CTaskNode *pNode)
 
 CTaskNode *CTaskQueue::AddWaitTask(CTaskNode *pNode)
 {
-    CTaskWaitRb *pRb = GetWaitRb(pNode->pTask->m_qwCid);
-    CTaskKey oKey(CTimerFd::GetUs(), pNode->pTask->m_dwTimeout);
-    pNode->pTask->m_qwBeginTime = oKey.qwTimeNs;
-
-    CSpinLock oLock(&pRb->dwSync);
-    if (!pRb->oTaskRb.insert(oKey, pNode))
-        return 0;
-
-    if (!pRb->oFdRb.insert(pNode->pTask->m_qwCid, oKey))
     {
-        pRb->oTaskRb.erase(oKey);
-        return 0;
+        CTaskWaitRb *pRb = GetWaitRb(pNode->pTask->m_qwCid);
+        CTaskKey oKey(CTimerFd::GetUs(), pNode->pTask->m_dwTimeout);
+        pNode->pTask->m_qwBeginTime = oKey.qwTimeNs;
+
+        CSpinLock oLock(&pRb->dwSync);
+        if (!pRb->oTaskRb.insert(oKey, pNode))
+            return 0;
+
+        if (!pRb->oFdRb.insert(pNode->pTask->m_qwCid, oKey))
+        {
+            pRb->oTaskRb.erase(oKey);
+            return 0;
+        }
     }
+    __sync_fetch_and_add(&m_dwCurTaskCount, 1);
     return pNode;
 }
 
@@ -140,6 +144,7 @@ void CTaskQueue::DelWaitTask(CTaskNode *pNode, bool bIsExist)
     {
         CTaskWaitRb *pRb = GetWaitRb(pNode->pTask->m_qwCid);
         DelRbTask(pRb, pNode);
+        __sync_fetch_and_sub(&m_dwCurTaskCount, 1);
     }
 
     DelTask(pNode);
