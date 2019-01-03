@@ -106,6 +106,7 @@ void* CThread::WorkThread(void* pParam)
     oTreadParam.m_pThis->SetSuccess(pParam);
     oTreadParam.m_pThis->SetAffinity(oTreadParam.m_dwId);
     oTreadParam.m_pThis->Run(oTreadParam.m_dwId);
+    pthread_exit(0);
     return 0;
 }
 
