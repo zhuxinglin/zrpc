@@ -72,13 +72,13 @@ int CEventEpoll::Wait(epoll_event *pEv, int iEvSize, uint32_t dwTimeout)
     int iRet = 0;
     while (1)
     {
-        errno = 0;
         iRet = epoll_wait(m_iFd, pEv, iEvSize, dwTimeout);
         if (iRet <= 0)
         {
             // 被系统打断等待事件
             if (EINTR == errno)
             {
+                errno = 0;
                 continue;
             }
 
@@ -87,6 +87,7 @@ int CEventEpoll::Wait(epoll_event *pEv, int iEvSize, uint32_t dwTimeout)
                 iRet = 0;
             else
                 iRet = -1;
+            errno = 0;
         }
         break;
     }

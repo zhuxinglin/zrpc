@@ -302,10 +302,12 @@ int CReliableFd::Read(char *pszBuf, int iBufLen, int iFd)
 
     while (!m_bAsync)
     {
-        errno = 0;
         int iRet = recv(iFd, pszBuf, iBufLen, 0);
         if (iRet < 0 && (errno == EINTR || errno == EAGAIN))
+        {
+            errno = 0;
             continue;
+        }
 
         if (iRet == 0)
             iRet = -1;
@@ -313,10 +315,12 @@ int CReliableFd::Read(char *pszBuf, int iBufLen, int iFd)
         return iRet;
     }
 
-    errno = 0;
     int iRet = recv(iFd, pszBuf, iBufLen, MSG_DONTWAIT);
     if (iRet == -1 && (errno == EINTR || errno == EAGAIN))
+    {
+        errno = 0;
         return 0;
+    }
 
     if (0 == iRet)
         iRet = -1;
@@ -331,19 +335,21 @@ int CReliableFd::Write(const char *pszBuf, int iBufLen, int iFd)
 
     while (!m_bAsync)
     {
-        errno = 0;
         int iRet = send(iFd, pszBuf, iBufLen, 0);
         if (-1 == iRet && (errno == EAGAIN || errno == EINTR))
+        {
+            errno = 0;
             continue;
+        }
 
         return iRet;
     }
 
-    errno = 0;
     int iRet = send(iFd, pszBuf, iBufLen, MSG_NOSIGNAL | MSG_DONTWAIT);
     if (-1 == iRet && (errno == EAGAIN || errno == EINTR))
     {
         // Buffer overflow
+        errno = 0;
         iRet = 0;
     }
     return iRet;
@@ -470,11 +476,11 @@ int CTcpCli::Create(const char *pszAddr, uint16_t wPort, uint32_t dwTimeout, ITa
         if (m_bAsync && Async() < 0)
             break;
 
-        errno = 0;
         if (::connect(m_iFd, pAddr, iAddrLen) < 0)
         {
             if (EINPROGRESS != errno && EWOULDBLOCK != errno)
             {
+                errno = 0;
                 SetFdErr("connect server fail!", &addr4, &addr6, pszAddr, wPort, dwTimeout);
                 break;
             }
@@ -539,11 +545,12 @@ int CUnreliableFd::Read(char *pszBuf, int iBufLen, sockaddr *pAddr, uint32_t *dw
 {
     if (iFd == -1)
         iFd = m_iFd;
-    errno = 0;
+        
     // 接收网络数据包
     int iRecvLen = recvfrom(iFd, pszBuf, iBufLen, MSG_DONTWAIT, pAddr, (socklen_t *)dwAddLen);
     if (-1 == iRecvLen && (errno == EAGAIN || errno == EINTR))
     {
+        errno = 0;
         return 0;
     }
     if (0 == iRecvLen)
@@ -556,10 +563,11 @@ int CUnreliableFd::Write(const char *pszBuf, int iBufLen, sockaddr *pAddr, uint3
 {
     if (iFd == -1)
         iFd = m_iFd;
-    errno = 0;
+
     int iSsendLen = sendto(iFd, pszBuf, iBufLen, MSG_NOSIGNAL | MSG_DONTWAIT, pAddr, dwAddLen);
     if (iSsendLen < 0 && (errno == EAGAIN || EINTR == errno))
     {
+        errno = 0;
         iSsendLen = 0;
     }
     return iSsendLen;

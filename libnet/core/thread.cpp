@@ -138,10 +138,16 @@ bool CSem::Wait(unsigned long timeout /* = -1*/)
     {
         ret = sem_timedwait(&m_Sem, &ti);
         if (ret == -1 && errno == EINTR)
+        {
+            errno = 0;
             continue;
+        }
 
         if (ret == -1 && errno == ETIMEDOUT)
+        {
+            errno = 0;
             return false;
+        }
         break;
     }
     return true;
@@ -252,10 +258,16 @@ bool CCond::Wait(uint64_t ddwTimeout)
     {
         int ret = pthread_cond_timedwait(&m_Cond, &m_Mutex, &outtime);
         if (ret == -1 && errno == EINTR)
+        {
+            errno = 0;
             continue;
+        }
 
         if (ret == -1 && errno == ETIMEDOUT)
+        {
+            errno = 0;
             return false;
+        }
         break;
     }
     
