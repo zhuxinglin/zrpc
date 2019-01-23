@@ -217,46 +217,37 @@ CSpinLock::~CSpinLock()
 
 CCond::CCond()
 {
-    pthread_mutex_init(&m_Mutex, NULL);
     pthread_cond_init(&m_Cond, NULL);
 }
 
 CCond::~CCond()
 {
-    pthread_mutex_destroy(&m_Mutex);
     pthread_cond_destroy(&m_Cond);
 }
 
 void CCond::Signal()
 {
-    pthread_mutex_lock(&m_Mutex);
     pthread_cond_signal(&m_Cond);
-    pthread_mutex_unlock(&m_Mutex);
 }
 
 void CCond::Broadcast()
 {
-    pthread_mutex_lock(&m_Mutex);
     pthread_cond_broadcast(&m_Cond);
-    pthread_mutex_unlock(&m_Mutex);
 }
 
-void CCond::Wait()
+void CCond::Wait(CLock *pLock)
 {
-    pthread_mutex_lock(&m_Mutex);
-    pthread_cond_wait(&m_Cond, &m_Mutex);
-    pthread_mutex_unlock(&m_Mutex);
+    pthread_cond_wait(&m_Cond, pLock->Get());
 }
 
-bool CCond::Wait(uint64_t ddwTimeout)
+bool CCond::Wait(CLock *pLock, uint64_t ddwTimeout)
 {
     struct timespec outtime;
-    pthread_mutex_lock(&m_Mutex);
     outtime.tv_sec = time(0) + ddwTimeout;
     outtime.tv_nsec = 0;
     while(1)
     {
-        int ret = pthread_cond_timedwait(&m_Cond, &m_Mutex, &outtime);
+        int ret = pthread_cond_timedwait(&m_Cond, pLock->Get(), &outtime);
         if (ret == -1 && errno == EINTR)
         {
             errno = 0;
@@ -270,8 +261,6 @@ bool CCond::Wait(uint64_t ddwTimeout)
         }
         break;
     }
-    
-    pthread_mutex_unlock(&m_Mutex);
     return true;
 }
 

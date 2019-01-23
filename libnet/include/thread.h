@@ -70,6 +70,7 @@ public:
 public:
     void Lock();
     void Unlock();
+    pthread_mutex_t* Get(){return &m_Mutex;}
 
 private:
     pthread_mutex_t m_Mutex;
@@ -106,11 +107,10 @@ public:
 public:
     void Signal();
     void Broadcast();
-    void Wait();
-    bool Wait(uint64_t ddwTimeout);
+    void Wait(CLock* pLock);
+    bool Wait(CLock* pLock, uint64_t ddwTimeout);
 
 private:
-    pthread_mutex_t m_Mutex;
     pthread_cond_t m_Cond;
 };
 
