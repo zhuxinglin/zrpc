@@ -150,7 +150,7 @@ void CTaskQueue::DelWaitTask(CTaskNode *pNode, bool bIsExist)
     DelTask(pNode);
 }
 
-int CTaskQueue::SwapWaitExec(uint64_t qwCid)
+int CTaskQueue::SwapWaitToExec(uint64_t qwCid)
 {
     CTaskWaitRb *pRb = GetWaitRb(qwCid);
     CTaskNode *pNode = UpdateTask(pRb, qwCid);
@@ -221,15 +221,15 @@ int CTaskQueue::DelRbTask(CTaskWaitRb *pRb, CTaskNode *pNode)
     return pRb->oTaskRb.erase(oKey);
 }
 
-int CTaskQueue::SwapTimerExec(uint64_t qwCurTime)
+int CTaskQueue::SwapTimerToExec(uint64_t qwCurTime)
 {
     int iSu = -1;
     for (int i = 0; i < (int)m_dwSumCpu; ++i)
-        SwapTimerExec(qwCurTime, i, iSu);
+        SwapTimerToExec(qwCurTime, i, iSu);
     return iSu;
 }
 
-void CTaskQueue::SwapTimerExec(uint64_t qwCurTime, int iIndex, int& iSu)
+void CTaskQueue::SwapTimerToExec(uint64_t qwCurTime, int iIndex, int& iSu)
 {
     CTaskWaitRb *pRb = &m_pWait[iIndex];
     CTaskWaitRb::TaskIt *it = 0;

@@ -85,7 +85,7 @@ void CSchedule::Run(uint32_t dwId)
         int iRet;
         for (int i = 0; i < iCount; i++)
         {
-            iRet = pTaskQueue->SwapWaitExec(ev[i].data.u64);
+            iRet = pTaskQueue->SwapWaitToExec(ev[i].data.u64);
             if (iRet == 0)
                 pGo[dwIndex ++].PushMsg(0, 0, 0, 0);
             if (dwIndex >= g_dwWorkThreadCount)
@@ -97,7 +97,7 @@ void CSchedule::Run(uint32_t dwId)
         if (dwTimeout < 10 * 1e6)
             continue;
 
-        iRet = pTaskQueue->SwapTimerExec(dwCurTime);
+        iRet = pTaskQueue->SwapTimerToExec(dwCurTime);
         if (iRet == 0)
             pGo[dwIndex ++].PushMsg(0, 0, 0, 0);
         if (dwIndex >= g_dwWorkThreadCount)

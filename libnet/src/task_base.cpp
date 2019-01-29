@@ -69,12 +69,17 @@ int ITaskBase::Yield(uint32_t dwTimeoutMs, int iFd, int iSetOpt, int iRestoreOpt
     CCoroutine *pCor = CCoroutine::GetObj();
 
     m_wStatus = STATUS_TIME;
-    m_wRunStatus = RUN_WAIT;
+
+    if (m_wRunStatus != RUN_LOCK)
+        m_wRunStatus = RUN_WAIT;
+
     uint32_t dwTimeout = m_dwTimeout;
     if (dwTimeoutMs || m_wProtocol == PROTOCOL_TIMER)
     {
         if (dwTimeoutMs != (uint32_t)-1)
             m_dwTimeout = dwTimeoutMs * 1e3;
+        else
+            m_dwTimeout = dwTimeoutMs;
     }
 
     CThread *pSch = CSchedule::GetObj();

@@ -20,6 +20,7 @@
 #include "coroutine.h"
 #include "task_queue.h"
 #include <unistd.h>
+#include "timer_fd.h"
 
 CGo::CGo()
 {
@@ -57,7 +58,7 @@ void CGo::Run(uint32_t dwId)
         while ((pTaskNode = pTaskQueue->GetFirstExecTask()))
         {
             ITaskBase *pTask = pTaskNode->pTask;
-            if (pTask->m_wRunStatus == ITaskBase::RUN_NOW)
+            if (pTask->m_wRunStatus == ITaskBase::RUN_NOW || pTask->m_wRunStatus == ITaskBase::RUN_LOCK)
             {
                 pTaskQueue->AddWaitExecTask(pTaskNode);
                 continue;

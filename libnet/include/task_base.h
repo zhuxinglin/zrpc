@@ -98,9 +98,10 @@ struct ITaskBase
     {
         RUN_INIT = 1,
         RUN_WAIT = 2,
-        RUN_NOW = 3,
-        RUN_EXEC = 4,
-        RUN_EXIT = 5,
+        RUN_LOCK = 3,
+        RUN_NOW = 4,
+        RUN_EXEC = 5,
+        RUN_EXIT = 6,
     };
     uint8_t m_wIsRuning;
     uint8_t m_wRunStatus;
