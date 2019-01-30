@@ -27,7 +27,7 @@ public:
 
 public:
     void Post();
-    bool Wait(uint32_t dwTimeout);
+    bool Wait(uint32_t dwTimeout = -1);
 
 private:
     uint64_t m_qwCurId;

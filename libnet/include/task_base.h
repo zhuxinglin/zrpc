@@ -22,7 +22,7 @@
 
 #define NEWOBJ(x, v)    x* (*v)()
 
-// 不为c++ 11版本
+// 涓嶄负c++ 11鐗堟湰
 #if __cplusplus < 201103L
 #define FINAL
 #else

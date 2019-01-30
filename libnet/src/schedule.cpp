@@ -20,11 +20,9 @@
 #include "task_queue.h"
 #include "coroutine.h"
 #include "timer_fd.h"
-#include "go.h"
+#include "go_post.h"
 
 CSchedule* CSchedule::m_pSelf = 0;
-extern CGo *g_pGo;
-extern uint32_t g_dwWorkThreadCount;
 
 CSchedule::CSchedule()
 {
@@ -74,8 +72,6 @@ void CSchedule::Run(uint32_t dwId)
     struct epoll_event ev[256];
     CTaskQueue *pTaskQueue = CTaskQueue::GetObj();
     uint64_t dwLastTime = CTimerFd::GetUs();
-    CGo *pGo = g_pGo;
-    uint32_t dwIndex = 0;
     while (m_bExit)
     {
         int iCount = m_oEvent.Wait(ev, 256, 10);
@@ -87,9 +83,7 @@ void CSchedule::Run(uint32_t dwId)
         {
             iRet = pTaskQueue->SwapWaitToExec(ev[i].data.u64);
             if (iRet == 0)
-                pGo[dwIndex ++].PushMsg(0, 0, 0, 0);
-            if (dwIndex >= g_dwWorkThreadCount)
-                dwIndex = 0;
+                CGoPost::Post();
         }
 
         uint64_t dwCurTime = CTimerFd::GetUs();
@@ -99,9 +93,7 @@ void CSchedule::Run(uint32_t dwId)
 
         iRet = pTaskQueue->SwapTimerToExec(dwCurTime);
         if (iRet == 0)
-            pGo[dwIndex ++].PushMsg(0, 0, 0, 0);
-        if (dwIndex >= g_dwWorkThreadCount)
-            dwIndex = 0;
+            CGoPost::Post();
     }
 }
 

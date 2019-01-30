@@ -20,6 +20,7 @@
 #include "task_base.h"
 #include "uconfig.h"
 #include "task_queue.h"
+#include "go_post.h"
 
 CCoLock::CCoLock() : m_dwSync(0), m_dwLock(0)
 {
@@ -52,7 +53,10 @@ void CCoLock::Unlock()
     __sync_lock_release(&m_dwSync);
 
     if (qwCoId != 0)
+    {
         pTaskQueue->SwapWaitToExec(qwCoId);
+        CGoPost::Post();
+    }
 }
 
 void CCoLock::Push()

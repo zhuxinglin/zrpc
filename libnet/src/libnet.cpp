@@ -25,6 +25,7 @@
 #include <sched.h>
 #include <time.h>
 #include "timer_fd.h"
+#include "go_post.h"
 
 struct CRemoveServer
 {
@@ -524,7 +525,6 @@ int CNet::Start()
     CReliableFd oFd;
     CThread *pSchedule = CSchedule::GetObj();
     CTaskQueue *pTaskQueue = CTaskQueue::GetObj();
-    CGo *pGo = g_pGo;
     while(true)
     {
         int iCount = m_oEvent.Wait(ev, 256, -1);
@@ -623,8 +623,7 @@ int CNet::Start()
             if (dwRunstatus == ITaskBase::RUN_NOW)
             {
                 pTask->m_wRunStatus = ITaskBase::RUN_EXEC;
-                uint32_t dwIndex = ITaskBase::GetSubCId(pTask->m_qwCid) % g_dwWorkThreadCount;
-                pGo[dwIndex].PushMsg(0, 0, 0, 0);
+                CGoPost::Post();
             }
         }
     }

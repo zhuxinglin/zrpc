@@ -22,7 +22,6 @@
 #include "timer_fd.h"
 #include "event_epoll.h"
 
-volatile uint32_t g_dwCid = 0;
 typedef union _Cid
 {
     struct 
@@ -100,8 +99,8 @@ int ITaskBase::Yield(uint32_t dwTimeoutMs, int iFd, int iSetOpt, int iRestoreOpt
 
 uint64_t ITaskBase::GenCid(int iFd)
 {
-    uint32_t dwCid = __sync_fetch_and_add(&g_dwCid, 1);
-    __sync_val_compare_and_swap(&g_dwCid, 0x7FFFFFFF, 0);
+    static volatile uint32_t dwCidInc = 0;
+    uint32_t dwCid = __sync_fetch_and_add(&dwCidInc, 1);
 
     CCid oCid;
     oCid.U_s.dwCid = dwCid;

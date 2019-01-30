@@ -18,7 +18,7 @@
 #ifndef __CO_COND__H__
 #define __CO_COND__H__
 
-#include <set>
+#include <queue>
 #include <stdint.h>
 #include "co_lock.h"
 
@@ -31,12 +31,11 @@ public:
 public:
     void Signal();
     void Broadcast();
-    void Wait(CCoLock* pLock);
-    bool TimeWait(CCoLock* pLock, uint32_t dwTimeout);
+    bool Wait(CCoLock *pLock, uint32_t dwTimeout = -1);
 
 private:
-    typedef std::set<uint64_t> CondQueue;
-    volatile uint32_t m_dwSync;
+    typedef std::queue<uint64_t> CondQueue;
+    CondQueue m_oCond;
 };
 
 
