@@ -16,6 +16,7 @@
 #include <fcntl.h>
 #include <daemon.h>
 
+using namespace znet;
 
 int CDaemon::MapPrint()
 {

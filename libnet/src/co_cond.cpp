@@ -20,6 +20,8 @@
 #include "task_queue.h"
 #include "thread.h"
 
+using namespace znet;
+
 CCoCond::CCoCond()
 {
 }

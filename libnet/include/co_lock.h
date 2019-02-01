@@ -20,6 +20,9 @@
 #include <queue>
 #include <stdint.h>
 
+namespace znet
+{
+
 class CCoLock
 {
 public:
@@ -41,5 +44,5 @@ private:
     volatile uint32_t m_dwLock;
 };
 
-
+}
 #endif

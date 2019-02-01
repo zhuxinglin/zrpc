@@ -20,6 +20,9 @@
 #include "socket_fd.h"
 #include "task_base.h"
 
+namespace znet
+{
+
 class CNetClient
 {
 public:
@@ -57,5 +60,6 @@ private:
     CFileFd *m_pFd;
 };
 
+}
 
 #endif

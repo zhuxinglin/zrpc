@@ -18,6 +18,8 @@
 #include "go.h"
 #include <stdint.h>
 
+using namespace znet;
+
 extern CGo *g_pGo;
 extern uint32_t g_dwWorkThreadCount;
 

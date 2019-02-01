@@ -22,6 +22,9 @@
 #include <map>
 #include "so_struct.h"
 
+namespace zrpc
+{
+
 class CSoPlugin
 {
 public:
@@ -35,8 +38,8 @@ public:
     int Del(map_so_info *pmapRoute, bool bIsAll);
     int Uninstall(map_so_info *pmapRoute, const char* pszSoName);
 
-    int ExecSo(CControllerBase* pContrller, uint64_t qwKey, std::string* pMessage, int& iCode);
-    int InnerSo(CControllerBase* pContrller, uint64_t dwKey, std::string *pReq, std::string *pResp);
+    int ExecSo(zplugin::CControllerBase *pContrller, uint64_t qwKey, std::string *pMessage, int &iCode);
+    int InnerSo(zplugin::CControllerBase* pContrller, uint64_t dwKey, std::string *pReq, std::string *pResp);
 
 private:
     int LoadCallSo(const char* pszSoName);
@@ -47,5 +50,6 @@ private:
     map_so_info* m_mapRoute;
 };
 
+}
 
 #endif

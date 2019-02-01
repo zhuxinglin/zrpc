@@ -22,6 +22,8 @@
 #include "task_queue.h"
 #include "go_post.h"
 
+using namespace znet;
+
 CCoLock::CCoLock() : m_dwSync(0), m_dwLock(0)
 {
 }

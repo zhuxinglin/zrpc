@@ -24,6 +24,9 @@
 #include "net_task.h"
 #include "file_fd.h"
 
+namespace znet
+{
+
 class CNet
 {
 private:
@@ -64,5 +67,6 @@ private:
     static CNet* m_pSelf;
 };
 
+}
 
 #endif

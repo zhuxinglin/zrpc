@@ -23,6 +23,9 @@
 #include "coroutine.h"
 #include <sys/syscall.h>
 
+namespace znet
+{
+
 typedef struct _LogConfig
 {
 	_LogConfig() : sLogDir("../log/"),
@@ -73,12 +76,14 @@ class CLogMessage;
 
 class CLog : public CThread
 {
-public:
+private:
 	CLog();
 	~CLog();
 
 public:
 	static CLog* GetObj();
+	static void SetObj(CLog* pLog);
+	static void DelObj();
 
 public:
 	bool Create(CLogConfig* pConfig);
@@ -114,6 +119,7 @@ private:
 	volatile uint32_t m_dwSync;
 	std::string m_sExeName;
 	CSem m_oSem;
+	static CLog* m_pSelf;
 };
 
 template <class T>
@@ -159,15 +165,18 @@ private:
 	uint32_t m_dwLevel;
 };
 
-#define LOG_WRITE(x, y)  (CLogManage<>(x, y))
-#define LOG_LEVE(x) (CLog::GetObj()->GetLevel() & x)
+}
 
-#define LOG_MESSAGE(x, y) !!!LOG_LEVE(x) ? (void*)0 : LOG_WRITE(new (std::nothrow) CLogMessage<>(__FILE__, __FUNCTION__, __LINE__, #y), x)()
+#define LOG_WRITE(x, y) (znet::CLogManage<>(x, y))
+#define LOG_LEVE(x) (znet::CLog::GetObj()->GetLevel() & x)
 
-#define LOGF	LOG_MESSAGE(CLogConfig::LOG_FATAL, FATAL:)
-#define LOGE	LOG_MESSAGE(CLogConfig::LOG_ERROR, ERROR:)
-#define LOGW	LOG_MESSAGE(CLogConfig::LOG_WARN, WARN:)
-#define LOGI	LOG_MESSAGE(CLogConfig::LOG_INFO, INFO:)
-#define LOGD	LOG_MESSAGE(CLogConfig::LOG_DEBUG, DEBUG:)
+#define LOG_MESSAGE(x, y) !!!LOG_LEVE(x) ? (void *)0 : LOG_WRITE(new (std::nothrow) znet::CLogMessage<>(__FILE__, __FUNCTION__, __LINE__, #y), x)()
+
+#define LOGF	LOG_MESSAGE(znet::CLogConfig::LOG_FATAL, FATAL:)
+#define LOGE	LOG_MESSAGE(znet::CLogConfig::LOG_ERROR, ERROR:)
+#define LOGW	LOG_MESSAGE(znet::CLogConfig::LOG_WARN, WARN:)
+#define LOGI	LOG_MESSAGE(znet::CLogConfig::LOG_INFO, INFO:)
+#define LOGD	LOG_MESSAGE(znet::CLogConfig::LOG_DEBUG, DEBUG:)
+
 
 #endif

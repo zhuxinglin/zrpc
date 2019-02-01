@@ -19,6 +19,8 @@
 #include "event_fd.h"
 #include <string.h>
 
+using namespace znet;
+
 CEventEpoll::CEventEpoll()
 {
 }

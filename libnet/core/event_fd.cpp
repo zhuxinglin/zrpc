@@ -18,6 +18,8 @@
 #include <sys/types.h>
 #include <sys/eventfd.h>
 
+using namespace znet;
+
 CEventFd::CEventFd()
 {
 }

@@ -21,6 +21,9 @@
 #include "rbtree.h"
 #include "file_fd.h"
 
+namespace znet
+{
+
 typedef struct _NetEvent
 {
     NEWOBJ(ITaskBase, pNewObj);
@@ -89,5 +92,7 @@ typedef struct _TaskWaitRb
     _TaskWaitRb() : dwSync(0)
     {}
 }CTaskWaitRb;
+
+}
 
 #endif

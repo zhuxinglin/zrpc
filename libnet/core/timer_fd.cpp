@@ -17,6 +17,8 @@
 #include "timer_fd.h"
 #include <sys/timerfd.h>
 
+using namespace znet;
+
 CTimerFd::CTimerFd()
 {
 }

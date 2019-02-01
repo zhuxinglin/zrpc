@@ -22,6 +22,8 @@
 #include "timer_fd.h"
 #include "go_post.h"
 
+using namespace znet;
+
 CSchedule* CSchedule::m_pSelf = 0;
 
 CSchedule::CSchedule()

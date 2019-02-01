@@ -4,10 +4,10 @@ CXX := g++
 AR := ar
 SRC = src
 CORE = core
-INCLUDES=-I./include -I./core -I./src -I/usr/local/ssl/include
+INCLUDES=-I./include -I./core -I./src -I/usr/local/include
 
 LIBS=
-CFLAGS	= -O2 -Wall -D_REENTRANT -Wno-invalid-offsetof -static
+CFLAGS	= -O2 -Wall -D_REENTRANT -Wno-invalid-offsetof -static -fPIC
 
 -include $(SRC)/makefile.mk
 -include $(CORE)/makefile.mk

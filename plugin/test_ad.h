@@ -19,6 +19,9 @@
 
 #include <plugin_base.h>
 
+namespace zplugin
+{
+
 class CTestAd : public CPluginBase
 {
 public:
@@ -26,18 +29,20 @@ public:
     ~CTestAd();
 
 private:
-    virtual int Initialize();
+    virtual int Initialize(znet::CLog* pLog);
     virtual int GetRouteTable(std::set<uint64_t>& setKey);
     virtual int Process(CControllerBase *pController, uint64_t dwKey, std::string *pMessage);
     virtual int Process(CControllerBase *pController, uint64_t dwKey, std::string *pReq, std::string *pResp);
     virtual void Release();
 };
 
+}
+
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-SO_PUBILC CPluginBase *SoPlugin();
+SO_PUBILC zplugin::CPluginBase *SoPlugin();
 
 #ifdef __cplusplus
 }

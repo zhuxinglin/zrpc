@@ -18,6 +18,8 @@
 #include "so_plugin.h"
 #include <stdio.h>
 
+using namespace zrpc;
+
 CSoUninstall::CSoUninstall() : m_pPlugin(0), m_pmapSo(0)
 {
 }

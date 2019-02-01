@@ -24,6 +24,9 @@
 #include <openssl/ssl.h>
 #include <openssl/err.h>
 
+namespace znet
+{
+
 class CSockFd : public CFileFd
 {
 public:
@@ -276,6 +279,8 @@ public:
     int Create(const char *pszAddr, uint16_t wPort, const char *pszCacert, const char *pszPass,
             const char *pszCert, const char* pszKey, uint32_t dwTimeout, ITaskBase *pTask, uint16_t wVer);
 };
+
+}
 
 #endif
 

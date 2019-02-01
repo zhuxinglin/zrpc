@@ -21,6 +21,9 @@
 #include "event_fd.h"
 #include "event_epoll.h"
 
+namespace znet
+{
+
 class CGo : public CThread
 {
 public:
@@ -37,5 +40,7 @@ private:
 private:
     CSem m_oSem;
 };
+
+}
 
 #endif

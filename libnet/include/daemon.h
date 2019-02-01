@@ -17,6 +17,9 @@
 #ifndef __DAEMON__H__
 #define __DAEMON__H__
 
+namespace znet
+{
+
 class CDaemon
 {
 public:
@@ -26,5 +29,7 @@ private:
 	static int DaemonInit();
 	static int MapPrint();
 };
+
+}
 
 #endif

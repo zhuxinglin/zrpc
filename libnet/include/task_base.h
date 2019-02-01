@@ -29,6 +29,9 @@
 #define FINAL       final
 #endif
 
+namespace znet
+{
+
 struct ITaskBase
 {
     ITaskBase();
@@ -106,5 +109,7 @@ struct ITaskBase
     uint8_t m_wIsRuning;
     uint8_t m_wRunStatus;
 };
+
+}
 
 #endif

@@ -18,7 +18,9 @@
 #include <stdlib.h>
 #include "log.h"
 
-CLog g_Log;
+using namespace znet;
+
+CLog *CLog::m_pSelf = 0;
 
 CLog::CLog()
 {
@@ -52,9 +54,22 @@ CLog::~CLog()
 
 CLog *CLog::GetObj()
 {
-	return &g_Log;
+	if (!m_pSelf)
+		m_pSelf = new CLog;
+	return m_pSelf;
 }
 
+void CLog::SetObj(CLog *pLog)
+{
+	m_pSelf = pLog;
+}
+
+void CLog::DelObj()
+{
+	if (m_pSelf)
+		delete m_pSelf;
+	m_pSelf = 0;
+}
 
 bool CLog::Create(CLogConfig *pConfig)
 {

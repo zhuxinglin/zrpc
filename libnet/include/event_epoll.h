@@ -20,6 +20,9 @@
 #include "file_fd.h"
 #include <sys/epoll.h>
 
+namespace znet
+{
+
 class CEventEpoll : public CFileFd
 {
 public:
@@ -51,6 +54,6 @@ private:
     virtual void Close(int iFd = -1);
 };
 
-
+}
 #endif
 

@@ -24,6 +24,9 @@
 
 #define SO_VERSION      ".so.V"
 
+using namespace zrpc;
+using namespace zplugin;
+
 CSoPlugin::CSoPlugin()
 {
     m_mapRoute = new map_so_info;
@@ -87,7 +90,7 @@ int CSoPlugin::ExecSo(CControllerBase *pContrller, uint64_t qwKey, std::string *
 {
     map_so_info* pRoute = m_mapRoute;
     iCode = 404;
-    int iRet = 0;
+    int iRet = -1;
     for (map_so_info_it it = pRoute->begin(); it != pRoute->end(); ++it)
     {
         set_key_it iter = it->second->find(qwKey);
@@ -166,7 +169,7 @@ CSoFunAddr *CSoPlugin::GetLoadSo(const char *pszSoName, set_key **psetKey)
         return 0;
     }
 
-    if (pAddr->pPlugin->Initialize() < 0)
+    if (pAddr->pPlugin->Initialize(znet::CLog::GetObj()) < 0)
     {
         LOGE << "create '" << pszSoName << "',fun 'Initialize' fail";
         delete pAddr;

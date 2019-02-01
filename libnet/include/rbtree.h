@@ -27,6 +27,9 @@ https://sandbox.runjs.cn/show/2nngvn8w
 #include <stdio.h>
 #include "memory_pool.h"
 
+namespace znet
+{
+
 #define GET_NUMBER(ptr, type, number) (type *)((char *)ptr - (long)&(((type *)0)->number))
 
 template <typename K, typename V>
@@ -686,5 +689,7 @@ private:
 	int count;
 	CMemoryPool m_oPool;
 };
+
+}
 
 #endif

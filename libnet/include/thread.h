@@ -20,6 +20,9 @@
 #include <inttypes.h>
 #include <string>
 
+namespace znet
+{
+
 class CThread
 {
 public:
@@ -113,5 +116,7 @@ public:
 private:
     pthread_cond_t m_Cond;
 };
+
+}
 
 #endif

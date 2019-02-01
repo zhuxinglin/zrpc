@@ -20,6 +20,8 @@
 #include "task_base.h"
 #include "file_fd.h"
 
+namespace znet
+{
 
 class CNetTask : public ITaskBase
 {
@@ -57,5 +59,6 @@ public:
     uint8_t m_wUdpAddLen;
 };
 
+}
 
 #endif

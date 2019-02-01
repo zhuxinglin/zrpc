@@ -20,6 +20,8 @@
 #include <unistd.h>
 #include "uconfig.h"
 
+using namespace znet;
+
 CMemoryPool::CMemoryPool(int iSize, int iMaxNodeCount) : 
 m_pUseHead(0),
 m_pUseTail(0),

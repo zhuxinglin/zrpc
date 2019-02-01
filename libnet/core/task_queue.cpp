@@ -24,6 +24,8 @@
 #include "timer_fd.h"
 #include "task_base.h"
 
+using namespace znet;
+
 extern uint32_t g_dwWorkThreadCount;
 CTaskQueue *CTaskQueue::m_pSelf = 0;
 

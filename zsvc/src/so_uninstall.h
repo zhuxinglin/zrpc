@@ -21,7 +21,10 @@
 #include "so_plugin.h"
 #include <so_struct.h>
 
-class CSoUninstall : public ITaskBase
+namespace zrpc
+{
+
+class CSoUninstall : public znet::ITaskBase
 {
 public:
     CSoUninstall();
@@ -40,5 +43,6 @@ private:
     map_so_info* m_pmapSo;
 };
 
+}
 
 #endif

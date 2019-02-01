@@ -21,6 +21,9 @@
 #include "monitor_so.h"
 #include "so_plugin.h"
 
+namespace zrpc
+{
+
 class CJSvc
 {
 public:
@@ -42,5 +45,6 @@ private:
     CSoPlugin m_oPlugin;
 };
 
+}
 
 #endif

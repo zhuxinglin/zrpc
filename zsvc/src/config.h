@@ -20,6 +20,9 @@
 #include <map>
 #include <string>
 
+namespace zrpc
+{
+
 class CConfig
 {
 public:
@@ -43,5 +46,6 @@ private:
 
 };
 
+}
 
 #endif

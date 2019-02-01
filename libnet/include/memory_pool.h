@@ -17,6 +17,9 @@
 #ifndef __MEMORY__POOL__H__
 #define __MEMORY__POOL__H__
 
+namespace znet
+{
+
 class CMemoryPool
 {
 public:
@@ -78,6 +81,8 @@ private:
 	void AddUse(PoolNode *pNode);
 	PoolNode *GetUseing();
 };
+
+}
 
 #endif
 

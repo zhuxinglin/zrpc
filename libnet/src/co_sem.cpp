@@ -19,6 +19,8 @@
 #include "go_post.h"
 #include "task_queue.h"
 
+using namespace znet;
+
 CCoSem::CCoSem() : m_qwCurId(0)
 {
 }

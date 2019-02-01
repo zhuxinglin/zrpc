@@ -21,7 +21,8 @@
 #include "plugin_base.h"
 #include "so_plugin.h"
 #include "log.h"
-#include "timer_fd.h"
+
+using namespace zrpc;
 
 const int g_iReadLen = 8192;
 
@@ -53,7 +54,7 @@ CHttpSvc::~CHttpSvc()
     m_pszReadBuf = 0;
 }
 
-ITaskBase *CHttpSvc::GetObj()
+znet::ITaskBase *CHttpSvc::GetObj()
 {
     return new CHttpSvc();
 }
@@ -78,11 +79,12 @@ void CHttpSvc::Go()
 
         SetUri();
 
+     //   LOGI << m_oHttpReq.sUri << "[  " << CUtilHash::UriHash(m_oHttpReq.sUri.c_str(), m_oHttpReq.sUri.size());
+
         int iCode;
-        int iRet = pPlugin->ExecSo(this, CUtilHash::UriHash(m_oHttpReq.sUri.c_str(), m_oHttpReq.sUri.size()), &m_oHttpReq.szBody, iCode);
+        int iRet = pPlugin->ExecSo(this, zplugin::CUtilHash::UriHash(m_oHttpReq.sUri.c_str(), m_oHttpReq.sUri.size()), &m_oHttpReq.szBody, iCode);
         if (iCode != 200)
             WriteHttp(0, 0, iCode, iRet);
-        LOGI << m_szAddr << " " << m_oHttpReq.sUri << "  ===== " << m_oHttpReq.szBody << "  time:" << CTimerFd::GetUs() - m_qwConnectTime;
     } while (m_iKeepAlive);
 }
 
@@ -104,7 +106,7 @@ int CHttpSvc::ReadHttp()
             return -1;
         if (iLen == 0)
         {
-            if (ITaskBase::STATUS_TIMEOUT != m_wStatus)
+            if (znet::ITaskBase::STATUS_TIMEOUT != m_wStatus)
                 continue;
             else
                 return -1;
@@ -245,7 +247,8 @@ void CHttpSvc::SetHttpHeader(const char *pszKey, const char *pszValue)
 int CHttpSvc::WriteHttp(const char *pszData, int iDataLen, int iCode, int iRet)
 {
     std::stringstream ssResp;
-    ssResp << "HTTP/1.1 " << iCode << " OK\r\nCache-Control: no-cache\r\nServer: jsvc 1.0\r\n";
+    ssResp << "HTTP/1.1 " << iCode << " OK\r\nCache-Control: no-cache\r\nServer: jsvc 1.0\r\n"
+                                      "Content-Type: text/html\r\n";
     ssResp << "Ret: " << iRet << "\r\n";
     
     for (header_it it = m_oHttpHeader.begin(); it != m_oHttpHeader.end(); ++it)

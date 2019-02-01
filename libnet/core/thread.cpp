@@ -17,6 +17,8 @@
 #include "uconfig.h"
 #include <stdio.h>
 
+using namespace znet;
+
 struct CThreadParam
 {
     CThread* m_pThis;

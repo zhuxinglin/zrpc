@@ -21,6 +21,9 @@
 #include "thread.h"
 #include "event_fd.h"
 
+namespace znet
+{
+
 class CSchedule : public CThread
 {
 private:
@@ -41,5 +44,7 @@ private:
     CEventEpoll m_oEvent;
     static CSchedule* m_pSelf;
 };
+
+}
 
 #endif

@@ -22,6 +22,9 @@
 #include <stdint.h>
 #include "co_lock.h"
 
+namespace znet
+{
+
 class CCoCond
 {
 public:
@@ -38,5 +41,5 @@ private:
     CondQueue m_oCond;
 };
 
-
+}
 #endif

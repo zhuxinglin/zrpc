@@ -19,6 +19,8 @@
 #include "go_post.h"
 #include "thread.h"
 
+using namespace znet;
+
 CCoChan::CCoChan(ITaskBase *pTask) : m_pTask(pTask)
 {
     m_qwCoId = pTask->m_qwCid;

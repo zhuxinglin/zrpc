@@ -19,6 +19,9 @@
 
 #include "file_fd.h"
 
+namespace znet
+{
+
 class CEventFd : public CFileFd
 {
 public:
@@ -30,5 +33,7 @@ public:
     int Read(uint64_t* pFlag);
     int Write(uint64_t qwFlag);
 };
+
+}
 
 #endif

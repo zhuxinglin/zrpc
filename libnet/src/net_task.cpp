@@ -23,6 +23,8 @@
 #include "schedule.h"
 #include "event_epoll.h"
 
+using namespace znet;
+
 CNetTask::CNetTask() : m_pFd(0), m_wUdpAddLen(0)
 {
 }

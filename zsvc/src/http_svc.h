@@ -23,7 +23,10 @@
 #include <map>
 #include <string>
 
-class CHttpSvc : public CNetTask, public CHttpController
+namespace zrpc
+{
+
+class CHttpSvc : public znet::CNetTask, public zplugin::CHttpController
 {
 public:
     CHttpSvc();
@@ -91,5 +94,7 @@ private:
     int m_iComplete;
     bool m_iKeepAlive;
 };
+
+}
 
 #endif

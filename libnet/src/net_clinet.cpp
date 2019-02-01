@@ -20,6 +20,8 @@
 #include "task_queue.h"
 #include "schedule.h"
 
+using namespace znet;
+
 CNetClient::CNetClient() : m_dwConnTimeout(3000),
                            m_dwReadTimeout(3000),
                            m_wAddrLen(0),

@@ -19,6 +19,9 @@
 
 #include <stdint.h>
 
+namespace znet
+{
+
 class CCoSem
 {
 public:
@@ -33,5 +36,5 @@ private:
     uint64_t m_qwCurId;
 };
 
-
+}
 #endif

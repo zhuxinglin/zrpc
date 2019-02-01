@@ -21,7 +21,10 @@
 #include <libnet.h>
 #include "so_plugin.h"
 
-class CMonitorSo : public ITaskBase
+namespace zrpc
+{
+
+class CMonitorSo : public znet::ITaskBase
 {
 public:
     CMonitorSo();
@@ -39,5 +42,7 @@ private:
     int m_iIw;
     std::string m_sSoPath;
 };
+
+}
 
 #endif

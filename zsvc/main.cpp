@@ -18,7 +18,11 @@
 #include <string.h>
 #include <stdio.h>
 
+#include "log.h"
 #include "zsvc.h"
+
+using namespace znet;
+using namespace zrpc;
 
 CConfig g_oConf;
 
@@ -40,6 +44,11 @@ void PorcErr(int iErr)
     {
         printf("process runing\n");
     }
+}
+
+__attribute__((constructor)) void zrpc_init()
+{
+
 }
 
 int main(int argc, char const *argv[])
@@ -67,3 +76,7 @@ int main(int argc, char const *argv[])
     return 0;
 }
 
+__attribute__((destructor)) void zrpc_exit()
+{
+    znet::CLog::DelObj();
+}

@@ -21,6 +21,8 @@
 #include "thread.h"
 #include "task_queue.h"
 
+using namespace znet;
+
 CCoroutine *CCoroutine::m_pSelf = 0;
 pthread_key_t g_KeyContext;
 

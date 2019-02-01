@@ -25,6 +25,8 @@
 #include <stdio.h>
 #include <netinet/tcp.h>
 
+using namespace znet;
+
 CSockFd::CSockFd() : m_bAsync(true)
 {
 }

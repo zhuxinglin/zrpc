@@ -22,6 +22,9 @@
 #include "so_uninstall.h"
 #include "log.h"
 
+using namespace zrpc;
+using namespace znet;
+
 extern uint32_t g_dwSoUninstallInterval;
 
 CMonitorSo::CMonitorSo() : m_iFd(-1),

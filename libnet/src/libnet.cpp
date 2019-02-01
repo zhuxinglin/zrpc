@@ -27,6 +27,8 @@
 #include "timer_fd.h"
 #include "go_post.h"
 
+using namespace znet;
+
 struct CRemoveServer
 {
     const char *pszName;

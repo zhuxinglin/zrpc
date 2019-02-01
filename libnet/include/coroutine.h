@@ -21,6 +21,8 @@
 #include <ucontext.h>
 #include "task_base.h"
 #include "memory_pool.h"
+namespace znet
+{
 
 class CCoroutine
 {
@@ -51,5 +53,6 @@ private:
     const char* m_pszErr;
 };
 
+}
 
 #endif

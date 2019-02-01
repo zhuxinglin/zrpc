@@ -22,6 +22,8 @@
 #include <unistd.h>
 #include "timer_fd.h"
 
+using namespace znet;
+
 CGo::CGo()
 {
 }

@@ -22,6 +22,9 @@
 #include "net_struct.h"
 #include <sys/time.h>
 
+namespace znet
+{
+
 class CTaskQueue
 {
 private:
@@ -64,5 +67,7 @@ private:
 
     static CTaskQueue* m_pSelf;
 };
+
+}
 
 #endif

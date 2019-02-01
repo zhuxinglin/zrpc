@@ -21,6 +21,10 @@
 #include <string>
 #include <set>
 #include <stdint.h>
+#include "log.h"
+
+namespace zplugin
+{
 
 struct CControllerBase
 {
@@ -36,7 +40,7 @@ struct CHttpController : public CControllerBase
 
 struct CPluginBase
 {
-    virtual int Initialize() = 0;
+    virtual int Initialize(znet::CLog* pLog) = 0;
     virtual int GetRouteTable(std::set<uint64_t>& setKey) = 0;
     virtual int Process(CControllerBase *pController, uint64_t dwKey, std::string *pMessage) = 0;
     virtual int Process(CControllerBase *pController, uint64_t dwKey, std::string *pReq, std::string *pResp) = 0;
@@ -63,6 +67,8 @@ struct CUtilHash
         return (ddwRet);
     }
 };
+
+}
 
 #define SO_PUBILC __attribute__((visibility("default")))
 #define SO_PRIVATE __attribute__((visibility("hidden")))

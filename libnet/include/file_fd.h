@@ -27,6 +27,9 @@
 #include <string.h>
 #include <sys/socket.h>
 
+namespace znet
+{
+
 class CFileFd
 {
 public:
@@ -72,6 +75,8 @@ protected:
     int m_iFd;
     std::string m_sErr;
 };
+
+}
 
 #endif
 

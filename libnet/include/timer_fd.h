@@ -19,6 +19,9 @@
 
 #include "file_fd.h"
 
+namespace znet
+{
+
 class CTimerFd : public CFileFd
 {
 public:
@@ -31,5 +34,7 @@ public:
     int Read(uint64_t* pTimeoutUs);
     static uint64_t GetUs();
 };
+
+}
 
 #endif

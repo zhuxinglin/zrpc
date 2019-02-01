@@ -22,6 +22,8 @@
 #include "timer_fd.h"
 #include "event_epoll.h"
 
+using namespace znet;
+
 typedef union _Cid
 {
     struct 

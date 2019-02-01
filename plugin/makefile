@@ -1,9 +1,9 @@
 CXX=g++
 CC=gcc
-INCLUDES= -I../libnet/include -I./ -I../zsvc/include
+INCLUDES= -I../libnet/include -I./ -I../zsvc/include -I/usr/local/include
 VERSION=1_2_1
-CFLAGS=-g -Wall -D_REENTRANT -Wno-invalid-offsetof -fvisibility=hidden -fPIC -shared -DVERSION
-LIBS= ../libnet/libnet.a
+CFLAGS=-g -Wall -D_REENTRANT -Wno-invalid-offsetof -fvisibility=hidden -shared -fPIC -DVERSION -Wl,--as-needed
+LIBS= ../libnet/libnet.a -lpthread -lrt -ldl -L/usr/local/lib -lssl -lcrypto
 
 OBJS+=test_ad.o
 

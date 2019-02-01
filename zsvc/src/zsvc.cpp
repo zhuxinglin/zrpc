@@ -20,6 +20,9 @@
 #include "log.h"
 #include "libnet.h"
 
+using namespace zrpc;
+using namespace znet;
+
 const char *g_pszPluginPath = "./plugin/";
 uint32_t g_dwSoUninstallInterval = 10;
 
@@ -253,6 +256,10 @@ int CJSvc::Register(CConfig::config_info *pCfg)
         pszSslKey = it->second.c_str();
     }
 
+    if (s)
+        LOGI << "server name [" << pszServerName << "] server address [" << s << "] server port [" << wPort << "] timeout [" << dwTimeout << "]";
+    else
+        LOGI << "server name [" << pszServerName << "] server address [] server port [" << wPort << "] timeout [" << dwTimeout << "]";
     if (CNet::GetObj()->Register(pNewObj, &m_oPlugin, wProtocol, wPort, s, wVer, dwTimeout, pszServerName, pszSslCert, pszSslKey) < 0)
     {
         LOGE << CNet::GetObj()->GetErr();

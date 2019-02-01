@@ -20,6 +20,9 @@
 #include <queue>
 #include "task_base.h"
 
+namespace znet
+{
+
 class CCoChan
 {
 public:
@@ -45,4 +48,5 @@ private:
     ITaskBase* m_pTask;
 };
 
+}
 #endif
