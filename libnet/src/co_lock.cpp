@@ -54,7 +54,9 @@ void CCoLock::Unlock()
     __sync_lock_release(&m_dwLock);
     __sync_lock_release(&m_dwSync);
 
-    if (qwCoId != 0)
+    ITaskBase* pTask = CCoroutine::GetObj()->GetTaskBase();
+
+    if (qwCoId != 0 && qwCoId != pTask->m_qwCid)
     {
         pTaskQueue->SwapWaitToExec(qwCoId);
         CGoPost::Post();

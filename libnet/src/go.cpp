@@ -24,6 +24,8 @@
 
 using namespace znet;
 
+extern volatile uint32_t* g_pIsPost;
+
 CGo::CGo()
 {
 }
@@ -59,46 +61,52 @@ void CGo::Run(uint32_t dwId)
         CTaskNode* pTaskNode;
         while ((pTaskNode = pTaskQueue->GetFirstExecTask()))
         {
-            ITaskBase *pTask = pTaskNode->pTask;
-            if (pTask->m_wRunStatus == ITaskBase::RUN_NOW || pTask->m_wRunStatus == ITaskBase::RUN_LOCK)
+            __sync_fetch_and_xor(&g_pIsPost[dwId], 1);
+            do
             {
-                pTaskQueue->AddWaitExecTask(pTaskNode);
-                continue;
-            }
-            else if ((pTask->m_wRunStatus == ITaskBase::RUN_EXIT) && pTask->m_wIsRuning)
-            {
-                // 这里只实用于注册epoll失败时有效，如正在执行的协程不能做本操作，否则栈中保存堆的地址将不能释放
-                pTask->Error("wait execute timeout");
+                ITaskBase *pTask = pTaskNode->pTask;
+                if (pTask->m_wRunStatus == ITaskBase::RUN_NOW || pTask->m_wRunStatus == ITaskBase::RUN_LOCK)
+                {
+                    pTaskQueue->AddWaitExecTask(pTaskNode);
+                    break;
+                }
+                else if ((pTask->m_wRunStatus == ITaskBase::RUN_EXIT) && pTask->m_wIsRuning)
+                {
+                    // 这里只实用于注册epoll失败时有效，如正在执行的协程不能做本操作，否则栈中保存堆的地址将不能释放
+                    pTask->Error("wait execute timeout");
+                    pTaskQueue->DelWaitTask(pTaskNode);
+                    pTask->Release();
+                    break;
+                }
+    
+                if (!pTask->m_pContext && !pTask->m_pSp && pCor->Create(pTask) < 0)
+                {
+                    pTaskQueue->AddWaitExecTask(pTaskNode);
+                    break;
+                }
+
+                pTask->m_wIsRuning = false;
+                pTask->m_pMainCo = &uCon;
+                pTask->m_wRunStatus = ITaskBase::RUN_EXEC;
+    //            printf("call start 2222222222222222222222222  %lu    %p   %u\n", pTask->m_qwCid, pTask, pTask->m_wRunStatus);
+                pCor->Swap(pTask);
+                /*int iType = uCon.uc_mcontext.gregs[1];
+                int iFd = uCon.uc_mcontext.gregs[2];
+                int iMod = uCon.uc_mcontext.gregs[3];
+                int iEvent = uCon.uc_mcontext.gregs[4];*/
+    //            printf("call end 00000000000000000000000000  %lu    %p   %d\n", pTask->m_qwCid, pTask, pTask->m_wRunStatus);
+                if (pTask->m_wRunStatus != ITaskBase::RUN_EXIT)
+                {
+                    pTaskQueue->AddWaitExecTask(pTaskNode);
+                    break;
+                }
+
+                pCor->Del(pTask);
                 pTaskQueue->DelWaitTask(pTaskNode);
                 pTask->Release();
-                continue;
-            }
- 
-            if (!pTask->m_pContext && !pTask->m_pSp && pCor->Create(pTask) < 0)
-            {
-                pTaskQueue->AddWaitExecTask(pTaskNode);
-                continue;
-            }
-
-            pTask->m_wIsRuning = false;
-            pTask->m_pMainCo = &uCon;
-            pTask->m_wRunStatus = ITaskBase::RUN_EXEC;
-//            printf("call start 2222222222222222222222222  %lu    %p   %u\n", pTask->m_qwCid, pTask, pTask->m_wRunStatus);
-            pCor->Swap(pTask);
-            /*int iType = uCon.uc_mcontext.gregs[1];
-            int iFd = uCon.uc_mcontext.gregs[2];
-            int iMod = uCon.uc_mcontext.gregs[3];
-            int iEvent = uCon.uc_mcontext.gregs[4];*/
-//            printf("call end 00000000000000000000000000  %lu    %p   %d\n", pTask->m_qwCid, pTask, pTask->m_wRunStatus);
-            if (pTask->m_wRunStatus != ITaskBase::RUN_EXIT)
-            {
-                pTaskQueue->AddWaitExecTask(pTaskNode);
-                continue;
-            }
-
-            pCor->Del(pTask);
-            pTaskQueue->DelWaitTask(pTaskNode);
-            pTask->Release();
+            }while (0);
+            
+            __sync_fetch_and_xor(&g_pIsPost[dwId], 1);
         }
     }
 }
