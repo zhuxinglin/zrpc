@@ -165,12 +165,19 @@ private:
 	uint32_t m_dwLevel;
 };
 
+class CLogVoid
+{
+public:
+	CLogVoid(){}
+	void operator & (std::ostream& ){}
+};
+
 }
 
 #define LOG_WRITE(x, y) (znet::CLogManage<>(x, y))
 #define LOG_LEVE(x) (znet::CLog::GetObj()->GetLevel() & x)
 
-#define LOG_MESSAGE(x, y) !!!LOG_LEVE(x) ? (void *)0 : LOG_WRITE(new (std::nothrow) znet::CLogMessage<>(__FILE__, __FUNCTION__, __LINE__, #y), x)()
+#define LOG_MESSAGE(x, y) !!!LOG_LEVE(x) ? (void) 0 : znet::CLogVoid() & LOG_WRITE(new (std::nothrow) znet::CLogMessage<>(__FILE__, __FUNCTION__, __LINE__, #y), x)()
 
 #define LOGF	LOG_MESSAGE(znet::CLogConfig::LOG_FATAL, FATAL:)
 #define LOGE	LOG_MESSAGE(znet::CLogConfig::LOG_ERROR, ERROR:)
