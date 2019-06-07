@@ -74,8 +74,7 @@ void CGo::Run(uint32_t dwId)
                 {
                     // 这里只实用于注册epoll失败时有效，如正在执行的协程不能做本操作，否则栈中保存堆的地址将不能释放
                     pTask->Error("wait execute timeout");
-                    pTaskQueue->DelWaitTask(pTaskNode);
-                    pTask->Release();
+                    delete pTask;
                     break;
                 }
     
@@ -88,24 +87,26 @@ void CGo::Run(uint32_t dwId)
                 pTask->m_wIsRuning = false;
                 pTask->m_pMainCo = &uCon;
                 pTask->m_wRunStatus = ITaskBase::RUN_EXEC;
-    //            printf("call start 2222222222222222222222222  %lu    %p   %u\n", pTask->m_qwCid, pTask, pTask->m_wRunStatus);
+                //printf("call start 2222222222222222222222222  %lu    %p   %u\n", pTask->m_qwCid, pTask, pTask->m_wRunStatus);
                 pCor->Swap(pTask);
                 /*int iType = uCon.uc_mcontext.gregs[1];
                 int iFd = uCon.uc_mcontext.gregs[2];
                 int iMod = uCon.uc_mcontext.gregs[3];
                 int iEvent = uCon.uc_mcontext.gregs[4];*/
-    //            printf("call end 00000000000000000000000000  %lu    %p   %d\n", pTask->m_qwCid, pTask, pTask->m_wRunStatus);
+                //printf("call end 00000000000000000000000000  %lu    %p   %d\n", pTask->m_qwCid, pTask, pTask->m_wRunStatus);
                 if (pTask->m_wRunStatus != ITaskBase::RUN_EXIT)
                 {
                     pTaskQueue->AddWaitExecTask(pTaskNode);
                     break;
                 }
 
-                pCor->Del(pTask);
-                pTaskQueue->DelWaitTask(pTaskNode);
-                pTask->Release();
+                {
+                    //printf("__________________ %p\n", pTask->m_oPtr.get());
+                    std::shared_ptr<ITaskBase> optr(pTask->m_oPtr);
+                    pTask->m_oPtr = nullptr;
+                }
             }while (0);
-            
+
             __sync_fetch_and_xor(&g_pIsPost[dwId], 1);
         }
     }

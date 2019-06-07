@@ -37,6 +37,7 @@ int CTestAd::Initialize(znet::CLog *pLog)
 
 int CTestAd::GetRouteTable(std::set<uint64_t> &setKey)
 {
+    LOGI << "/ad/app/download/get";
     setKey.insert(CUtilHash::UriHash("/ad/app/download/get", sizeof("/ad/app/download/get") - 1));
     return 0;
 }
@@ -44,10 +45,10 @@ int CTestAd::GetRouteTable(std::set<uint64_t> &setKey)
 int CTestAd::Process(CControllerBase *pController, uint64_t dwKey, std::string *pMessage)
 {
     FILE* fp;
-    fp = fopen("/home/ad/app/download/pc/ad.exe", "rb");
+    fp = fopen("/root/zxl/zrpc/plugin/makefile", "rb");
     int file_size = 0;
     if (!fp)
-        LOGE << "open file '/home/ad/app/download/pc/ad.exe' failed";
+        LOGE << "open file '/root/zxl/zrpc/plugin/makefile' failed";
     else
     {
         std::string& sMsg = *pMessage;

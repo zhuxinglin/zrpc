@@ -79,7 +79,7 @@ void CHttpSvc::Go()
 
         SetUri();
 
-     //   LOGI << m_oHttpReq.sUri << "[  " << CUtilHash::UriHash(m_oHttpReq.sUri.c_str(), m_oHttpReq.sUri.size());
+        LOGI << m_oHttpReq.sUri << "[" << zplugin::CUtilHash::UriHash(m_oHttpReq.sUri.c_str(), m_oHttpReq.sUri.size()) << "] " << m_iKeepAlive;
 
         int iCode;
         int iRet = pPlugin->ExecSo(this, zplugin::CUtilHash::UriHash(m_oHttpReq.sUri.c_str(), m_oHttpReq.sUri.size()), &m_oHttpReq.szBody, iCode);

@@ -22,6 +22,7 @@
 #include "event_fd.h"
 #include "schedule.h"
 #include "event_epoll.h"
+#include "thread.h"
 
 using namespace znet;
 
@@ -91,6 +92,7 @@ int CNetTask::WriteReliable(const char *pszBuf, int iLen)
 {
     CReliableFd *pSock = (CReliableFd *)m_pFd;
     int iOffset = 0;
+    CPadlock<CCoLock> ol(m_oLock);
     while(iLen > 0)
     {
         int iRet = pSock->Write(pszBuf + iOffset, iLen);
@@ -114,6 +116,7 @@ int CNetTask::WriteUnreliable(const char *pszBuf, int iLen)
 {
     CUnreliableFd *pSock = (CUnreliableFd *)m_pFd;
     int iOffset = 0;
+    CPadlock<CCoLock> ol(m_oLock);
     while (iLen > 0)
     {
         int iRet = pSock->Write(pszBuf + iOffset, iLen, (struct sockaddr *)m_szUdpAddr, m_wUdpAddLen);
@@ -162,6 +165,7 @@ int CNetTask::WriteTimer(const char *pszBuf, int iLen)
         return -1;
 
     CTimerFd *pTimer = (CTimerFd *)m_pFd;
+    CPadlock<CCoLock> ol(m_oLock);
     int iRet = pTimer->Write(*(int32_t *)pszBuf);
     if (iRet < 0)
         return -1;
@@ -173,6 +177,7 @@ int CNetTask::WriteEvent(const char *pszBuf, int iLen)
     if (iLen < (int)sizeof(uint64_t))
         return -1;
     CEventFd *pEvent = (CEventFd *)m_pFd;
+    CPadlock<CCoLock> ol(m_oLock);
     int iRet = pEvent->Write(*(uint64_t *)pszBuf);
     if (iRet < 0)
         return -1;
@@ -192,6 +197,7 @@ int CNetTask::WriteTcps(const char *pszBuf, int iLen)
 {
     CTcpsReliableFd *pSock = (CTcpsReliableFd *)m_pFd;
     int iOffset = 0;
+    CPadlock<CCoLock> ol(m_oLock);
     while (iLen > 0)
     {
         int iRet = pSock->Write(pszBuf + iOffset, iLen);
@@ -223,8 +229,8 @@ void CNetTask::Close()
         CThread *pSch = CSchedule::GetObj();
         pSch->PushMsg(m_pFd->GetFd(), 2, 0, 0);
         delete m_pFd;
+        m_pFd = 0;
     }
-    m_pFd = 0;
 }
 
 void CNetTask::Run()
@@ -239,5 +245,4 @@ void CNetTask::Run()
         }
         Go();
     } while (0);
-    Close();
 }

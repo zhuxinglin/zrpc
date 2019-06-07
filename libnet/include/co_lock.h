@@ -40,7 +40,6 @@ private:
 private:
     typedef std::queue<uint64_t> LockQueue;
     LockQueue m_oLock;
-    volatile uint32_t m_dwSync;
     volatile uint32_t m_dwLock;
 };
 

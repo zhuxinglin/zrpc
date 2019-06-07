@@ -76,7 +76,7 @@ void CSchedule::Run(uint32_t dwId)
     uint64_t dwLastTime = CTimerFd::GetUs();
     while (m_bExit)
     {
-        int iCount = m_oEvent.Wait(ev, 256, 10);
+        int iCount = m_oEvent.Wait(ev, 256, 1);
         if (iCount < 0 || !m_bExit)
             break;
 

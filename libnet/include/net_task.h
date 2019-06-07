@@ -19,6 +19,7 @@
 
 #include "task_base.h"
 #include "file_fd.h"
+#include "co_lock.h"
 
 namespace znet
 {
@@ -57,6 +58,7 @@ public:
     char m_szAddr[40];
     char m_szUdpAddr[32];
     uint8_t m_wUdpAddLen;
+    CCoLock m_oLock;
 };
 
 }

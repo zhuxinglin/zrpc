@@ -34,10 +34,11 @@ typedef union _Cid
     uint64_t qwCid;
 }CCid;
 
-ITaskBase::ITaskBase() : m_pSp(0),
+ITaskBase::ITaskBase() : m_oPtr(this),
+                         m_pSp(0),
                          m_pContext(0),
                          m_pMainCo(0),
-                         m_pNewObj(0),
+                         m_pCb(0),
                          m_pTaskQueue(0),
                          m_pData(0),
                          m_qwConnectTime(0),
@@ -48,6 +49,27 @@ ITaskBase::ITaskBase() : m_pSp(0),
                          m_wIsRuning(true),
                          m_wRunStatus(RUN_INIT)
 {
+}
+
+ITaskBase::~ITaskBase()
+{
+    CTaskQueue *pTaskQueue = CTaskQueue::GetObj();
+    CCoroutine *pCor = CCoroutine::GetObj();
+
+    m_oPtr = nullptr;
+
+    if (m_pSp && m_pContext)
+    {
+        pCor->Del(this);
+        m_pSp = 0;
+        m_pContext = 0;
+    }
+
+    if (m_pTaskQueue)
+    {
+        pTaskQueue->DelWaitTask((CTaskNode*)m_pTaskQueue);
+        m_pTaskQueue = 0;
+    }
 }
 
 int ITaskBase::YieldEventDel(uint32_t dwTimeoutMs, int iFd, int iSetEvent, int iRestoreEvent)

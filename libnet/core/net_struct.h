@@ -26,7 +26,7 @@ namespace znet
 
 typedef struct _NetEvent
 {
-    NEWOBJ(ITaskBase, pNewObj);
+    NEWOBJ(ITaskBase, pCb);
     void* pData;
     CFileFd* pFd;
     char szServerName[32];

@@ -19,6 +19,7 @@
 #include "net_task.h"
 #include "task_queue.h"
 #include "schedule.h"
+#include "thread.h"
 
 using namespace znet;
 
@@ -149,6 +150,7 @@ int CNetClient::WriteReliable(const char *pszBuf, int iLen)
 {
     CReliableFd* pSock = (CReliableFd *)m_pFd;
     int iOffset = 0;
+    CPadlock<CCoLock> ol(m_oLock);
     while (iLen > 0)
     {
         int iRet = pSock->Write(pszBuf + iOffset, iLen);
@@ -172,6 +174,7 @@ int CNetClient::WriteUnreliable(const char *pszBuf, int iLen)
 {
     CUnreliableFd* pSock = (CUnreliableFd *)m_pFd;
     int iOffset = 0;
+    CPadlock<CCoLock> ol(m_oLock);
     while (iLen > 0)
     {
         int iRet = pSock->Write(pszBuf + iOffset, iLen, (struct sockaddr *)m_szUdpAddr, m_wAddrLen);
@@ -245,6 +248,7 @@ int CNetClient::TcpsWrite(const char *pszBuf, int iLen)
 {
     CTcpsReliableFd *pSock = (CTcpsReliableFd *)m_pFd;
     int iOffset = 0;
+    CPadlock<CCoLock> ol(m_oLock);
     while (iLen > 0)
     {
         int iRet = pSock->Write(pszBuf + iOffset, iLen);

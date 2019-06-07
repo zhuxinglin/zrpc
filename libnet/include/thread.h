@@ -79,15 +79,28 @@ private:
     pthread_mutex_t m_Mutex;
 };
 
+template<class T>
 class CPadlock
 {
 public:
-    explicit CPadlock(CLock *pLock);
-    explicit CPadlock(CLock &oLock);
-    ~CPadlock();
+    explicit CPadlock(T *pLock)
+    {
+        m_pLock = pLock;
+        if (pLock)
+            pLock->Lock();
+    }
+    explicit CPadlock(T &oLock)
+    {
+        m_pLock = &oLock;
+        oLock.Lock();
+    }
+    ~CPadlock()
+    {
+        m_pLock->Unlock();
+    }
 
 private:
-    CLock *m_pLock;
+    T *m_pLock;
 };
 
 class CSpinLock

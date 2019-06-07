@@ -7,7 +7,7 @@ CORE = core
 INCLUDES=-I./include -I./core -I./src -I/usr/local/include
 
 LIBS=
-CFLAGS	= -O2 -Wall -D_REENTRANT -Wno-invalid-offsetof -static -fPIC
+CFLAGS	= -O2 -Wall -D_REENTRANT -Wno-invalid-offsetof -static -fPIC -std=c++11
 
 -include $(SRC)/makefile.mk
 -include $(CORE)/makefile.mk

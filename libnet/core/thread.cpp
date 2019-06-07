@@ -180,24 +180,6 @@ void CLock::Unlock()
     pthread_mutex_unlock(&m_Mutex);
 }
 
-CPadlock::CPadlock(CLock *pLock)
-{
-    m_pLock = pLock;
-    if (pLock)
-        pLock->Lock();
-}
-
-CPadlock::CPadlock(CLock &oLock)
-{
-    m_pLock = &oLock;
-    oLock.Lock();
-}
-
-CPadlock::~CPadlock()
-{
-    m_pLock->Unlock();
-}
-
 CSpinLock::CSpinLock(volatile uint32_t &dwSync)
 {
     m_pSync = &dwSync;

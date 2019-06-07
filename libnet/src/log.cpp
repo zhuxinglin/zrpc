@@ -24,7 +24,7 @@ CLog *CLog::m_pSelf = 0;
 
 CLog::CLog()
 {
-	m_sLogDir = "../log/";
+	m_sLogDir = "../logs/";
 	m_sAddr = "";
 	m_dwWriteMode = CLogConfig::LOG_FILE;
 	m_dwLevel = CLogConfig::LOG_INFO_LEVEL;

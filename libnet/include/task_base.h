@@ -19,6 +19,7 @@
 
 #include <stdint.h>
 #include <sys/time.h>
+#include <memory>
 
 #define NEWOBJ(x, v)    x* (*v)()
 
@@ -35,9 +36,9 @@ namespace znet
 struct ITaskBase
 {
     ITaskBase();
+    virtual ~ITaskBase();
     virtual void Run() = 0;
     virtual void Error(const char* pszExitStr){}
-    virtual void Release(){}
     int YieldEventDel(uint32_t dwTimeoutMs, int iFd, int iSetEvent, int iRestoreEvent);
     int YieldEventRestore(uint32_t dwTimeoutMs, int iFd, int iSetEvent, int iRestoreEvent);
     int Yield(uint32_t dwTimeoutMs = 0);
@@ -62,11 +63,13 @@ struct ITaskBase
     static int GetFd(uint64_t qwCid);
     static uint32_t GetSubCId(uint64_t qwCid);
 
+    std::shared_ptr<ITaskBase> m_oPtr;
+
 // ==========private===============
     void *m_pSp;
     void *m_pContext;
     void *m_pMainCo;
-    NEWOBJ(ITaskBase, m_pNewObj);
+    NEWOBJ(ITaskBase, m_pCb);
     void *m_pTaskQueue;
 // ===============public read-only==================
     void *m_pData;
@@ -109,6 +112,8 @@ struct ITaskBase
     uint8_t m_wIsRuning;
     uint8_t m_wRunStatus;
 };
+
+using SharedTask = std::shared_ptr<ITaskBase>;
 
 }
 

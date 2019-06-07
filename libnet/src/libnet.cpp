@@ -177,12 +177,12 @@ uint32_t CNet::GetTaskThreadCount() const
     return g_dwWorkThreadCount;
 }
 
-int CNet::Register(NEWOBJ(ITaskBase, pNewObj), void *pData, uint16_t wProtocol, uint16_t wPort, const char *pszIP,
+int CNet::Register(NEWOBJ(ITaskBase, pCb), void *pData, uint16_t wProtocol, uint16_t wPort, const char *pszIP,
                    uint16_t wVer, uint32_t dwTimeoutMs, const char *pszServerName, const char *pszSslCert, const char *pszSslKey)
 {
-    if (!pNewObj)
+    if (!pCb)
     {
-        m_sErr = "ITaskBase *(*pNewObj)() is null";
+        m_sErr = "ITaskBase *(*pCb)() is null";
         return -1;
     }
 
@@ -198,7 +198,7 @@ int CNet::Register(NEWOBJ(ITaskBase, pNewObj), void *pData, uint16_t wProtocol, 
         return -1;
 
     if (wProtocol > ITaskBase::PROTOCOL_TCPS)
-        return SetUdpTask(pNewObj, pFd, pData, wProtocol, pszIP);
+        return SetUdpTask(pCb, pFd, pData, wProtocol, pszIP);
 
     CNetEvent *pEvent = (CNetEvent *)m_oNetPool.Malloc();
     if (!pEvent)
@@ -207,7 +207,7 @@ int CNet::Register(NEWOBJ(ITaskBase, pNewObj), void *pData, uint16_t wProtocol, 
         delete pFd;
         return -1;
     }
-    pEvent->pNewObj = pNewObj;
+    pEvent->pCb = pCb;
     pEvent->pData = pData;
     pEvent->pFd = pFd;
     pEvent->wProtocol = wProtocol;
@@ -227,7 +227,7 @@ int CNet::Register(NEWOBJ(ITaskBase, pNewObj), void *pData, uint16_t wProtocol, 
     return iRet;
 }
 
-int CNet::Register(NEWOBJ(ITaskBase, pNewObj), void *pData, uint16_t wProtocol, uint32_t dwTimeoutUs)
+int CNet::Register(NEWOBJ(ITaskBase, pCb), void *pData, uint16_t wProtocol, uint32_t dwTimeoutUs)
 {
     if (wProtocol < ITaskBase::PROTOCOL_TIMER_FD || wProtocol > ITaskBase::PROTOCOL_EVENT_FD)
     {
@@ -235,7 +235,7 @@ int CNet::Register(NEWOBJ(ITaskBase, pNewObj), void *pData, uint16_t wProtocol, 
         return -1;
     }
 
-    ITaskBase *pTask = NewTask(pNewObj, pData, wProtocol, dwTimeoutUs);
+    ITaskBase *pTask = NewTask(pCb, pData, wProtocol, dwTimeoutUs);
     if (!pTask)
         return -1;
 
@@ -255,7 +255,7 @@ int CNet::Register(NEWOBJ(ITaskBase, pNewObj), void *pData, uint16_t wProtocol, 
         if (pTimer->Create(dwTimeoutUs) < 0)
         {
             m_sErr = pTimer->GetErr();
-            pTask->Release();
+            DeleteTask(pTask);
             return -1;
         }
         pNet->m_qwCid = ITaskBase::GenCid(pTimer->GetFd());
@@ -276,12 +276,16 @@ int CNet::Register(NEWOBJ(ITaskBase, pNewObj), void *pData, uint16_t wProtocol, 
         if (pEvent->Create() < 0)
         {
             m_sErr = pEvent->GetErr();
-            pTask->Release();
+            DeleteTask(pTask);
             return -1;
         }
         pTask->m_qwCid = ITaskBase::GenCid(pEvent->GetFd());
         strcpy(pNet->m_szAddr, "event_fd");
     }
+    break;
+    default:
+        DeleteTask(pTask);
+        return -1;
     break;
     }
 
@@ -326,8 +330,7 @@ int CNet::AddTimerTask(ITaskBase *pTask, uint32_t dwTimeout)
     }while(0);
     if (iRet < 0)
     {
-        pTaskQueue->DelTask((CTaskNode *)pTask->m_pTaskQueue);
-        pTask->Release();
+        DeleteTask(pTask);
         m_sErr = "add message list fail";
     }
     return iRet;
@@ -338,8 +341,7 @@ int CNet::AddFdTask(ITaskBase *pTask, int iFd)
     CTaskQueue *pTaskQueue = CTaskQueue::GetObj();
     if (!pTaskQueue->AddWaitTask((CTaskNode *)pTask->m_pTaskQueue))
     {
-        pTaskQueue->DelTask((CTaskNode *)pTask->m_pTaskQueue);
-        pTask->Release();
+        DeleteTask(pTask);
         m_sErr = "add message list fail";
         return -1;
     }
@@ -348,8 +350,7 @@ int CNet::AddFdTask(ITaskBase *pTask, int iFd)
     if (pSchedule->PushMsg(iFd, 0, 0, (void *)pTask->m_qwCid) < 0)
     {
         m_sErr = pSchedule->GetErr();
-        pTaskQueue->DelWaitTask((CTaskNode *)pTask->m_pTaskQueue);
-        pTask->Release();
+        delete pTask;
         return -1;
     }
 
@@ -450,9 +451,9 @@ CFileFd *CNet::GetFd(uint16_t wProtocol, uint16_t wPort, const char *pszIP, uint
     return pFd;
 }
 
-int CNet::SetUdpTask(NEWOBJ(ITaskBase, pNewObj), CFileFd* pFd, void *pData, uint16_t wProtocol, const char *pszIP)
+int CNet::SetUdpTask(NEWOBJ(ITaskBase, pCb), CFileFd* pFd, void *pData, uint16_t wProtocol, const char *pszIP)
 {
-    CNetTask *pTask = (CNetTask *)NewTask(pNewObj, pData, wProtocol);
+    CNetTask *pTask = (CNetTask *)NewTask(pCb, pData, wProtocol);
     if (!pTask)
     {
         m_sErr = "new task base object fail";
@@ -475,16 +476,16 @@ int CNet::SetUdpTask(NEWOBJ(ITaskBase, pNewObj), CFileFd* pFd, void *pData, uint
     return 0;
 }
 
-ITaskBase *CNet::NewTask(NEWOBJ(ITaskBase, pNewObj), void *pData, uint16_t wProtocol, uint32_t dwTimeoutUs)
+ITaskBase *CNet::NewTask(NEWOBJ(ITaskBase, pCb), void *pData, uint16_t wProtocol, uint32_t dwTimeoutUs)
 {
-    ITaskBase *pBase = pNewObj();
+    ITaskBase *pBase = pCb();
     if (!pBase)
     {
         m_sErr = "new task base object fail";
         return 0;
     }
 
-    pBase->m_pNewObj = pNewObj;
+    pBase->m_pCb = pCb;
     return NewTask(pBase, pData, wProtocol, dwTimeoutUs);
 }
 
@@ -494,7 +495,7 @@ ITaskBase *CNet::NewTask(ITaskBase *pBase, void *pData, uint16_t wProtocol, uint
     if (__builtin_expect(pBase->m_pTaskQueue == 0, 0))
     {
         m_sErr = "new task queue object fail";
-        pBase->Release();
+        delete pBase;
         return 0;
     }
 
@@ -553,7 +554,7 @@ int CNet::Start()
             CNetEvent *pEvent = (CNetEvent*)ev[i].data.ptr;
             oFd.SetFd(pEvent->pFd->GetFd());
 
-            CNetTask *pTask = (CNetTask *)NewTask(pEvent->pNewObj, pEvent->pData, pEvent->wProtocol, pEvent->dwTimeoutUs);
+            CNetTask *pTask = (CNetTask *)NewTask(pEvent->pCb, pEvent->pData, pEvent->wProtocol, pEvent->dwTimeoutUs);
             if (!pTask)
             {
                 CFileFd oClose(oFd.Accept());
@@ -576,16 +577,14 @@ int CNet::Start()
             if (iFd < 0)
             {
                 pTask->Error("accpet fd fail");
-                pTaskQueue->DelTask((CTaskNode*)pTask->m_pTaskQueue);
-                pTask->Release();
+                DeleteTask(pTask);
                 continue;
             }
             pTask->m_pFd = GetFileFd(pEvent->wProtocol, iFd);
             if (!pTask->m_pFd)
             {
                 pTask->Error("create fd  objcet fail");
-                pTaskQueue->DelTask((CTaskNode *)pTask->m_pTaskQueue);
-                pTask->Release();
+                DeleteTask(pTask);
                 CFileFd oClose(iFd);
                 continue;
             }
@@ -615,8 +614,7 @@ int CNet::Start()
             if (iRet < 0)
             {
                 pTask->Error("add message list fail");
-                pTaskQueue->DelTask((CTaskNode *)pTask->m_pTaskQueue);
-                pTask->Release();
+                DeleteTask(pTask);
                 continue;
             }
 
@@ -628,10 +626,7 @@ int CNet::Start()
                 if (pTask->m_wRunStatus == ITaskBase::RUN_NOW)
                     pTask->m_wRunStatus = ITaskBase::RUN_EXIT;
                 else
-                {
-                    pTaskQueue->DelWaitTask((CTaskNode*)pTask->m_pTaskQueue);
-                    pTask->Release();
-                }
+                    delete pTask;
                 continue;
             }
 
@@ -688,4 +683,12 @@ int CNet::RemoveServer(void *pEvent, void *pData)
     }
 
     return 0;
+}
+
+void CNet::DeleteTask(ITaskBase* pTask)
+{
+    CTaskQueue *pTaskQueue = CTaskQueue::GetObj();
+    pTaskQueue->DelTask((CTaskNode *)pTask->m_pTaskQueue);
+    pTask->m_pTaskQueue = 0;
+    delete pTask;
 }

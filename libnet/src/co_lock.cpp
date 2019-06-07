@@ -24,7 +24,7 @@
 
 using namespace znet;
 
-CCoLock::CCoLock() : m_dwSync(0), m_dwLock(0)
+CCoLock::CCoLock() : m_dwLock(0)
 {
 }
 
@@ -34,25 +34,16 @@ CCoLock::~CCoLock()
 
 void CCoLock::Lock()
 {
-    while(__sync_lock_test_and_set(&m_dwSync, 1))
-        _usleep_();
-
     while (__sync_lock_test_and_set(&m_dwLock, 1))
         Push();
-
-    __sync_lock_release(&m_dwSync);
 }
 
 void CCoLock::Unlock()
 {
     CTaskQueue *pTaskQueue = CTaskQueue::GetObj();
 
-    while (__sync_lock_test_and_set(&m_dwSync, 1))
-        _usleep_();
-
     uint64_t qwCoId = Pop();
     __sync_lock_release(&m_dwLock);
-    __sync_lock_release(&m_dwSync);
 
     ITaskBase* pTask = CCoroutine::GetObj()->GetTaskBase();
 
@@ -69,12 +60,8 @@ void CCoLock::Push()
     pTask->m_wRunStatus = ITaskBase::RUN_LOCK;
     uint64_t qwCoId = pTask->m_qwCid;
     m_oLock.push(qwCoId);
-    __sync_lock_release(&m_dwSync);
 
     pTask->Yield(-1);
-
-    while (__sync_lock_test_and_set(&m_dwSync, 1))
-        _usleep_();
 }
 
 uint64_t CCoLock::Pop()
