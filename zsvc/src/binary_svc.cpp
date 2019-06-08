@@ -124,5 +124,10 @@ int CBinarySvc::ReadData(std::shared_ptr<std::string>& oBuf, uint16_t& wCmd)
 
         oBuf->append(m_pszRecvBuff, iLen);
     }
+
+    const char* e = oBuf->c_str() + oBuf->size();
+    if (*e != END_FLAGE)
+        return -1;
+
     return 0;
 }

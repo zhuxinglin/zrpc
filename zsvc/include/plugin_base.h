@@ -43,6 +43,7 @@ struct CHttpController : public CControllerBase
 };
 
 #define HEADER_FLAGE    0x61613535
+#define END_FLAGE   0x03
 
 struct CBinaryHeader
 {
@@ -58,6 +59,15 @@ struct CBinaryHeader
     uint16_t wCmd;
     uint8_t iRet;
     char szBody[0];
+
+    void Set(int32_t len, uint16_t cmd, uint8_t ret, uint8_t ver = 0)
+    {
+        dwHeader = HEADER_FLAGE;
+        iLen = len;
+        szVersion = ver;
+        wCmd = cmd;
+        iRet = ret;
+    }
 
     void Hton()
     {
