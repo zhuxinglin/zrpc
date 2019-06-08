@@ -29,10 +29,10 @@ public:
     ~CTestAd();
 
 private:
-    virtual int Initialize(znet::CLog* pLog);
+    virtual int Initialize(znet::CLog* pLog, znet::CCoroutine* pCo);
     virtual int GetRouteTable(std::set<uint64_t>& setKey);
-    virtual int Process(CControllerBase *pController, uint64_t dwKey, std::string *pMessage);
-    virtual int Process(CControllerBase *pController, uint64_t dwKey, std::string *pReq, std::string *pResp);
+    virtual int Process(znet::SharedTask& oCo, CControllerBase* pController, uint64_t dwKey, std::string *pMessage);
+    virtual int Process(znet::SharedTask& oCo, CControllerBase* pController, uint64_t dwKey, std::string *pReq, std::string *pResp);
     virtual void Release();
 };
 

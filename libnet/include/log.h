@@ -101,6 +101,7 @@ private:
 	std::string GetSwapLogName();
 	int OpenNet(const char* pszAddr, int iMode, bool bIsReconnent = false);
 	CFileFd* GetFd(int iMode);
+	void GenDir();
 
 private:
 	bool m_bIsInit;

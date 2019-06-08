@@ -86,7 +86,7 @@ int CSoPlugin::UpdateSo(const char *pszSoName, map_so_info *pmapRoute)
     return 0;
 }
 
-int CSoPlugin::ExecSo(CControllerBase *pContrller, uint64_t qwKey, std::string *pMessage, int &iCode)
+int CSoPlugin::ExecSo(znet::SharedTask& oCo, CControllerBase* pController, uint64_t qwKey, std::string *pMessage, int &iCode)
 {
     map_so_info* pRoute = m_mapRoute;
     iCode = 404;
@@ -98,15 +98,16 @@ int CSoPlugin::ExecSo(CControllerBase *pContrller, uint64_t qwKey, std::string *
             continue;
 
         __sync_fetch_and_add(&it->first->dwCount, 1);
-        iRet = it->first->pPlugin->Process(pContrller, qwKey, pMessage);
+        iRet = it->first->pPlugin->Process(oCo, pController, qwKey, pMessage);
         __sync_fetch_and_sub(&it->first->dwCount, 1);
+        
         iCode = 200;
         break;
     }
     return iRet;
 }
 
-int CSoPlugin::InnerSo(CControllerBase *pContrller, uint64_t qwKey, std::string *pReq, std::string *pResp)
+int CSoPlugin::InnerSo(znet::SharedTask& oCo, CControllerBase* pController, uint64_t qwKey, std::string *pReq, std::string *pResp)
 {
     map_so_info *pRoute = m_mapRoute;
     int iRet = -1;
@@ -117,7 +118,7 @@ int CSoPlugin::InnerSo(CControllerBase *pContrller, uint64_t qwKey, std::string 
             continue;
 
         __sync_fetch_and_add(&it->first->dwCount, 1);
-        iRet = it->first->pPlugin->Process(pContrller, qwKey, pReq, pResp);
+        iRet = it->first->pPlugin->Process(oCo, pController, qwKey, pReq, pResp);
         __sync_fetch_and_sub(&it->first->dwCount, 1);
         break;
     }
@@ -169,7 +170,7 @@ CSoFunAddr *CSoPlugin::GetLoadSo(const char *pszSoName, set_key **psetKey)
         return 0;
     }
 
-    if (pAddr->pPlugin->Initialize(znet::CLog::GetObj()) < 0)
+    if (pAddr->pPlugin->Initialize(znet::CLog::GetObj(), znet::CCoroutine::GetObj()) < 0)
     {
         LOGE << "create '" << pszSoName << "',fun 'Initialize' fail";
         delete pAddr;

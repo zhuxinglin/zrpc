@@ -17,13 +17,17 @@
 #include "zsvc.h"
 #include "http_svc.h"
 #include <socket_fd.h>
+#include <sys/types.h>
+#include <unistd.h>
+#include <sys/stat.h>
+#include "binary_svc.h"
 #include "log.h"
 #include "libnet.h"
 
 using namespace zrpc;
 using namespace znet;
 
-const char *g_pszPluginPath = "./plugin/";
+std::string g_oPluginPath("./plugin/");
 uint32_t g_dwSoUninstallInterval = 10;
 
 CJSvc::CJSvc()
@@ -54,14 +58,14 @@ int CJSvc::Init(CConfig *pCfg)
     }
 
     // 初始化插件监控
-    if (m_oMonitorSo.InitMonitorDir(g_pszPluginPath) < 0)
+    if (m_oMonitorSo.InitMonitorDir(g_oPluginPath.c_str()) < 0)
     {
         LOGE << "initialize plugin monitor fail";
         return -1;
     }
 
     // 加载插件
-    if (m_oPlugin.LoadSo(g_pszPluginPath) < 0)
+    if (m_oPlugin.LoadSo(g_oPluginPath.c_str()) < 0)
     {
         LOGE << "load plugin fail";
         return -1;
@@ -94,6 +98,7 @@ int CJSvc::InitGlobal(CConfig::config_info *pCfg)
     it = pCfg->find("coroutine_sp");
     if (it != pCfg->end())
     {
+        LOGI << "sp size : " << it->second;
         const char* c = it->second.c_str();
         uint32_t dwSp = 0;
         while(*c != 0 && *c >= '0' && *c <= '9')
@@ -102,13 +107,15 @@ int CJSvc::InitGlobal(CConfig::config_info *pCfg)
             ++c;
         }
 
-        if (*c == 0 && dwSp > 8192)
+        if (*c == 0)
             dwStackSize = dwSp;
         else if ((*c & ~0x20) == 'K' && dwSp >= 8)
             dwStackSize = dwSp * 1024;
         else if ((*c & ~0x20) == 'M' && dwSp != 0)
             dwStackSize = dwSp * dwStackSize;
     }
+    else
+        LOGI << "sp size : 1M";
 
     int iRet = CNet::GetObj()->Init(dwThreadCount, dwStackSize);
     if (iRet < 0)
@@ -123,6 +130,28 @@ int CJSvc::InitGlobal(CConfig::config_info *pCfg)
         if (g_dwSoUninstallInterval == 0)
             g_dwSoUninstallInterval = 10;
     }
+
+    it = pCfg->find("plugin_dir");
+    if (it != pCfg->end())
+    {
+        g_oPluginPath = it->second;
+        const char* s = g_oPluginPath.c_str() + g_oPluginPath.size();
+        if (*s != '/')
+            g_oPluginPath.append("/");
+    }
+
+    const char* s = g_oPluginPath.c_str();
+	const char* e = s;
+	while (*e)
+	{
+		if (*e == '/')
+		{
+			std::string path(s, e - s);
+			if (access(path.c_str(), F_OK) != 0)
+				mkdir(path.c_str(), 0755);
+		}
+		++ e;
+	}
 
     LOGI << "global init end";
     return iRet;
@@ -154,9 +183,12 @@ int CJSvc::Register(CConfig::config_info *pCfg)
         return -1;
     }
 
+    std::string proto = it->second;
     NEWOBJ(ITaskBase, pNewObj);
     if (it->second.find(":http") != std::string::npos)
         pNewObj = CHttpSvc::GetObj;
+    else if (it->second.find(":binary") != std::string::npos)
+        pNewObj = CBinarySvc::GetObj;
     else
     {
         LOGE << "protocol nonsupport";
@@ -257,9 +289,9 @@ int CJSvc::Register(CConfig::config_info *pCfg)
     }
 
     if (s)
-        LOGI << "server name [" << pszServerName << "] server address [" << s << "] server port [" << wPort << "] timeout [" << dwTimeout << "]";
+        LOGI << proto << " server name [" << pszServerName << "] server address [" << s << "] server port [" << wPort << "] timeout [" << dwTimeout << "]";
     else
-        LOGI << "server name [" << pszServerName << "] server address [] server port [" << wPort << "] timeout [" << dwTimeout << "]";
+        LOGI << proto << " server name [" << pszServerName << "] server address [] server port [" << wPort << "] timeout [" << dwTimeout << "]";
     if (CNet::GetObj()->Register(pNewObj, &m_oPlugin, wProtocol, wPort, s, wVer, dwTimeout, pszServerName, pszSslCert, pszSslKey) < 0)
     {
         LOGE << CNet::GetObj()->GetErr();

@@ -37,14 +37,14 @@ public:
 
 private:
     virtual void Go();
-    virtual void Release();
     int ReadHttp();
-    int WriteHttp(const char *pszData, int iDataLen, int iCode, int iRet);
+    int WriteHttp(const char *pszData, int iDataLen, int iCode, int iRet, int32_t dwTimoutMs);
     void SetHttpHeader();
     void SetUri();
 
 private:
-    virtual int WriteResp(const char *pszData, int iDataLen, int iCode, int iRet, bool bIsHeader);
+    virtual int WriteMsg(const char *pszData, int iDataLen, uint32_t dwTimoutMs);
+    virtual int WriteResp(const char *pszData, int iDataLen, int iCode, int iRet, int32_t dwTimoutMs, bool bIsHeader);
     virtual int CallPlugin(uint64_t dwKey, std::string *pReq, std::string *pResp);
     virtual const char *GetHttpHeader(const char *pszKey);
     virtual void SetHttpHeader(const char *pszKey, const char *pszValue);

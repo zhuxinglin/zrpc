@@ -59,11 +59,6 @@ znet::ITaskBase *CHttpSvc::GetObj()
     return new CHttpSvc();
 }
 
-void CHttpSvc::Release()
-{
-    delete this;
-}
-
 void CHttpSvc::Error(const char* pszExitStr)
 {
     LOGI << pszExitStr;
@@ -82,16 +77,17 @@ void CHttpSvc::Go()
         LOGI << m_oHttpReq.sUri << "[" << zplugin::CUtilHash::UriHash(m_oHttpReq.sUri.c_str(), m_oHttpReq.sUri.size()) << "] " << m_iKeepAlive;
 
         int iCode;
-        int iRet = pPlugin->ExecSo(this, zplugin::CUtilHash::UriHash(m_oHttpReq.sUri.c_str(), m_oHttpReq.sUri.size()), &m_oHttpReq.szBody, iCode);
+        int iRet = pPlugin->ExecSo(m_oPtr, this, zplugin::CUtilHash::UriHash(m_oHttpReq.sUri.c_str(), m_oHttpReq.sUri.size()), &m_oHttpReq.szBody, iCode);
+        LOGI << "http code : " << iCode << " tet : " << iRet;
         if (iCode != 200)
-            WriteHttp(0, 0, iCode, iRet);
+            WriteHttp(0, 0, iCode, iRet, 3e3);
     } while (m_iKeepAlive);
 }
 
 int CHttpSvc::CallPlugin(uint64_t dwKey, std::string *pReq, std::string *pResp)
 {
     CSoPlugin *pPlugin = (CSoPlugin *)m_pData;
-    return pPlugin->InnerSo(this, dwKey, pReq, pResp);
+    return pPlugin->InnerSo(m_oPtr, this, dwKey, pReq, pResp);
 }
 
 int CHttpSvc::ReadHttp()
@@ -101,7 +97,7 @@ int CHttpSvc::ReadHttp()
     m_iComplete = 0;
     while (true)
     {
-        int iLen = Read(m_pszReadBuf, g_iReadLen);
+        int iLen = Read(m_pszReadBuf, g_iReadLen, 0xFFFFFFFF);
         if (iLen < 0)
             return -1;
         if (iLen == 0)
@@ -223,12 +219,17 @@ void CHttpSvc::SetHttpHeader()
         m_iKeepAlive = true;
 }
 
-int CHttpSvc::WriteResp(const char *pszData, int iDataLen, int iCode, int iRet, bool bIsHeader)
+int CHttpSvc::WriteMsg(const char *pszData, int iDataLen, uint32_t dwTimoutMs)
+{
+    return Write(pszData, iDataLen, dwTimoutMs);
+}
+
+int CHttpSvc::WriteResp(const char *pszData, int iDataLen, int iCode, int iRet, int32_t dwTimoutMs, bool bIsHeader)
 {
     if (bIsHeader)
-        return WriteHttp(pszData, iDataLen, iCode, iRet);
+        return WriteHttp(pszData, iDataLen, iCode, iRet, dwTimoutMs);
 
-    return Write(pszData, iDataLen);
+    return Write(pszData, iDataLen, dwTimoutMs);
 }
 
 const char *CHttpSvc::GetHttpHeader(const char *pszKey)
@@ -244,7 +245,7 @@ void CHttpSvc::SetHttpHeader(const char *pszKey, const char *pszValue)
     m_oHttpHeader.insert(header_info::value_type(pszKey, pszValue));
 }
 
-int CHttpSvc::WriteHttp(const char *pszData, int iDataLen, int iCode, int iRet)
+int CHttpSvc::WriteHttp(const char *pszData, int iDataLen, int iCode, int iRet, int32_t dwTimoutMs)
 {
     std::stringstream ssResp;
     ssResp << "HTTP/1.1 " << iCode << " OK\r\nCache-Control: no-cache\r\nServer: jsvc 1.0\r\n"
@@ -262,7 +263,7 @@ int CHttpSvc::WriteHttp(const char *pszData, int iDataLen, int iCode, int iRet)
         ssResp.write(pszData, iDataLen);
     }
     ssResp << "\r\n\r\n";
-    if (Write(ssResp.str().c_str(), ssResp.str().length()) < 0)
+    if (Write(ssResp.str().c_str(), ssResp.str().length(), dwTimoutMs) < 0)
         return -1;
 
     return 0;

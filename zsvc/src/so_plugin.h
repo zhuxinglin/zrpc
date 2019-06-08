@@ -38,8 +38,8 @@ public:
     int Del(map_so_info *pmapRoute, bool bIsAll);
     int Uninstall(map_so_info *pmapRoute, const char* pszSoName);
 
-    int ExecSo(zplugin::CControllerBase *pContrller, uint64_t qwKey, std::string *pMessage, int &iCode);
-    int InnerSo(zplugin::CControllerBase* pContrller, uint64_t dwKey, std::string *pReq, std::string *pResp);
+    int ExecSo(znet::SharedTask& oCo, zplugin::CControllerBase* pController, uint64_t qwKey, std::string *pMessage, int &iCode);
+    int InnerSo(znet::SharedTask& oCo, zplugin::CControllerBase* pController, uint64_t dwKey, std::string *pReq, std::string *pResp);
 
 private:
     int LoadCallSo(const char* pszSoName);

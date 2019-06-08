@@ -7,3 +7,5 @@ src/monitor_so.o \
 src/zsvc.o \
 src/so_plugin.o \
 src/so_uninstall.o \
+src/binary_svc.o \
+src/binary_handle.o \

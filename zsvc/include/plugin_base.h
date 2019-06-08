@@ -21,14 +21,17 @@
 #include <string>
 #include <set>
 #include <stdint.h>
+#include <arpa/inet.h>
 #include "log.h"
+#include <task_base.h>
+#include <coroutine.h>
 
 namespace zplugin
 {
 
 struct CControllerBase
 {
-    virtual int WriteResp(const char *pszData, int iDataLen, int iCode, int iRet, bool bIsHeader) = 0;
+    virtual int WriteMsg(const char *pszData, int iDataLen, uint32_t dwTimoutMs) = 0;
     virtual int CallPlugin(uint64_t dwKey, std::string *pReq, std::string *pResp) = 0;
 };
 
@@ -36,14 +39,39 @@ struct CHttpController : public CControllerBase
 {
     virtual const char* GetHttpHeader(const char* pszKey) = 0;
     virtual void SetHttpHeader(const char* pszKey, const char* pszValue) = 0;
+    virtual int WriteResp(const char *pszData, int iDataLen, int iCode, int iRet, int32_t dwTimoutMs, bool bIsHeader) = 0;
+};
+
+#define HEADER_FLAGE    0x61613535
+
+struct CBinaryHeader
+{
+    CBinaryHeader(int32_t len, uint16_t cmd, uint8_t ret, uint8_t ver = 0) : dwHeader(HEADER_FLAGE),
+                                                                             iLen(len),
+                                                                             szVersion(ver),
+                                                                             wCmd(cmd),
+                                                                             iRet(ret)
+    {}
+    uint32_t dwHeader;  // aa55=0x61613535
+    int32_t iLen;
+    uint8_t szVersion;
+    uint16_t wCmd;
+    uint8_t iRet;
+    char szBody[0];
+
+    void Hton()
+    {
+        iLen = htonl(iLen);
+        wCmd = htons(wCmd);
+    }
 };
 
 struct CPluginBase
 {
-    virtual int Initialize(znet::CLog* pLog) = 0;
+    virtual int Initialize(znet::CLog* pLog, znet::CCoroutine* pCo) = 0;
     virtual int GetRouteTable(std::set<uint64_t>& setKey) = 0;
-    virtual int Process(CControllerBase *pController, uint64_t dwKey, std::string *pMessage) = 0;
-    virtual int Process(CControllerBase *pController, uint64_t dwKey, std::string *pReq, std::string *pResp) = 0;
+    virtual int Process(znet::SharedTask& oCo, CControllerBase* pController, uint64_t dwKey, std::string *pMessage) = 0;
+    virtual int Process(znet::SharedTask& oCo, CControllerBase* pController, uint64_t dwKey, std::string *pReq, std::string *pResp) = 0;
     virtual void Release() = 0;
 };
 

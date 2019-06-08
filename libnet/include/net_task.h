@@ -31,9 +31,9 @@ public:
     ~CNetTask();
 
 public:
-    int Read(char* pszBuf, int iLen);
-    int Write(const char* pszBuf, int iLen);
-    void Sleep(uint32_t dwTimeoutMs = 0);
+    int Read(char* pszBuf, int iLen, uint32_t dwTimeoutMs);
+    int Write(const char* pszBuf, int iLen, uint32_t dwTimeoutMs);
+    void Sleep(uint32_t dwTimeoutMs = 0xFFFFFFFF);
 #define yield()       Sleep()
     void Close();
 
@@ -42,16 +42,16 @@ protected:
 
 private:
     virtual void Run() FINAL;
-    int ReadReliable(char* pszBuf, int iLen);
-    int ReadUnreliable(char* pszBuf, int iLen);
-    int WriteReliable(const char* pszBuf, int iLen);
-    int WriteUnreliable(const char* pszBuf, int iLen);
+    int ReadReliable(char* pszBuf, int iLen, uint32_t dwTimeoutMs);
+    int ReadUnreliable(char* pszBuf, int iLen, uint32_t dwTimeoutMs);
+    int WriteReliable(const char* pszBuf, int iLen, uint32_t dwTimeoutMs);
+    int WriteUnreliable(const char* pszBuf, int iLen, uint32_t dwTimeoutMs);
     int ReadTimer(char* pszBuf, int iLen);
     int ReadEvent(char* pszBuf, int iLen);
     int WriteTimer(const char* pszBuf, int iLen);
     int WriteEvent(const char* pszBuf, int iLen);
-    int ReadTcps(char *pszBuf, int iLen);
-    int WriteTcps(const char* pszBuf, int iLen);
+    int ReadTcps(char *pszBuf, int iLen, uint32_t dwTimeoutMs);
+    int WriteTcps(const char* pszBuf, int iLen, uint32_t dwTimeoutMs);
 
 public:
     CFileFd *m_pFd;

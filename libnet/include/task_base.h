@@ -41,7 +41,7 @@ struct ITaskBase
     virtual void Error(const char* pszExitStr){}
     int YieldEventDel(uint32_t dwTimeoutMs, int iFd, int iSetEvent, int iRestoreEvent);
     int YieldEventRestore(uint32_t dwTimeoutMs, int iFd, int iSetEvent, int iRestoreEvent);
-    int Yield(uint32_t dwTimeoutMs = 0);
+    int Yield(uint32_t dwTimeoutMs = 0xFFFFFFFF);
 
     enum _YieldOpt
     {

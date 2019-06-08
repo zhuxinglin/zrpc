@@ -18,31 +18,35 @@
 #include "coroutine.h"
 #include <string.h>
 #include <stdio.h>
-#include "thread.h"
 #include "task_queue.h"
 
 using namespace znet;
 
 CCoroutine *CCoroutine::m_pSelf = 0;
-pthread_key_t g_KeyContext;
+static CLock g_CoLock;
 
 CCoroutine::CCoroutine() : m_oRsp(1024 * 1024, 1000),
                            m_oContext(sizeof(ucontext_t), 1000),
                            m_dwRspSize(1024 * 1024),
                            m_pszErr("")
 {
-    pthread_key_create(&g_KeyContext, NULL);
+    pthread_key_create(&m_KeyContext, NULL);
 }
 
 CCoroutine::~CCoroutine()
 {
-    pthread_key_delete(g_KeyContext);
+    pthread_key_delete(m_KeyContext);
 }
 
 CCoroutine *CCoroutine::GetObj()
 {
     if (!m_pSelf)
-        m_pSelf = new CCoroutine();
+    {
+        g_CoLock.Lock();
+        if (!m_pSelf)
+            m_pSelf = new CCoroutine();
+        g_CoLock.Unlock();
+    }
     return m_pSelf;
 }
 
@@ -51,6 +55,12 @@ void CCoroutine::Release()
     if (m_pSelf)
         delete m_pSelf;
     m_pSelf = 0;
+}
+
+void CCoroutine::SetObj(CCoroutine* pCo)
+{
+    if (!m_pSelf)
+        m_pSelf = pCo;
 }
 
 void CCoroutine::SetRspSize(uint32_t dwRspSize)
@@ -94,7 +104,7 @@ int CCoroutine::Create(ITaskBase *pBase)
 
 void CCoroutine::Swap(ITaskBase *pDest, ITaskBase *pSrc)
 {
-    pthread_setspecific(g_KeyContext, pDest);
+    pthread_setspecific(m_KeyContext, pDest);
     pDest->m_pMainCo = pSrc->m_pMainCo;
     swapcontext((ucontext_t *)pSrc->m_pContext, (ucontext_t *)pDest->m_pContext);
 }
@@ -103,12 +113,12 @@ void CCoroutine::Swap(ITaskBase *pDest, bool bIsMain)
 {
     if (bIsMain)
     {
-        pthread_setspecific(g_KeyContext, pDest);
+        pthread_setspecific(m_KeyContext, pDest);
         swapcontext((ucontext_t *)pDest->m_pMainCo, (ucontext_t *)pDest->m_pContext);
     }
     else
     {
-        pthread_setspecific(g_KeyContext, 0);
+        pthread_setspecific(m_KeyContext, 0);
         /*typeof(*(((ucontext_t *)(pDest->m_pMainCo))->uc_mcontext).gregs)* pGregs;
         pGregs = ((ucontext_t *)(pDest->m_pMainCo))->uc_mcontext.gregs;
         pGregs[1] = iType;
@@ -121,7 +131,7 @@ void CCoroutine::Swap(ITaskBase *pDest, bool bIsMain)
 
 ITaskBase *CCoroutine::GetTaskBase()
 {
-    return (ITaskBase *)pthread_getspecific(g_KeyContext);
+    return (ITaskBase *)pthread_getspecific(m_KeyContext);
 }
 
 void CCoroutine::Del(ITaskBase *pBase)

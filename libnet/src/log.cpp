@@ -16,6 +16,8 @@
 #include <string.h>
 #include <errno.h>
 #include <stdlib.h>
+#include <sys/types.h>
+#include <unistd.h>
 #include "log.h"
 
 using namespace znet;
@@ -96,6 +98,7 @@ bool CLog::Create(CLogConfig *pConfig)
 		if (*s != '/')
 			m_sLogDir.append("/");
 	}
+	GenDir();
 
 	if (m_dwWriteMode & CLogConfig::LOG_FILE)
 	{
@@ -385,4 +388,20 @@ CFileFd *CLog::GetFd(int iMode)
 			m_pSock->Close();
 	}
 	return m_pSock;
+}
+
+void CLog::GenDir()
+{
+	const char* s = m_sLogDir.c_str();
+	const char* e = s;
+	while (*e)
+	{
+		if (*e == '/')
+		{
+			std::string path(s, e - s);
+			if (access(path.c_str(), F_OK) != 0)
+				mkdir(path.c_str(), 0755);
+		}
+		++ e;
+	}
 }
