@@ -74,11 +74,11 @@ void CHttpSvc::Go()
 
         SetUri();
 
-        LOGI << m_oHttpReq.sUri << "[" << zplugin::CUtilHash::UriHash(m_oHttpReq.sUri.c_str(), m_oHttpReq.sUri.size()) << "] " << m_iKeepAlive;
+//        LOGI << m_oHttpReq.sUri << "[" << zplugin::CUtilHash::UriHash(m_oHttpReq.sUri.c_str(), m_oHttpReq.sUri.size()) << "] " << m_iKeepAlive;
 
         int iCode;
         int iRet = pPlugin->ExecSo(m_oPtr, this, zplugin::CUtilHash::UriHash(m_oHttpReq.sUri.c_str(), m_oHttpReq.sUri.size()), &m_oHttpReq.szBody, iCode);
-        LOGI << "http code : " << iCode << " tet : " << iRet;
+//        LOGI << "http code : " << iCode << " tet : " << iRet;
         if (iCode != 200)
             WriteHttp(0, 0, iCode, iRet, 3e3);
     } while (m_iKeepAlive);

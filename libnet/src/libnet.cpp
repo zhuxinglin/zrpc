@@ -83,6 +83,12 @@ CNet *CNet::GetObj()
     return m_pSelf;
 }
 
+void CNet::Set(CNet* pN)
+{
+    if (!m_pSelf)
+        m_pSelf = pN;
+}
+
 void CNet::Release()
 {
     if (m_pSelf)
@@ -561,6 +567,7 @@ int CNet::Start()
                 continue;
             }
             oFd.SetVer(pEvent->wVer);
+            pTask->m_sServerName = pEvent->szServerName;
 
             int iFd;
             if (pEvent->wProtocol != ITaskBase::PROTOCOL_TCP && pEvent->wProtocol != ITaskBase::PROTOCOL_TCPS)

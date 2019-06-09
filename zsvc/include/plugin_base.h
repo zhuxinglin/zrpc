@@ -25,6 +25,7 @@
 #include "log.h"
 #include <task_base.h>
 #include <coroutine.h>
+#include <libnet.h>
 
 namespace zplugin
 {
@@ -78,7 +79,13 @@ struct CBinaryHeader
 
 struct CPluginBase
 {
-    virtual int Initialize(znet::CLog* pLog, znet::CCoroutine* pCo) = 0;
+    int Initialize(znet::CLog* pLog, znet::CCoroutine* pCo, znet::CNet* pN)
+    {
+        znet::CNet::Set(pN);
+        znet::CCoroutine::SetObj(pCo);
+        return Initialize(pLog);
+    }
+    virtual int Initialize(znet::CLog* pLog) = 0;
     virtual int GetRouteTable(std::set<uint64_t>& setKey) = 0;
     virtual int Process(znet::SharedTask& oCo, CControllerBase* pController, uint64_t dwKey, std::string *pMessage) = 0;
     virtual int Process(znet::SharedTask& oCo, CControllerBase* pController, uint64_t dwKey, std::string *pReq, std::string *pResp) = 0;

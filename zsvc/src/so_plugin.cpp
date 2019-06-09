@@ -100,7 +100,7 @@ int CSoPlugin::ExecSo(znet::SharedTask& oCo, CControllerBase* pController, uint6
         __sync_fetch_and_add(&it->first->dwCount, 1);
         iRet = it->first->pPlugin->Process(oCo, pController, qwKey, pMessage);
         __sync_fetch_and_sub(&it->first->dwCount, 1);
-        
+
         iCode = 200;
         break;
     }
@@ -170,7 +170,7 @@ CSoFunAddr *CSoPlugin::GetLoadSo(const char *pszSoName, set_key **psetKey)
         return 0;
     }
 
-    if (pAddr->pPlugin->Initialize(znet::CLog::GetObj(), znet::CCoroutine::GetObj()) < 0)
+    if (pAddr->pPlugin->Initialize(znet::CLog::GetObj(), znet::CCoroutine::GetObj(), znet::CNet::GetObj()) < 0)
     {
         LOGE << "create '" << pszSoName << "',fun 'Initialize' fail";
         delete pAddr;

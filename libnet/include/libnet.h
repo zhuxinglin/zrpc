@@ -35,6 +35,7 @@ private:
 
 public:
     static CNet* GetObj();
+    static void Set(CNet* pN);
     static void Release();
     int Init(uint32_t dwWorkThread = 0, uint32_t dwSp = 0);
     int Register(NEWOBJ(ITaskBase, pCb), void *pData, uint16_t wProtocol, uint16_t wPort, const char *pszIP,

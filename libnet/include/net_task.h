@@ -59,6 +59,7 @@ public:
     char m_szUdpAddr[32];
     uint8_t m_wUdpAddLen;
     CCoLock m_oLock;
+    std::string m_sServerName;
 };
 
 }

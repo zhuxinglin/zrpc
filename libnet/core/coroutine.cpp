@@ -23,7 +23,6 @@
 using namespace znet;
 
 CCoroutine *CCoroutine::m_pSelf = 0;
-static CLock g_CoLock;
 
 CCoroutine::CCoroutine() : m_oRsp(1024 * 1024, 1000),
                            m_oContext(sizeof(ucontext_t), 1000),
@@ -41,12 +40,7 @@ CCoroutine::~CCoroutine()
 CCoroutine *CCoroutine::GetObj()
 {
     if (!m_pSelf)
-    {
-        g_CoLock.Lock();
-        if (!m_pSelf)
-            m_pSelf = new CCoroutine();
-        g_CoLock.Unlock();
-    }
+        m_pSelf = new CCoroutine();
     return m_pSelf;
 }
 

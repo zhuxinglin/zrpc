@@ -29,10 +29,9 @@ CTestAd::~CTestAd()
 {
 }
 
-int CTestAd::Initialize(znet::CLog *pLog, znet::CCoroutine* pCo)
+int CTestAd::Initialize(znet::CLog *pLog)
 {
     znet::CLog::SetObj(pLog);
-    znet::CCoroutine::SetObj(pCo);
     return 0;
 }
 
@@ -84,7 +83,7 @@ int CTestAd::Process(znet::SharedTask& oCo, CControllerBase* pController, uint64
     if (!fp)
         return 0;
 
-    char buf[8192];
+    char *buf = new char[8193];
     while (file_size > 0 && !feof(fp))
     {
         int len = fread(buf, 1, 8192, fp);
@@ -95,6 +94,7 @@ int CTestAd::Process(znet::SharedTask& oCo, CControllerBase* pController, uint64
             break;
         }
     }
+    delete buf;
     if (fp)
         fclose(fp);
     return 0;
