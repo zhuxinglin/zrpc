@@ -39,7 +39,7 @@ CNet *CNet::m_pSelf = 0;
 uint32_t g_dwWorkThreadCount = 2;
 CGo *g_pGo = 0;
 uint32_t g_dwMaxTaskCount = 100000;
-volatile uint32_t* g_pIsPost = 0;
+
 //
 CNet::CNet() : m_oNetPool(sizeof(CNetEvent), 8)
 {
@@ -61,14 +61,14 @@ CNet::~CNet()
     if (g_pGo)
     {
         for (uint32_t i = 0; i < g_dwWorkThreadCount; ++i)
+        {
             g_pGo[i].Exit();
+            CGoPost::Post();
+        }
 
         delete[] g_pGo;
     }
     g_pGo = 0;
-
-    if (g_pIsPost)
-        delete g_pIsPost;
 
     m_oNetPool.GetUse(this, &CNet::FreeListenFd);
     ERR_free_strings();
@@ -149,16 +149,8 @@ int CNet::Go()
         return -1;
     }
 
-    g_pIsPost = new (std::nothrow) uint32_t[g_dwWorkThreadCount];
-    if (!g_pIsPost)
-    {
-        m_sErr = "create go post object failed";
-        return -1;
-    }
-
     for (uint32_t i = 0; i < g_dwWorkThreadCount; ++i)
     {
-        g_pIsPost[i] = 0;
         if (g_pGo[i].Start(0, i) < 0)
         {
             m_sErr = g_pGo[i].GetErr();

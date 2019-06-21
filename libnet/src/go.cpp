@@ -21,10 +21,12 @@
 #include "task_queue.h"
 #include <unistd.h>
 #include "timer_fd.h"
+#include <atomic>
 
 using namespace znet;
 
-extern volatile uint32_t* g_pIsPost;
+std::atomic_uint g_dwExecTheadCount(0);
+CSem g_oSem;
 
 CGo::CGo()
 {
@@ -42,7 +44,6 @@ int CGo::Initialize(void *pUserData)
 
 int CGo::PushMsg(uint32_t dwId, uint32_t dwMsgType, int iMsgLen, void *pMsg)
 {
-    m_oSem.Post();
     return 0;
 }
 
@@ -54,61 +55,59 @@ void CGo::Run(uint32_t dwId)
     pCor->GetContext(&uCon);
     while (m_bExit)
     {
-        m_oSem.Wait();
+        g_oSem.Wait();
         if (!m_bExit)
             continue;
+
+        ++g_dwExecTheadCount;
 
         CTaskNode* pTaskNode;
         while ((pTaskNode = pTaskQueue->GetFirstExecTask()))
         {
-            __sync_fetch_and_xor(&g_pIsPost[dwId], 1);
-            do
+            ITaskBase *pTask = pTaskNode->pTask;
+            if (pTask->m_wRunStatus == ITaskBase::RUN_NOW || pTask->m_wRunStatus == ITaskBase::RUN_LOCK)
             {
-                ITaskBase *pTask = pTaskNode->pTask;
-                if (pTask->m_wRunStatus == ITaskBase::RUN_NOW || pTask->m_wRunStatus == ITaskBase::RUN_LOCK)
-                {
-                    pTaskQueue->AddWaitExecTask(pTaskNode);
-                    break;
-                }
-                else if ((pTask->m_wRunStatus == ITaskBase::RUN_EXIT) && pTask->m_wIsRuning)
-                {
-                    // 这里只实用于注册epoll失败时有效，如正在执行的协程不能做本操作，否则栈中保存堆的地址将不能释放
-                    pTask->Error("wait execute timeout");
-                    delete pTask;
-                    break;
-                }
-    
-                if (!pTask->m_pContext && !pTask->m_pSp && pCor->Create(pTask) < 0)
-                {
-                    pTaskQueue->AddWaitExecTask(pTaskNode);
-                    break;
-                }
+                pTaskQueue->AddWaitExecTask(pTaskNode);
+                continue;
+            }
+            else if ((pTask->m_wRunStatus == ITaskBase::RUN_EXIT) && pTask->m_wIsRuning)
+            {
+                // 这里只实用于注册epoll失败时有效，如正在执行的协程不能做本操作，否则栈中保存堆的地址将不能释放
+                pTask->Error("wait execute timeout");
+                delete pTask;
+                continue;
+            }
 
-                pTask->m_wIsRuning = false;
-                pTask->m_pMainCo = &uCon;
-                pTask->m_wRunStatus = ITaskBase::RUN_EXEC;
-                //printf("call start 2222222222222222222222222  %lu    %p   %u\n", pTask->m_qwCid, pTask, pTask->m_wRunStatus);
-                pCor->Swap(pTask);
-                /*int iType = uCon.uc_mcontext.gregs[1];
-                int iFd = uCon.uc_mcontext.gregs[2];
-                int iMod = uCon.uc_mcontext.gregs[3];
-                int iEvent = uCon.uc_mcontext.gregs[4];*/
-                //printf("call end 00000000000000000000000000  %lu    %p   %d\n", pTask->m_qwCid, pTask, pTask->m_wRunStatus);
-                if (pTask->m_wRunStatus != ITaskBase::RUN_EXIT)
-                {
-                    pTaskQueue->AddWaitExecTask(pTaskNode);
-                    break;
-                }
+            if (!pTask->m_pContext && !pTask->m_pSp && pCor->Create(pTask) < 0)
+            {
+                pTaskQueue->AddWaitExecTask(pTaskNode);
+                continue;
+            }
 
-                {
-                    //printf("__________________ %p\n", pTask->m_oPtr.get());
-                    std::shared_ptr<ITaskBase> optr(pTask->m_oPtr);
-                    pTask->m_oPtr = nullptr;
-                }
-            }while (0);
+            pTask->m_wIsRuning = false;
+            pTask->m_pMainCo = &uCon;
+            pTask->m_wRunStatus = ITaskBase::RUN_EXEC;
+            //printf("call start 2222222222222222222222222  %lu    %p   %u\n", pTask->m_qwCid, pTask, pTask->m_wRunStatus);
+            pCor->Swap(pTask);
+            /*int iType = uCon.uc_mcontext.gregs[1];
+            int iFd = uCon.uc_mcontext.gregs[2];
+            int iMod = uCon.uc_mcontext.gregs[3];
+            int iEvent = uCon.uc_mcontext.gregs[4];*/
+            //printf("call end 00000000000000000000000000  %lu    %p   %d\n", pTask->m_qwCid, pTask, pTask->m_wRunStatus);
+            if (pTask->m_wRunStatus != ITaskBase::RUN_EXIT)
+            {
+                pTaskQueue->AddWaitExecTask(pTaskNode);
+                continue;
+            }
 
-            __sync_fetch_and_xor(&g_pIsPost[dwId], 1);
+            {
+                //printf("__________________ %p\n", pTask->m_oPtr.get());
+                std::shared_ptr<ITaskBase> optr(pTask->m_oPtr);
+                pTask->m_oPtr = nullptr;
+            }
         }
+
+        --g_dwExecTheadCount;
     }
 }
 

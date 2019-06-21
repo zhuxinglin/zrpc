@@ -38,7 +38,7 @@ private:
     virtual void Run(uint32_t dwId);
 
 private:
-    CSem m_oSem;
+    
 };
 
 }
