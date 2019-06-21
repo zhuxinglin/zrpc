@@ -29,15 +29,17 @@ CTestAd::~CTestAd()
 {
 }
 
-int CTestAd::Initialize(znet::CLog *pLog)
+int CTestAd::Initialize(znet::CLog *pLog, znet::CCoroutine* pCo, znet::CNet* pN)
 {
+	znet::CNet::Set(pN);
+    znet::CCoroutine::SetObj(pCo);
     znet::CLog::SetObj(pLog);
     return 0;
 }
 
 int CTestAd::GetRouteTable(std::set<uint64_t> &setKey)
 {
-    LOGI << "/ad/app/download/get";
+    LOGD << "/ad/app/download/get";
     setKey.insert(CUtilHash::UriHash("/ad/app/download/get", sizeof("/ad/app/download/get") - 1));
     return 0;
 }

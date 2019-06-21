@@ -79,13 +79,7 @@ struct CBinaryHeader
 
 struct CPluginBase
 {
-    int Initialize(znet::CLog* pLog, znet::CCoroutine* pCo, znet::CNet* pN)
-    {
-        znet::CNet::Set(pN);
-        znet::CCoroutine::SetObj(pCo);
-        return Initialize(pLog);
-    }
-    virtual int Initialize(znet::CLog* pLog) = 0;
+    virtual int Initialize(znet::CLog *pLog, znet::CCoroutine *pCo, znet::CNet *pN) = 0;
     virtual int GetRouteTable(std::set<uint64_t>& setKey) = 0;
     virtual int Process(znet::SharedTask& oCo, CControllerBase* pController, uint64_t dwKey, std::string *pMessage) = 0;
     virtual int Process(znet::SharedTask& oCo, CControllerBase* pController, uint64_t dwKey, std::string *pReq, std::string *pResp) = 0;
