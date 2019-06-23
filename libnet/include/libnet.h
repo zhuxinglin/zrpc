@@ -61,6 +61,7 @@ private:
     int FreeListenFd(void* pEvent, void* pData);
     int RemoveServer(void* pEvent, void* pData);
     void DeleteTask(ITaskBase* pTask);
+    void DeleteObj(ITaskBase* pTask);
 
 private:
     CEventEpoll m_oEvent;

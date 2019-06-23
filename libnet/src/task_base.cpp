@@ -56,8 +56,6 @@ ITaskBase::~ITaskBase()
     CTaskQueue *pTaskQueue = CTaskQueue::GetObj();
     CCoroutine *pCor = CCoroutine::GetObj();
 
-    m_oPtr = nullptr;
-
     if (m_pSp && m_pContext)
     {
         pCor->Del(this);

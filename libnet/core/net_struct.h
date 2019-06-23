@@ -66,18 +66,33 @@ struct CTaskKey
 
     bool operator>(CTaskKey& rhs)
     {
-        if (qwTimeNs > rhs.qwTimeNs && (dwTimeout >= rhs.dwTimeout || ((qwTimeNs + dwTimeout) >= (rhs.qwTimeNs + rhs.dwTimeout))))
-            return true;
+        if (qwTimeNs > rhs.qwTimeNs)
+        {
+            if (dwTimeout >= rhs.dwTimeout)
+                return true;
+        }
+        else if (qwTimeNs < rhs.qwTimeNs)
+        {
+            if (dwTimeout > rhs.dwTimeout)
+                return true;
+        }
         return false;
     }
 
     bool operator<(CTaskKey &rhs)
     {
-        if (qwTimeNs < rhs.qwTimeNs && ((dwTimeout <= rhs.dwTimeout) || ((qwTimeNs + dwTimeout) <= (rhs.qwTimeNs + rhs.dwTimeout))))
-            return true;
+        if (qwTimeNs < rhs.qwTimeNs)
+        {
+            if (dwTimeout <= rhs.dwTimeout)
+                return true;
+        }
+        else if (qwTimeNs > rhs.qwTimeNs)
+        {
+            if (dwTimeout < rhs.dwTimeout)
+                return true;
+        }
         return false;
     }
-
 }__attribute__((aligned(4)));
 
 typedef struct _TaskWaitRb

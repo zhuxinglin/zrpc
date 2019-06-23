@@ -210,9 +210,14 @@ int CNet::Register(NEWOBJ(ITaskBase, pCb), void *pData, uint16_t wProtocol, uint
     pEvent->pFd = pFd;
     pEvent->wProtocol = wProtocol;
     pEvent->wVer = wVer;
-    memcpy(pEvent->szServerName, pszServerName, sizeof(pEvent->szServerName) - 1);
     pEvent->dwSync = 0;
     pEvent->dwTimeoutUs = dwTimeoutMs * 1e3;
+
+    int iSvcNameLen = strlen(pszServerName);
+    if (iSvcNameLen > sizeof(pEvent->szServerName) - 1)
+        iSvcNameLen = sizeof(pEvent->szServerName) - 1;
+    memset(pEvent->szServerName, 0, sizeof(pEvent->szServerName) - 2);
+    memcpy(pEvent->szServerName, pszServerName, iSvcNameLen);
 
     iRet = m_oEvent.SetCtl(pFd->GetFd(), 0, CEventEpoll::EPOLL_IN, pEvent);
     if (iRet < 0)
@@ -348,7 +353,7 @@ int CNet::AddFdTask(ITaskBase *pTask, int iFd)
     if (pSchedule->PushMsg(iFd, 0, 0, (void *)pTask->m_qwCid) < 0)
     {
         m_sErr = pSchedule->GetErr();
-        delete pTask;
+        DeleteObj(pTask);
         return -1;
     }
 
@@ -368,7 +373,7 @@ CFileFd *CNet::GetFd(uint16_t wProtocol, uint16_t wPort, const char *pszIP, uint
             m_sErr = "Create tcp object failed";
             break;
         }
-        int iRet = pTcp->Create(pszIP, wPort, 1024, wVer);
+        int iRet = pTcp->Create(pszIP, wPort, 10240, wVer);
         if (iRet < 0)
         {
             m_sErr = pTcp->GetErr();
@@ -388,7 +393,7 @@ CFileFd *CNet::GetFd(uint16_t wProtocol, uint16_t wPort, const char *pszIP, uint
             break;
         }
 
-        int iRet = pTcps->Create(pszIP, wPort, 1024, pszSslCert, pszSslKey, wVer);
+        int iRet = pTcps->Create(pszIP, wPort, 10240, pszSslCert, pszSslKey, wVer);
         if (iRet < 0)
         {
             m_sErr = pTcps->GetErr();
@@ -493,7 +498,7 @@ ITaskBase *CNet::NewTask(ITaskBase *pBase, void *pData, uint16_t wProtocol, uint
     if (__builtin_expect(pBase->m_pTaskQueue == 0, 0))
     {
         m_sErr = "new task queue object fail";
-        delete pBase;
+        DeleteObj(pBase);
         return 0;
     }
 
@@ -535,13 +540,13 @@ CFileFd *CNet::GetFileFd(uint16_t wProtocol, int iFd)
 
 int CNet::Start()
 {
-    struct epoll_event ev[256];
+    struct epoll_event ev[512];
     CReliableFd oFd;
     CThread *pSchedule = CSchedule::GetObj();
     CTaskQueue *pTaskQueue = CTaskQueue::GetObj();
     while(true)
     {
-        int iCount = m_oEvent.Wait(ev, 256, -1);
+        int iCount = m_oEvent.Wait(ev, 512, -1);
         if (iCount < 0)
         {
             break;
@@ -625,7 +630,7 @@ int CNet::Start()
                 if (pTask->m_wRunStatus == ITaskBase::RUN_NOW)
                     pTask->m_wRunStatus = ITaskBase::RUN_EXIT;
                 else
-                    delete pTask;
+                    DeleteObj(pTask);
                 continue;
             }
 
@@ -689,5 +694,12 @@ void CNet::DeleteTask(ITaskBase* pTask)
     CTaskQueue *pTaskQueue = CTaskQueue::GetObj();
     pTaskQueue->DelTask((CTaskNode *)pTask->m_pTaskQueue);
     pTask->m_pTaskQueue = 0;
-    delete pTask;
+    DeleteObj(pTask);
 }
+
+void CNet::DeleteObj(ITaskBase* pTask)
+{
+    std::shared_ptr<ITaskBase> optr(pTask->m_oPtr);
+    pTask->m_oPtr = nullptr;
+}
+
