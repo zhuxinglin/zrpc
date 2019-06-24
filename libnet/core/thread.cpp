@@ -34,7 +34,7 @@ CThread::~CThread()
 {
 }
 
-int CThread::Start(void *pUserData, uint32_t dwId)
+int CThread::Start(std::string sThreadName, void *pUserData, uint32_t dwId)
 {
     if (Initialize(pUserData) < 0)
     {
@@ -51,6 +51,8 @@ int CThread::Start(void *pUserData, uint32_t dwId)
     {
         return -1;
     }
+
+    pthread_setname_np(tid, sThreadName.c_str());
 
     while(oParam.m_bIsDone)
         usleep(0);

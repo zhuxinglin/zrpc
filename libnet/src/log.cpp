@@ -120,7 +120,7 @@ bool CLog::Create(CLogConfig *pConfig)
 		if (OpenNet(pConfig->sNetAddr.c_str(), CLogConfig::LOG_UDP, true) < 0)
 			return false;
 	}
-	Start(0, 45);
+	Start("log_thread", 0, 45);
 	m_bIsInit = true;
 	return true;
 }

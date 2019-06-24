@@ -100,7 +100,10 @@ int CBinarySvc::ReadData(std::shared_ptr<std::string>& oBuf, uint16_t& wCmd)
         {
             zplugin::CBinaryHeader* pH = (zplugin::CBinaryHeader*)oBuf->c_str();
             if (pH->dwHeader != HEADER_FLAGE)
+            {
+                LOGE << "error data package";
                 return -1;
+            }
 
             iOffset = ntohl(pH->iLen) + 1;
             wCmd = ntohs(pH->wCmd);

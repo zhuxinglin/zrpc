@@ -30,7 +30,7 @@ public:
     virtual ~CThread();
 
 public:
-    int Start(void* pUserData = 0, uint32_t dwId = 0);
+    int Start(std::string sThreadName = "", void* pUserData = 0, uint32_t dwId = 0);
     void Exit();
     virtual int PushMsg(uint32_t dwId, uint32_t dwMsgType, int iMsgLen, void *pMsg);
     virtual void Release();

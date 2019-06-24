@@ -132,7 +132,7 @@ int CNet::Init(uint32_t dwWorkThread, uint32_t dwSp)
     }
 
     CSchedule *pSch = CSchedule::GetObj();
-    if (pSch->Start() < 0)
+    if (pSch->Start("schedule_thread") < 0)
     {
         m_sErr = pSch->GetErr();
         return -1;
@@ -151,7 +151,9 @@ int CNet::Go()
 
     for (uint32_t i = 0; i < g_dwWorkThreadCount; ++i)
     {
-        if (g_pGo[i].Start(0, i) < 0)
+        char buf[64];
+        snprintf(buf, 64, "go_thread_%d", i);
+        if (g_pGo[i].Start(buf, 0, i) < 0)
         {
             m_sErr = g_pGo[i].GetErr();
             return -1;

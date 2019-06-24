@@ -44,7 +44,7 @@ CHttpSvc::CHttpSvc()
     m_pszReadBuf = new char[g_iReadLen];
 
     m_iComplete = 0;
-    m_iKeepAlive = false;
+    m_iKeepAlive = true;
 }
 
 CHttpSvc::~CHttpSvc()
@@ -180,6 +180,7 @@ int CHttpSvc::OnMessageComplete(http_parser *pParser)
     CHttpSvc *pThis = (CHttpSvc*)pParser->data;
     pThis->m_iComplete = 1;
     pThis->SetHttpHeader();
+    pThis->m_iKeepAlive = http_should_keep_alive(pParser);
     return 0;
 }
 
@@ -215,8 +216,6 @@ int CHttpSvc::OnHeadersComplete(http_parser *pParser)
 void CHttpSvc::SetHttpHeader()
 {
     m_oHttpReq.mapHeader.insert(header_info::value_type(m_oHttpReq.sHeaderField, m_oHttpReq.sHeaderValue));
-    if (m_oHttpReq.sHeaderValue.compare("keep-alive") == 0 && m_oHttpReq.sHeaderField.compare("Connection") == 0)
-        m_iKeepAlive = true;
 }
 
 int CHttpSvc::WriteMsg(const char *pszData, int iDataLen, uint32_t dwTimoutMs)
