@@ -178,13 +178,19 @@ public:
 #define LOG_WRITE(x, y) (znet::CLogManage<>(x, y))
 #define LOG_LEVE(x) (znet::CLog::GetObj()->GetLevel() & x)
 
-#define LOG_MESSAGE(x, y) !!!LOG_LEVE(x) ? (void) 0 : znet::CLogVoid() & LOG_WRITE(new (std::nothrow) znet::CLogMessage<>(__FILE__, __FUNCTION__, __LINE__, #y), x)()
+#define LOG_MESSAGE(x, y) !!!LOG_LEVE(x) ? (void) 0 : znet::CLogVoid() & LOG_WRITE(new (std::nothrow) znet::CLogMessage<>(__FILE__, __FUNCTION__, __LINE__, y), x)()
 
-#define LOGF	LOG_MESSAGE(znet::CLogConfig::LOG_FATAL, FATAL:)
-#define LOGE	LOG_MESSAGE(znet::CLogConfig::LOG_ERROR, ERROR:)
-#define LOGW	LOG_MESSAGE(znet::CLogConfig::LOG_WARN, WARN:)
-#define LOGI	LOG_MESSAGE(znet::CLogConfig::LOG_INFO, INFO:)
-#define LOGD	LOG_MESSAGE(znet::CLogConfig::LOG_DEBUG, DEBUG:)
+#define LOG(x, y)	LOG_MESSAGE(x, #y)
+#define LOGF	LOG(znet::CLogConfig::LOG_FATAL, FATAL:)
+#define LOGE	LOG(znet::CLogConfig::LOG_ERROR, ERROR:)
+#define LOGW	LOG(znet::CLogConfig::LOG_WARN, WARN:)
+#define LOGI	LOG(znet::CLogConfig::LOG_INFO, INFO:)
+#define LOGD	LOG(znet::CLogConfig::LOG_DEBUG, DEBUG:)
 
+#define LOGF_BIZ(b)	LOG(znet::CLogConfig::LOG_FATAL, FATAL: b)
+#define LOGE_BIZ(b)	LOG(znet::CLogConfig::LOG_ERROR, ERROR: b)
+#define LOGW_BIZ(b)	LOG(znet::CLogConfig::LOG_WARN, WARN: b)
+#define LOGI_BIZ(b)	LOG(znet::CLogConfig::LOG_INFO, INFO: b)
+#define LOGD_BIZ(b)	LOG(znet::CLogConfig::LOG_DEBUG, DEBUG: b)
 
 #endif
