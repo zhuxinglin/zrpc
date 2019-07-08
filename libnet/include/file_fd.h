@@ -65,9 +65,9 @@ protected:
     {
         m_sErr = "";
         char szBuf[64];
-        snprintf(szBuf, 64, "fd: %d, ", iFd);
+        snprintf(szBuf, sizeof(szBuf), "fd: %d, ", iFd);
         m_sErr.append(pszErr).append(szBuf);
-        snprintf(szBuf, 64, "errno: %d, errnostr: ", errno);
+        snprintf(szBuf, sizeof(szBuf), "errno: %d, errnostr: ", errno);
         m_sErr.append(szBuf).append(strerror(errno));
     }
 

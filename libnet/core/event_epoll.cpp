@@ -62,7 +62,7 @@ int CEventEpoll::SetCtl(int iFd, int iOpt, int iEvent, void *pData)
     if (iRet < 0)
     {
         char szBuf[128];
-        snprintf(szBuf, 128, "set epoll ctrl fail, client fd:[%d] opt:[%d], events:[%d], ", iFd, iOpt, ev.events);
+        snprintf(szBuf, sizeof(szBuf), "set epoll ctrl fail, client fd:[%d] opt:[%d], events:[%d], ", iFd, iOpt, ev.events);
         SetErr(szBuf, m_iFd);
         return -1;
     }

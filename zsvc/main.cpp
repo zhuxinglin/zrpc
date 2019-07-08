@@ -24,24 +24,62 @@
 using namespace znet;
 using namespace zrpc;
 
-static CJSvc* pSvc = 0;
+static CJSvc* g_pSvc = 0;
 
-static std::string GetConfig(const char* pszProcName)
+static const char* GetProc(const char* pszProcName)
 {
     int len = strlen(pszProcName);
-    const char* e = pszProcName + (len - 1);
+    const char *e = pszProcName + (len - 1);
     while (*e && len >= 0)
     {
         if (*e == '/')
             break;
-        e --;
-        len --;
+        e--;
+        len--;
     }
 
-    e ++;
+    e++;
+    return e;
+}
+
+static std::string GetConfig(const char* pszProcName)
+{
     std::string sConf("./conf/");
-    sConf.append(e).append(".cfg");
+    sConf.append(GetProc(pszProcName)).append(".cfg");
     return sConf;
+}
+
+static int GetOldPid(const char* pszProcName)
+{
+    std::string sName = ".";
+    sName.append(GetProc(pszProcName));
+
+    FILE* fp = fopen(sName.c_str(), "rb");
+    if (!fp)
+    {
+        printf("process pid file '%s' not exist\n", sName.c_str());
+        return 0;
+    }
+    int pid = 0;
+    fscanf(fp, "%d", &pid);
+    fclose(fp);
+    if (pid == 0)
+    {
+        printf("process pid file '%s', process pid = 0\n", sName.c_str());
+        return 0;
+    }
+
+    std::string sComm = "/proc/";
+    sComm.append(std::to_string(pid)).append("/comm");
+    fp = fopen(sComm.c_str(), "rb");
+    if (!fp)
+    {
+        printf("process not run\n");
+        return 0;
+    }
+    fclose(fp);
+
+    return pid;
 }
 
 void DoMain(int argc, const char** argv)
@@ -51,18 +89,18 @@ void DoMain(int argc, const char** argv)
     if (oConf.Parse(sConfName.c_str()) < 0)
         return ;
 
-    if (pSvc)
+    if (g_pSvc)
         return ;
 
-    pSvc = new (std::nothrow)CJSvc;
-    if (pSvc->Init(&oConf) < 0)
+    g_pSvc = new (std::nothrow)CJSvc;
+    if (g_pSvc->Init(&oConf) < 0)
         return ;
 
-    pSvc->Start();
+    g_pSvc->Start();
 
     znet::CLog::DelObj();
-    delete pSvc;
-    pSvc = 0;
+    delete g_pSvc;
+    g_pSvc = 0;
 }
 
 void PorcErr(int iErr)
@@ -74,7 +112,7 @@ void PorcErr(int iErr)
     else if (iErr == SIGHUP)
     {
         printf("child restert %d\n", getpid());
-        pSvc->Stop();
+        g_pSvc->Stop();
     }
     else
     {
@@ -105,9 +143,33 @@ int main(int argc, char const *argv[])
             printf("check file '%s' ok\n", sConfName.c_str());
             return 0;
         }
+        else if (!strcmp(argv[1], "-HUP"))
+        {
+            int pid = GetOldPid(argv[0]);
+            if (pid == 0)
+                return 0;
+            kill(pid, SIGHUP);
+            printf("send SIGHUP %d success\n", pid);
+            return 0;
+        }
+        else if (!strcmp(argv[1], "-QUIT"))
+        {
+            int pid = GetOldPid(argv[0]);
+            if (pid == 0)
+                return 0;
+            kill(pid, SIGQUIT);
+            printf("send SIGQUIT %d success\n", pid);
+            return 0;
+        }
         else if (!strcmp(argv[1], "-h"))
         {
-            printf("-m not monitor\n-c terminal operation\n-t check config file\n-v version\n-h help\n");
+            printf("-m not monitor\n");
+            printf("-c terminal operation\n");
+            printf("-t check config file\n");
+            printf("-HUP restart child process\n");
+            printf("-QUIT quit process\n");
+            printf("-v version\n");
+            printf("-h help\n");
             return 0;
         }
         else if (!strcmp(argv[1], "-v"))

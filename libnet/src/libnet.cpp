@@ -163,7 +163,7 @@ int CNet::Go()
     for (uint32_t i = 0; i < g_dwWorkThreadCount; ++i)
     {
         char buf[64];
-        snprintf(buf, 64, "go_thread_%d", i);
+        snprintf(buf, sizeof(buf), "go_thread_%d", i);
         if (g_pGo[i].Start(buf, false, 0, i) < 0)
         {
             m_sErr = g_pGo[i].GetErr();
@@ -229,7 +229,7 @@ int CNet::Register(NEWOBJ(ITaskBase, pCb), void *pData, uint16_t wProtocol, uint
     int iSvcNameLen = strlen(pszServerName);
     if (iSvcNameLen > sizeof(pEvent->szServerName) - 1)
         iSvcNameLen = sizeof(pEvent->szServerName) - 1;
-    memset(pEvent->szServerName, 0, sizeof(pEvent->szServerName) - 2);
+    memset(pEvent->szServerName, 0, sizeof(pEvent->szServerName));
     memcpy(pEvent->szServerName, pszServerName, iSvcNameLen);
 
     iRet = m_oEvent.SetCtl(pFd->GetFd(), 0, CEventEpoll::EPOLL_IN, pEvent);

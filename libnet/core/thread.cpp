@@ -114,8 +114,7 @@ void CThread::SetSuccess(void* p)
 
 void* CThread::WorkThread(void* pParam)
 {
-    CThreadParam oTreadParam;
-    memcpy(&oTreadParam, pParam, sizeof(oTreadParam));
+    CThreadParam oTreadParam = *(CThreadParam*)pParam;
     
     if (oTreadParam.m_bExitMode)
         pthread_detach(pthread_self());

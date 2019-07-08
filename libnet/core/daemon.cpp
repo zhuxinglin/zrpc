@@ -14,8 +14,60 @@
 #include <stdlib.h>
 #include <fcntl.h>
 #include <daemon.h>
+#include <assert.h>
+#include <string.h>
+#include <string>
 
 using namespace znet;
+
+static std::string GetProcPidFile(const char *p)
+{
+	int len = strlen(p);
+	const char *e = p + (len - 1);
+	while (*e && len >= 0)
+	{
+		if (*e == '/')
+			break;
+		e--;
+		len--;
+	}
+	e++;
+	std::string sName = ".";
+	return sName.append(e);
+}
+
+static void WritePid(const char* p)
+{
+	FILE *fp = fopen(GetProcPidFile(p).c_str(), "wb");
+	if (!fp)
+	{
+		printf("error: process pid failed!\n");
+		exit(0);
+		return ;
+	}
+	fprintf(fp, "%d", getpid());
+	fclose(fp);
+}
+
+static void CheckProcess(const char *p)
+{
+	FILE *fp = fopen(GetProcPidFile(p).c_str(), "rb");
+	if (!fp)
+		return ;
+	char szBuf[64] = {0};
+	fgets(szBuf, sizeof(szBuf), fp);
+	fclose(fp);
+
+	std::string sComm = "/proc/";
+	sComm.append(szBuf).append("/comm");
+	fp = fopen(sComm.c_str(), "rb");
+	if (!fp)
+		return;
+	fclose(fp);
+
+	printf("process runing\n");
+	exit(0);
+}
 
 int CDaemon::MapPrint()
 {
@@ -101,6 +153,9 @@ int CDaemon::DaemonInit()
 
 int CDaemon::DoDaemon(void (*Dmain)(int, const char **), int argc, const char **args, void(*Call)(int), bool bIsMonitor)
 {
+	assert(args != nullptr);
+	assert(Dmain != nullptr);
+	CheckProcess(args[0]);
 	int iRet = DaemonInit();
 	if (iRet < 0)
 	{
@@ -110,6 +165,7 @@ int CDaemon::DoDaemon(void (*Dmain)(int, const char **), int argc, const char **
 	if (iRet != 0)
 		return 0;
 
+	WritePid(args[0]);
 	pid_t pid = 0;
 	while (1)
 	{
