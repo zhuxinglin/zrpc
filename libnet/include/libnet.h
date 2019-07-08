@@ -68,6 +68,7 @@ private:
     CMemoryPool m_oNetPool;
     std::string m_sErr;
     static CNet* m_pSelf;
+    volatile bool m_bIsMainExit;
 };
 
 }

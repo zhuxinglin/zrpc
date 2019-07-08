@@ -42,6 +42,10 @@ CLog::CLog()
 
 CLog::~CLog()
 {
+	m_bExit = false;
+	m_oSem.Post();
+	Exit();
+
 	if (m_pFile)
 	{
 		fclose(m_pFile);
@@ -120,7 +124,7 @@ bool CLog::Create(CLogConfig *pConfig)
 		if (OpenNet(pConfig->sNetAddr.c_str(), CLogConfig::LOG_UDP, true) < 0)
 			return false;
 	}
-	Start("log_thread", 0, 45);
+	Start("log_thread", false, 0, 45);
 	m_bIsInit = true;
 	return true;
 }
@@ -251,13 +255,29 @@ std::string CLog::GetSwapLogName()
 
 void CLog::GetProcName()
 {
-	char szBuf[256] = {0};
-	readlink("/proc/self/exe", szBuf, sizeof(szBuf));
-	int iLen = strlen(szBuf);
-	char* s = szBuf + iLen;
-	while(*s != '/') -- s;
-	++ s;
-	m_sExeName = s;
+	std::string sFileComm = "/proc/";
+	sFileComm.append(std::to_string(getpid())).append("/comm");
+	FILE* fp = fopen(sFileComm.c_str(), "rb");
+	if (!fp)
+	{
+		m_sExeName = "app";
+		return;
+	}
+
+	char szName[128] = {0};
+	fread(szName, 1, 128, fp);
+	fclose(fp);
+	char* s = szName;
+	while (*s)
+	{
+		if (*s == '\r' || *s == '\n')
+		{
+			*s = 0;
+			break;
+		}
+		++ s;
+	}
+	m_sExeName = szName;
 }
 
 FILE *CLog::OpenLogFile(bool bIsSwap, bool bIsCheck)

@@ -39,7 +39,7 @@ int CTestAd::Initialize(znet::CLog *pLog, znet::CCoroutine* pCo, znet::CNet* pN)
 
 int CTestAd::GetRouteTable(std::set<uint64_t> &setKey)
 {
-    LOGD << "/ad/app/download/get";
+    LOGD_BIZ(TEST) << "/ad/app/download/get";
     setKey.insert(CUtilHash::UriHash("/ad/app/download/get", sizeof("/ad/app/download/get") - 1));
     return 0;
 }

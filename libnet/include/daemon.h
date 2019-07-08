@@ -17,6 +17,8 @@
 #ifndef __DAEMON__H__
 #define __DAEMON__H__
 
+#include <signal.h>
+
 namespace znet
 {
 

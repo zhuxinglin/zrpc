@@ -122,10 +122,14 @@ CTaskNode *CTaskQueue::AddWaitTask(CTaskNode *pNode)
 
         CSpinLock oLock(&pRb->dwSync);
         if (!pRb->oTaskRb.insert(oKey, pNode))
+        {
+            printf("=---------------\n");
             return 0;
+        }
 
         if (!pRb->oFdRb.insert(pNode->pTask->m_qwCid, oKey))
         {
+            printf("=-----------$$$$$$$$$$$\n");
             pRb->oTaskRb.erase(oKey);
             return 0;
         }

@@ -34,7 +34,6 @@ CGo::CGo()
 
 CGo::~CGo()
 {
-    Exit();
 }
 
 int CGo::Initialize(void *pUserData)
@@ -56,8 +55,6 @@ void CGo::Run(uint32_t dwId)
     while (m_bExit)
     {
         g_oSem.Wait();
-        if (!m_bExit)
-            continue;
 
         ++g_dwExecTheadCount;
 

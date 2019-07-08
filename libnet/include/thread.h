@@ -30,8 +30,8 @@ public:
     virtual ~CThread();
 
 public:
-    int Start(std::string sThreadName = "", void* pUserData = 0, uint32_t dwId = 0);
-    void Exit();
+    int Start(std::string sThreadName = "", bool bExitMode = false, void* pUserData = nullptr, uint32_t dwId = 0);
+    void Exit(void (*Notif)(void*) = nullptr, void* p = nullptr);
     virtual int PushMsg(uint32_t dwId, uint32_t dwMsgType, int iMsgLen, void *pMsg);
     virtual void Release();
     virtual std::string GetErr();
@@ -46,7 +46,8 @@ private:
     static void* WorkThread(void* pParam);
 
 protected:
-    volatile bool m_bExit;
+    bool volatile m_bExit;
+    pthread_t m_tid;
 };
 
 class CSem

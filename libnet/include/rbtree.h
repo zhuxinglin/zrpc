@@ -116,7 +116,10 @@ public:
 		{
 			root = new_rb(key, val, 0);
 			if (!root)
+			{
+				printf("000000000000000000000\n");
 				return 0;
+			}
 
 			// 如果插入的是根结点，因为原树是空树，此情况只会违反性质2，所以直接把此结点涂为黑色。
 			root->color = rb_BLACK;
@@ -165,7 +168,10 @@ public:
 					tmp = tmp->right;
 			}
 			else
+			{
+				printf("**************\n");
 				return 0;
+			}
 		}
 		insert_balance_tree(tmp);
 		count++;

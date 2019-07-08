@@ -43,6 +43,7 @@ uint32_t g_dwMaxTaskCount = 100000;
 //
 CNet::CNet() : m_oNetPool(sizeof(CNetEvent), 8)
 {
+    m_bIsMainExit = true;
     SSL_library_init();
     SSL_load_error_strings();
     OpenSSL_add_all_algorithms();
@@ -50,30 +51,40 @@ CNet::CNet() : m_oNetPool(sizeof(CNetEvent), 8)
 
 CNet::~CNet()
 {
+    if (!m_bIsMainExit)
+        return;
+
+    m_bIsMainExit = false;
     CThread *pSch = CSchedule::GetObj();
     if (pSch)
+    {
+        pSch->Exit();
         pSch->Release();
-
-    CTaskQueue::Release();
-
-    CCoroutine::Release();
+    }
 
     if (g_pGo)
     {
         for (uint32_t i = 0; i < g_dwWorkThreadCount; ++i)
-        {
-            g_pGo[i].Exit();
-            CGoPost::Post();
-        }
+            g_pGo[i].Exit([](void* p){
+                for (uint32_t i = 0; i < g_dwWorkThreadCount; ++i)
+                    CGoPost::Post();
+                }
+            );
 
         delete[] g_pGo;
     }
     g_pGo = 0;
 
+    CTaskQueue::Release();
+    CCoroutine::Release();
+
     m_oNetPool.GetUse(this, &CNet::FreeListenFd);
+
     ERR_free_strings();
     EVP_cleanup();
     CRYPTO_cleanup_all_ex_data();
+    CFileFd& oFd(m_oEvent);
+    oFd.Close();
 }
 
 CNet *CNet::GetObj()
@@ -153,7 +164,7 @@ int CNet::Go()
     {
         char buf[64];
         snprintf(buf, 64, "go_thread_%d", i);
-        if (g_pGo[i].Start(buf, 0, i) < 0)
+        if (g_pGo[i].Start(buf, false, 0, i) < 0)
         {
             m_sErr = g_pGo[i].GetErr();
             return -1;
@@ -546,7 +557,7 @@ int CNet::Start()
     CReliableFd oFd;
     CThread *pSchedule = CSchedule::GetObj();
     CTaskQueue *pTaskQueue = CTaskQueue::GetObj();
-    while(true)
+    while(m_bIsMainExit)
     {
         int iCount = m_oEvent.Wait(ev, 512, -1);
         if (iCount < 0)

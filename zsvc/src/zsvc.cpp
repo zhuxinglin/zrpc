@@ -83,6 +83,11 @@ int CJSvc::Start()
     return CNet::GetObj()->Start();
 }
 
+void CJSvc::Stop()
+{
+    CNet::Release();
+}
+
 int CJSvc::InitGlobal(CConfig::config_info *pCfg)
 {
     if (LogInit(pCfg) < 0)

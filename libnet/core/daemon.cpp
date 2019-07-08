@@ -7,7 +7,6 @@
 
 #include <stdio.h>
 #include <stdlib.h>
-#include <signal.h>
 #include <sys/wait.h>
 #include <errno.h>
 #include <sys/stat.h>
@@ -60,12 +59,9 @@ int CDaemon::DaemonInit()
 {
 	pid_t pid;
 	signal(SIGINT, SIG_IGN);
-	signal(SIGHUP, SIG_IGN);
-	signal(SIGQUIT, SIG_IGN);
 	signal(SIGPIPE, SIG_IGN);
 	signal(SIGTTOU, SIG_IGN);
 	signal(SIGTTIN, SIG_IGN);
-	signal(SIGCHLD, SIG_IGN);
 
 	do
 	{
@@ -96,8 +92,8 @@ int CDaemon::DaemonInit()
 //		if (chdir("/") < 0)
 //			break;
 
-		if (MapPrint() == -1)
-			break;
+		// if (MapPrint() == -1)
+		// 	break;
 		return 0;
 	}while(0);
 	return -1;
@@ -123,8 +119,20 @@ int CDaemon::DoDaemon(void (*Dmain)(int, const char **), int argc, const char **
 
 		if (pid > 0)
 		{
+			static pid_t child;
+			child = pid;
+			signal(SIGHUP, [](int){
+				kill(child, SIGHUP);
+			});
+
+			signal(SIGQUIT, [](int){
+				kill(child, SIGHUP);
+				exit(0);
+			});
+
 			if (bIsMonitor && Call)
 				Call(0);
+
 			while (bIsMonitor)
 			{
 				int iStatu;
@@ -139,11 +147,15 @@ int CDaemon::DoDaemon(void (*Dmain)(int, const char **), int argc, const char **
 
 			if (!bIsMonitor)
 				break;
+
 			if (Call)
 				Call(-1);
 		}
 		else
 		{
+			signal(SIGHUP, Call);
+			signal(SIGQUIT, SIG_IGN);
+
 			Dmain(argc, args);
 			break;
 		}

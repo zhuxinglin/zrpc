@@ -33,6 +33,7 @@ public:
 public:
     int Init(CConfig* pCfg);
     int Start();
+    void Stop();
 
 private:
     int InitGlobal(CConfig::config_info* pCfg);

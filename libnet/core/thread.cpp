@@ -24,6 +24,7 @@ struct CThreadParam
     CThread* m_pThis;
     uint32_t m_dwId;
     volatile bool m_bIsDone;
+    bool m_bExitMode;
 };
 
 CThread::CThread(): m_bExit(true)
@@ -34,7 +35,7 @@ CThread::~CThread()
 {
 }
 
-int CThread::Start(std::string sThreadName, void *pUserData, uint32_t dwId)
+int CThread::Start(std::string sThreadName, bool bExitMode, void *pUserData, uint32_t dwId)
 {
     if (Initialize(pUserData) < 0)
     {
@@ -44,15 +45,17 @@ int CThread::Start(std::string sThreadName, void *pUserData, uint32_t dwId)
     CThreadParam oParam;
     oParam.m_pThis = this;
 
-    pthread_t tid;
     oParam.m_dwId = dwId;
     oParam.m_bIsDone = true;
-    if (pthread_create(&tid, 0, CThread::WorkThread, &oParam) != 0)
+    oParam.m_bExitMode = bExitMode;
+    if (pthread_create(&m_tid, 0, CThread::WorkThread, &oParam) != 0)
     {
         return -1;
     }
 
-    pthread_setname_np(tid, sThreadName.c_str());
+    pthread_setname_np(m_tid, sThreadName.c_str());
+    if (bExitMode)
+        m_tid = 0;
 
     while(oParam.m_bIsDone)
         usleep(0);
@@ -60,9 +63,17 @@ int CThread::Start(std::string sThreadName, void *pUserData, uint32_t dwId)
     return 0;
 }
 
-void CThread::Exit()
+void CThread::Exit(void (*Notif)(void*), void* p)
 {
     m_bExit = false;
+    if (m_tid != 0)
+    {
+        if (Notif != nullptr)
+            Notif(p);
+
+        void* pParam;
+        pthread_join(m_tid, &pParam);
+    }
 }
 
 int CThread::PushMsg(uint32_t dwId, uint32_t dwMsgType, int iMsgLen, void *pMsg)
@@ -105,12 +116,16 @@ void* CThread::WorkThread(void* pParam)
 {
     CThreadParam oTreadParam;
     memcpy(&oTreadParam, pParam, sizeof(oTreadParam));
-    pthread_detach(pthread_self());
+    
+    if (oTreadParam.m_bExitMode)
+        pthread_detach(pthread_self());
 
     oTreadParam.m_pThis->SetSuccess(pParam);
     oTreadParam.m_pThis->SetAffinity(oTreadParam.m_dwId);
     oTreadParam.m_pThis->Run(oTreadParam.m_dwId);
-    pthread_exit(0);
+
+    if (!oTreadParam.m_bExitMode)
+        pthread_exit(0);
     return 0;
 }
 
