@@ -41,7 +41,7 @@ struct ITaskBase
     virtual void Error(const char* pszExitStr){}
     int YieldEventDel(uint32_t dwTimeoutMs, int iFd, int iSetEvent, int iRestoreEvent);
     int YieldEventRestore(uint32_t dwTimeoutMs, int iFd, int iSetEvent, int iRestoreEvent);
-    int Yield(uint32_t dwTimeoutMs = 0xFFFFFFFF);
+    int Yield(uint32_t dwTimeoutMs = 0xFFFFFFFF, uint8_t wRunStatus = RUN_WAIT);
 
     enum _YieldOpt
     {
@@ -58,7 +58,7 @@ struct ITaskBase
         YIELD_OUT = 3,
     };
 
-    int Yield(uint32_t dwTimeoutMs, int iFd, int iSetOpt, int iRestoreOpt, int iSetEvent, int iRestoreEvent);
+    int Yield(uint32_t dwTimeoutMs, int iFd, int iSetOpt, int iRestoreOpt, int iSetEvent, int iRestoreEvent, uint8_t wRunStatus);
     static uint64_t GenCid(int iFd);
     static int GetFd(uint64_t qwCid);
     static uint32_t GetSubCId(uint64_t qwCid);

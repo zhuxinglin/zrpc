@@ -72,34 +72,41 @@ ITaskBase::~ITaskBase()
 
 int ITaskBase::YieldEventDel(uint32_t dwTimeoutMs, int iFd, int iSetEvent, int iRestoreEvent)
 {
-    return Yield(dwTimeoutMs, iFd, YIELD_ADD, YIELD_DEL, iSetEvent, iRestoreEvent);
+    return Yield(dwTimeoutMs, iFd, YIELD_ADD, YIELD_DEL, iSetEvent, iRestoreEvent, RUN_WAIT);
 }
 
 int ITaskBase::YieldEventRestore(uint32_t dwTimeoutMs, int iFd, int iSetEvent, int iRestoreEvent)
 {
-    return Yield(dwTimeoutMs, iFd, YIELD_MOD, YIELD_MOD, iSetEvent, iRestoreEvent);
+    return Yield(dwTimeoutMs, iFd, YIELD_MOD, YIELD_MOD, iSetEvent, iRestoreEvent, RUN_WAIT);
 }
 
-int ITaskBase::Yield(uint32_t dwTimeoutMs)
+int ITaskBase::Yield(uint32_t dwTimeoutMs, uint8_t wRunStatus)
 {
-    return Yield(dwTimeoutMs, -1, 0, 0, 0, 0);
+    return Yield(dwTimeoutMs, -1, 0, 0, 0, 0, wRunStatus);
 }
 
-int ITaskBase::Yield(uint32_t dwTimeoutMs, int iFd, int iSetOpt, int iRestoreOpt, int iSetEvent, int iRestoreEvent)
+int ITaskBase::Yield(uint32_t dwTimeoutMs, int iFd, int iSetOpt, int iRestoreOpt, int iSetEvent, int iRestoreEvent, uint8_t wRunStatus)
 {
     CCoroutine *pCor = CCoroutine::GetObj();
 
     m_wStatus = STATUS_TIME;
 
-    if (m_wRunStatus != RUN_LOCK)
-        m_wRunStatus = RUN_WAIT;
-
     uint32_t dwTimeout = m_dwTimeout;
-    
     if (dwTimeoutMs != 0xFFFFFFFF)
         m_dwTimeout = dwTimeoutMs * 1e3;
     else
         m_dwTimeout = dwTimeoutMs;
+
+    if (dwTimeout != m_dwTimeout)
+    {
+        // 重新设置超时
+        CTaskQueue::GetObj()->UpdateTimeout(m_qwCid);
+    }
+
+    if (wRunStatus != RUN_WAIT)
+        m_wRunStatus = RUN_LOCK;
+    else
+        m_wRunStatus = RUN_WAIT;
 
     CThread *pSch = CSchedule::GetObj();
 
@@ -114,6 +121,7 @@ int ITaskBase::Yield(uint32_t dwTimeoutMs, int iFd, int iSetOpt, int iRestoreOpt
 
     if (m_wStatus == STATUS_TIMEOUT)
         return -1;
+
     return 0;
 }
 

@@ -43,16 +43,18 @@ public:
     CTaskNode *AddWaitTask(CTaskNode *pNode);
     void DelWaitTask(CTaskNode *pNode, bool bIsExist = true);
 
-    int SwapWaitToExec(uint64_t qwCid);
+    int SwapWaitToExec(uint64_t qwCid, bool bIsLock = true);
 
     int SwapTimerToExec(uint64_t qwCurTime);
+
+    void UpdateTimeout(uint64_t qwCid);
 
     uint32_t GetCurTaskCount() const{return m_dwCurTaskCount;};
 
 private:
     CTaskNode* AddTask(CTaskNode* pNode, int iRunStatus);
     int DelRbTask(CTaskWaitRb *pRb, CTaskNode *pNode);
-    CTaskNode *UpdateTask(CTaskWaitRb *pRb, uint64_t qwCid);
+    CTaskNode *UpdateTask(CTaskWaitRb *pRb, uint64_t qwCid, bool bIsLock);
     void SwapTimerToExec(uint64_t qwCurTime, int iIndex, int& iSu);
     CTaskWaitRb* GetWaitRb(uint64_t qwCid);
     void UpdateTaskTime(CTaskWaitRb *pRb, CTaskNode *pTaskNode, CTaskKey& oKey);

@@ -20,6 +20,8 @@
 #include <stdio.h>
 #include <signal.h>
 
+using namespace znet;
+
 class CSvc : public CNetTask
 {
 public:
@@ -44,9 +46,9 @@ void CSvc::Go()
 {
     char szBuff[1024];
     memset(szBuff, 0, sizeof(szBuff));
-    Read(szBuff, 1024);
+    Read(szBuff, 1024, -1);
     printf("%s\n", szBuff);
-    Write("222222222222222", sizeof("222222222222222"));
+    Write("222222222222222", sizeof("222222222222222"), -1);
 }
 
 void CSvc::Error(const char *pszExitStr)
@@ -68,7 +70,7 @@ ITaskBase* NewSvc()
 
 int main(int argc, char const *argv[])
 {
-    CNet oNet;
+    CNet* pNet = CNet::GetObj();
 
 //    signal(SIGINT, SIG_IGN);
     signal(SIGHUP, SIG_IGN);
@@ -78,21 +80,21 @@ int main(int argc, char const *argv[])
     signal(SIGTTIN, SIG_IGN);
     signal(SIGCHLD, SIG_IGN);
 
-    if (oNet.Init() < 0)
+    if (pNet->Init() < 0)
     {
-        printf("---------------  %s\n", oNet.GetErr());
+        printf("---------------  %s\n", pNet->GetErr());
         return 0;
     }
 
-    if (oNet.Register(NewSvc, 0, ITaskBase::PROTOCOL_TCP, 9898, 0, 4, 3000, "ssd", 0, 0) < 0)
+    if (pNet->Register(NewSvc, 0, ITaskBase::PROTOCOL_TCP, 9898, 0, 4, 3000, "ssd", 0, 0) < 0)
     {
-        printf("************** %s\n", oNet.GetErr());
+        printf("************** %s\n", pNet->GetErr());
         return 0;
     }
 
-    if (oNet.Start() < 0)
+    if (pNet->Start() < 0)
     {
-        printf("^^^^^^^^^^^^^^  %s\n", oNet.GetErr());
+        printf("^^^^^^^^^^^^^^  %s\n", pNet->GetErr());
         return 0;
     }
     printf("eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee\n");

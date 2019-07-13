@@ -122,14 +122,10 @@ CTaskNode *CTaskQueue::AddWaitTask(CTaskNode *pNode)
 
         CSpinLock oLock(&pRb->dwSync);
         if (!pRb->oTaskRb.insert(oKey, pNode))
-        {
-            printf("=---------------\n");
             return 0;
-        }
 
         if (!pRb->oFdRb.insert(pNode->pTask->m_qwCid, oKey))
         {
-            printf("=-----------$$$$$$$$$$$\n");
             pRb->oTaskRb.erase(oKey);
             return 0;
         }
@@ -156,10 +152,10 @@ void CTaskQueue::DelWaitTask(CTaskNode *pNode, bool bIsExist)
     DelTask(pNode);
 }
 
-int CTaskQueue::SwapWaitToExec(uint64_t qwCid)
+int CTaskQueue::SwapWaitToExec(uint64_t qwCid, bool bIsLock)
 {
     CTaskWaitRb *pRb = GetWaitRb(qwCid);
-    CTaskNode *pNode = UpdateTask(pRb, qwCid);
+    CTaskNode *pNode = UpdateTask(pRb, qwCid, bIsLock);
     if (!pNode)
         return -1;
 
@@ -167,17 +163,20 @@ int CTaskQueue::SwapWaitToExec(uint64_t qwCid)
     return 0;
 }
 
+void CTaskQueue::UpdateTimeout(uint64_t qwCid)
+{
+    CTaskWaitRb *pRb = GetWaitRb(qwCid);
+    UpdateTask(pRb, qwCid, false);
+}
+
 CTaskNode *CTaskQueue::AddTask(CTaskNode *pNode, int iRunStatus)
 {
     CSpinLock oLock(m_oExec.dwSync);
     if (iRunStatus == ITaskBase::RUN_WAIT)
     {
-        if (pNode->dwRef == 1)
-        {
-            pNode->dwRef = 0;
-            return pNode;
-        }
         pNode->dwRef --;
+        if (pNode->dwRef == 0)
+            return pNode;
     }
     else if (pNode->dwRef != 0)
     {
@@ -198,7 +197,7 @@ CTaskNode *CTaskQueue::AddTask(CTaskNode *pNode, int iRunStatus)
     return pNode;
 }
 
-CTaskNode* CTaskQueue::UpdateTask(CTaskWaitRb *pRb, uint64_t qwCid)
+CTaskNode* CTaskQueue::UpdateTask(CTaskWaitRb *pRb, uint64_t qwCid, bool bIsLock)
 {
     CSpinLock oLock(&pRb->dwSync);
     CTaskWaitRb::FdIt *it = pRb->oFdRb.find(qwCid);
@@ -213,8 +212,11 @@ CTaskNode* CTaskQueue::UpdateTask(CTaskWaitRb *pRb, uint64_t qwCid)
     }
 
     CTaskNode* pNode = itNode->second;
-    if (pNode->pTask->m_wProtocol <= ITaskBase::PROTOCOL_TCPS)
-        UpdateTaskTime(pRb, pNode, it->second);
+    UpdateTaskTime(pRb, pNode, it->second);
+    
+    if (bIsLock && pNode->pTask->m_wRunStatus == ITaskBase::RUN_LOCK)
+        pNode->pTask->m_wRunStatus = ITaskBase::RUN_WAIT;
+
     return pNode;
 }
 
@@ -243,16 +245,15 @@ void CTaskQueue::SwapTimerToExec(uint64_t qwCurTime, int iIndex, int& iSu)
     while (pRb->oTaskRb.begin(&it))
     {
         CTaskKey* pKey = &it->first;
-        if (pKey->qwTimeNs > qwCurTime)
-            break;
 
         CTaskNode *pTaskNode = it->second;
         ITaskBase *pBase = pTaskNode->pTask;
 
         uint8_t wPro = pTaskNode->pTask->m_wProtocol;
+
         if (pKey->dwTimeout != (uint32_t)-1 
             && (wPro <= ITaskBase::PROTOCOL_TCPS || wPro == ITaskBase::PROTOCOL_TIMER)
-            && pBase->m_wStatus != ITaskBase::STATUS_TIMEOUT)
+            && pBase->m_wStatus != ITaskBase::STATUS_TIMEOUT && pBase->m_wRunStatus != ITaskBase::RUN_EXEC)
         {
             uint64_t ddwEndTime = qwCurTime - pKey->qwTimeNs;
             ddwEndTime /= 1e3;
@@ -267,6 +268,7 @@ void CTaskQueue::SwapTimerToExec(uint64_t qwCurTime, int iIndex, int& iSu)
             if ((uint32_t)ddwEndTime >= pKey->dwTimeout)
             {
                 pBase->m_wStatus = ITaskBase::STATUS_TIMEOUT;
+                pBase->m_wRunStatus = ITaskBase::RUN_WAIT;
 
                 if (wPro == ITaskBase::PROTOCOL_TIMER)
                     UpdateTaskTime(pRb, pTaskNode, *pKey);

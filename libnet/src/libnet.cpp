@@ -328,6 +328,24 @@ int CNet::Register(ITaskBase *pBase, void *pData, uint16_t wProtocol, int iFd, u
     return AddFdTask(pBase, iFd);
 }
 
+int CNet::Register(NEWOBJ(ITaskBase, pCb), void* pData, uint16_t wProtocol, int iFd, uint32_t dwTimeoutMs)
+{
+    if (wProtocol != ITaskBase::PROTOCOL_TIMER)
+    {
+        m_sErr = "error protocol";
+        return -1;
+    }
+
+    ITaskBase* pTask = pCb();
+    if (!pTask)
+    {
+        m_sErr = "new task base object fail";
+        return -1;
+    }
+
+    return Register(pTask, pData, wProtocol, iFd, dwTimeoutMs);
+}
+
 int CNet::AddTimerTask(ITaskBase *pTask, uint32_t dwTimeout)
 {
     CTaskQueue *pTaskQueue = CTaskQueue::GetObj();

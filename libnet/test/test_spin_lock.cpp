@@ -4,6 +4,7 @@
 #include <stdint.h>
 #include <unistd.h>
 
+using namespace znet;
 volatile uint32_t g_dwSync = 0;
 
 class CTestSpinLock : public CThread

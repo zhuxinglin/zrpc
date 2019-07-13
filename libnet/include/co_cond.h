@@ -21,6 +21,7 @@
 #include <queue>
 #include <stdint.h>
 #include "co_lock.h"
+#include "thread.h"
 
 namespace znet
 {
@@ -39,6 +40,7 @@ public:
 private:
     typedef std::queue<uint64_t> CondQueue;
     CondQueue m_oCond;
+    volatile uint32_t m_dwLock;
 };
 
 }

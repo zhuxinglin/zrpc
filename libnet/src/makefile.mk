@@ -10,5 +10,4 @@ src/log.o \
 src/co_cond.o \
 src/co_sem.o \
 src/co_lock.o \
-src/go_post.o \
-src/co_chan.o
+src/go_post.o

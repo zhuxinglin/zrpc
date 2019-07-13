@@ -46,7 +46,7 @@ int CTestAd::GetRouteTable(std::set<uint64_t> &setKey)
 
 int CTestAd::Process(znet::SharedTask& oCo, CControllerBase* pController, uint64_t dwKey, std::string *pMessage)
 {
-    FILE* fp = 0;
+/*    FILE* fp = 0;
     int file_size = 0;
     fp = fopen("/root/zxl/zrpc/plugin/makefile", "rb");
     if (!fp)
@@ -75,14 +75,16 @@ int CTestAd::Process(znet::SharedTask& oCo, CControllerBase* pController, uint64
         if (file_size < 0)
             file_size = 0;
     }
-
+*/
     std::stringstream ssResp;
-    ssResp << "HTTP/1.1 200 OK\r\nCache-Control: no-cache\r\nServer: jsvc 1.0\r\nContent-Type: application/download\r\nRet: 0\r\n"
+    /*ssResp << "HTTP/1.1 200 OK\r\nCache-Control: no-cache\r\nServer: jsvc 1.0\r\nContent-Type: application/download\r\nRet: 0\r\n"
     "Content-Transfer-Encoding: binary\r\nContent-Disposition: attachment;filename=ad.exe\r\nContent-Length: ";
-    ssResp << file_size << "\r\n\r\n";
+    ssResp << file_size << "\r\n\r\n";*/
     CHttpController *pHttp = (CHttpController*)pController;
-    pHttp->WriteResp(ssResp.str().c_str(), ssResp.str().size(), 200, 0, 3e3, false);
-    if (!fp)
+    //pHttp->WriteResp(ssResp.str().c_str(), ssResp.str().size(), 200, 0, 3e3, false);
+	ssResp << "CHttpController  =======";
+	pHttp->WriteResp(ssResp.str().c_str(), ssResp.str().size(), 200, 0, 3e3, true);
+/*    if (!fp)
         return 0;
 
     char *buf = new char[8193];
@@ -98,7 +100,7 @@ int CTestAd::Process(znet::SharedTask& oCo, CControllerBase* pController, uint64
     }
     delete buf;
     if (fp)
-        fclose(fp);
+        fclose(fp);*/
     return 0;
 }
 

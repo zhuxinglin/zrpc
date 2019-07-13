@@ -83,7 +83,7 @@ void CSchedule::Run(uint32_t dwId)
         int iRet;
         for (int i = 0; i < iCount; i++)
         {
-            iRet = pTaskQueue->SwapWaitToExec(ev[i].data.u64);
+            iRet = pTaskQueue->SwapWaitToExec(ev[i].data.u64, false);
             if (iRet == 0)
                 CGoPost::Post();
         }

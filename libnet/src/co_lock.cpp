@@ -57,11 +57,9 @@ void CCoLock::Unlock()
 void CCoLock::Push()
 {
     ITaskBase* pTask = CCoroutine::GetObj()->GetTaskBase();
-    pTask->m_wRunStatus = ITaskBase::RUN_LOCK;
-    uint64_t qwCoId = pTask->m_qwCid;
-    m_oLock.push(qwCoId);
+    m_oLock.push(pTask->m_qwCid);
 
-    pTask->Yield(-1);
+    pTask->Yield(-1, ITaskBase::RUN_LOCK);
 }
 
 uint64_t CCoLock::Pop()

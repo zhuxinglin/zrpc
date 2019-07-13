@@ -35,7 +35,7 @@ int CConfig::Parse(const char *pszFileName)
     if (!pszContent)
         return -1;
 
-    std::auto_ptr<char> oPtr(pszContent);
+    std::unique_ptr<char> oPtr(pszContent);
 
     return ParseContent(pszContent);
 }

@@ -42,6 +42,7 @@ public:
                  uint16_t wVer, uint32_t dwTimeoutMs, const char* pszServerName, const char *pszSslCert = 0, const char *pszSslKey = 0);
     int Register(NEWOBJ(ITaskBase, pCb), void* pData, uint16_t wProtocol, uint32_t dwTimeoutUs);
     int Register(ITaskBase *pBase, void* pData, uint16_t wProtocol, int iFd, uint32_t dwTimeoutMs);
+    int Register(NEWOBJ(ITaskBase, pCb), void* pData, uint16_t wProtocol, int iFd, uint32_t dwTimeoutMs);
     int Start();
     int Unregister(const char *pszServerName);
     const char* GetErr(){return m_sErr.c_str();}
