@@ -33,8 +33,6 @@ public:
 public:
     int Read(char* pszBuf, int iLen, uint32_t dwTimeoutMs);
     int Write(const char* pszBuf, int iLen, uint32_t dwTimeoutMs);
-    void Sleep(uint32_t dwTimeoutMs = 0xFFFFFFFF);
-#define yield()       Sleep()
     void Close();
 
 protected:

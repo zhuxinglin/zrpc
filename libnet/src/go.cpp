@@ -22,6 +22,8 @@
 #include <unistd.h>
 #include "timer_fd.h"
 #include <atomic>
+#include <sys/types.h>
+#include <sys/syscall.h>
 
 using namespace znet;
 
@@ -62,7 +64,9 @@ void CGo::Run(uint32_t dwId)
         while ((pTaskNode = pTaskQueue->GetFirstExecTask()))
         {
             ITaskBase *pTask = pTaskNode->pTask;
-            if (pTask->m_wRunStatus == ITaskBase::RUN_NOW || pTask->m_wRunStatus == ITaskBase::RUN_LOCK)
+            if (pTask->m_wRunStatus == ITaskBase::RUN_NOW 
+                || pTask->m_wRunStatus == ITaskBase::RUN_LOCK 
+                || pTask->m_wRunStatus == ITaskBase::RUN_SLEEP)
             {
                 pTaskQueue->AddWaitExecTask(pTaskNode);
                 continue;
@@ -84,13 +88,13 @@ void CGo::Run(uint32_t dwId)
             pTask->m_wIsRuning = false;
             pTask->m_pMainCo = &uCon;
             pTask->m_wRunStatus = ITaskBase::RUN_EXEC;
-            //printf("call start 2222222222222222222222222  %lu    %p   %u\n", pTask->m_qwCid, pTask, pTask->m_wRunStatus);
+            //printf("call start 2222222222222222222222222 %li  %lu    %p   %u\n", syscall(SYS_gettid), pTask->m_qwCid, pTask, pTask->m_wRunStatus);
             pCor->Swap(pTask);
             /*int iType = uCon.uc_mcontext.gregs[1];
             int iFd = uCon.uc_mcontext.gregs[2];
             int iMod = uCon.uc_mcontext.gregs[3];
             int iEvent = uCon.uc_mcontext.gregs[4];*/
-            //printf("call end 00000000000000000000000000  %lu    %p   %d\n", pTask->m_qwCid, pTask, pTask->m_wRunStatus);
+            //printf("call end 00000000000000000000000000 %li  %lu    %p   %d\n", syscall(SYS_gettid), pTask->m_qwCid, pTask, pTask->m_wRunStatus);
             if (pTask->m_wRunStatus != ITaskBase::RUN_EXIT)
             {
                 pTaskQueue->AddWaitExecTask(pTaskNode);

@@ -227,7 +227,7 @@ int CNet::Register(NEWOBJ(ITaskBase, pCb), void *pData, uint16_t wProtocol, uint
     pEvent->dwTimeoutUs = dwTimeoutMs * 1e3;
 
     int iSvcNameLen = strlen(pszServerName);
-    if (iSvcNameLen > sizeof(pEvent->szServerName) - 1)
+    if (iSvcNameLen > (int)(sizeof(pEvent->szServerName) - 1))
         iSvcNameLen = sizeof(pEvent->szServerName) - 1;
     memset(pEvent->szServerName, 0, sizeof(pEvent->szServerName));
     memcpy(pEvent->szServerName, pszServerName, iSvcNameLen);

@@ -42,6 +42,7 @@ struct ITaskBase
     int YieldEventDel(uint32_t dwTimeoutMs, int iFd, int iSetEvent, int iRestoreEvent);
     int YieldEventRestore(uint32_t dwTimeoutMs, int iFd, int iSetEvent, int iRestoreEvent);
     int Yield(uint32_t dwTimeoutMs = 0xFFFFFFFF, uint8_t wRunStatus = RUN_WAIT);
+    int Sleep(uint32_t dwTimeoutMs = 0xFFFFFFFF);
 
     enum _YieldOpt
     {
@@ -102,12 +103,13 @@ struct ITaskBase
     uint8_t m_wProtocol;
     enum
     {
-        RUN_INIT = 1,
-        RUN_WAIT = 2,
-        RUN_LOCK = 3,
-        RUN_NOW = 4,
-        RUN_EXEC = 5,
-        RUN_EXIT = 6,
+        RUN_NOW = 1,
+        RUN_INIT = 2,
+        RUN_WAIT = 3,
+        RUN_LOCK = 4,
+        RUN_SLEEP = 5,
+        RUN_EXEC = 6,
+        RUN_EXIT = 7,
     };
     uint8_t m_wIsRuning;
     uint8_t m_wRunStatus;

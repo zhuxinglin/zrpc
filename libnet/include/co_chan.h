@@ -46,6 +46,7 @@ public:
             {
                 ++m_dwEnterLimit;
                 unlock();
+
                 if (!m_oInputSem.Wait(m_dwInputTimeout))
                 {
                     --m_dwEnterLimit;

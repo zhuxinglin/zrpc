@@ -249,29 +249,25 @@ void CTaskQueue::SwapTimerToExec(uint64_t qwCurTime, int iIndex, int& iSu)
         CTaskNode *pTaskNode = it->second;
         ITaskBase *pBase = pTaskNode->pTask;
 
-        uint8_t wPro = pTaskNode->pTask->m_wProtocol;
-
         if (pKey->dwTimeout != (uint32_t)-1 
-            && (wPro <= ITaskBase::PROTOCOL_TCPS || wPro == ITaskBase::PROTOCOL_TIMER)
             && pBase->m_wStatus != ITaskBase::STATUS_TIMEOUT && pBase->m_wRunStatus != ITaskBase::RUN_EXEC)
         {
-            uint64_t ddwEndTime = qwCurTime - pKey->qwTimeNs;
-            ddwEndTime /= 1e3;
+            uint64_t qwEndTime = qwCurTime - pKey->qwTimeNs;
+            qwEndTime /= 1e3;
 
             if (pBase->m_wRunStatus == ITaskBase::RUN_INIT)
             {
-                if (ddwEndTime > 100 * 1e3)
+                if (qwEndTime > 100 * 1e3)
                     pBase->m_wRunStatus = ITaskBase::RUN_WAIT;
                 continue;
             }
 
-            if ((uint32_t)ddwEndTime >= pKey->dwTimeout)
+            if ((uint32_t)qwEndTime >= pKey->dwTimeout)
             {
                 pBase->m_wStatus = ITaskBase::STATUS_TIMEOUT;
                 pBase->m_wRunStatus = ITaskBase::RUN_WAIT;
 
-                if (wPro == ITaskBase::PROTOCOL_TIMER)
-                    UpdateTaskTime(pRb, pTaskNode, *pKey);
+                UpdateTaskTime(pRb, pTaskNode, *pKey);
 
                 AddTask(pTaskNode, ITaskBase::RUN_EXEC);
                 it = 0;

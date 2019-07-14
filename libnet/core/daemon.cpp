@@ -55,8 +55,10 @@ static void CheckProcess(const char *p)
 	if (!fp)
 		return ;
 	char szBuf[64] = {0};
-	fgets(szBuf, sizeof(szBuf), fp);
+	char* s = fgets(szBuf, sizeof(szBuf), fp);
 	fclose(fp);
+	if (!s)
+		return;
 
 	std::string sComm = "/proc/";
 	sComm.append(szBuf).append("/comm");

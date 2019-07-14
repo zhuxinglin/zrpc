@@ -85,11 +85,14 @@ int ITaskBase::Yield(uint32_t dwTimeoutMs, uint8_t wRunStatus)
     return Yield(dwTimeoutMs, -1, 0, 0, 0, 0, wRunStatus);
 }
 
+int ITaskBase::Sleep(uint32_t dwTimeoutMs)
+{
+    return Yield(dwTimeoutMs, RUN_SLEEP);
+}
+
 int ITaskBase::Yield(uint32_t dwTimeoutMs, int iFd, int iSetOpt, int iRestoreOpt, int iSetEvent, int iRestoreEvent, uint8_t wRunStatus)
 {
     CCoroutine *pCor = CCoroutine::GetObj();
-
-    m_wStatus = STATUS_TIME;
 
     uint32_t dwTimeout = m_dwTimeout;
     if (dwTimeoutMs != 0xFFFFFFFF)
@@ -97,27 +100,35 @@ int ITaskBase::Yield(uint32_t dwTimeoutMs, int iFd, int iSetOpt, int iRestoreOpt
     else
         m_dwTimeout = dwTimeoutMs;
 
-    if (dwTimeout != m_dwTimeout)
+    if (wRunStatus != RUN_WAIT)
+        m_wRunStatus = wRunStatus;
+    else
+        m_wRunStatus = RUN_WAIT;
+
+    if (m_dwTimeout != dwTimeout)
     {
         // 重新设置超时
         CTaskQueue::GetObj()->UpdateTimeout(m_qwCid);
     }
-
-    if (wRunStatus != RUN_WAIT)
-        m_wRunStatus = RUN_LOCK;
-    else
-        m_wRunStatus = RUN_WAIT;
 
     CThread *pSch = CSchedule::GetObj();
 
     if (iSetEvent != -1 && iFd != -1)
         pSch->PushMsg(iFd, iSetOpt, iSetEvent, (void *)m_qwCid);
 
+    m_wStatus = STATUS_TIME;
+
     pCor->Swap(this, false);
 
     if (iRestoreEvent != -1 && iFd != -1)
         pSch->PushMsg(iFd, iRestoreOpt, iRestoreEvent, (void *)m_qwCid);
-    m_dwTimeout = dwTimeout;
+
+    if (m_dwTimeout != dwTimeout)
+    {
+        m_dwTimeout = dwTimeout;
+        // 重新设置超时
+        CTaskQueue::GetObj()->UpdateTimeout(m_qwCid);
+    }
 
     if (m_wStatus == STATUS_TIMEOUT)
         return -1;

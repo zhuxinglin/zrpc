@@ -265,10 +265,10 @@ void CLog::GetProcName()
 	}
 
 	char szName[128] = {0};
-	fread(szName, 1, 128, fp);
+	int iLen = fread(szName, 1, 128, fp);
 	fclose(fp);
 	char* s = szName;
-	while (*s)
+	while (*s && iLen >= 0)
 	{
 		if (*s == '\r' || *s == '\n')
 		{
@@ -276,6 +276,7 @@ void CLog::GetProcName()
 			break;
 		}
 		++ s;
+		--iLen;
 	}
 	m_sExeName = szName;
 }

@@ -38,7 +38,9 @@ private:
         {
             int a = 100;
             g_oTest << a;
-            printf("@@@@@@@@@@@@@@@@@@@@@@\n");
+            printf("@@@@@@@@@@@@@@@@@@@@@@  %lu\n", m_qwCid);
+
+            Sleep(0);
         }
     }
 

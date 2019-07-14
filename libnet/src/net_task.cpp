@@ -74,7 +74,7 @@ int CNetTask::ReadReliable(char *pszBuf, int iLen, uint32_t dwTimeoutMs)
     CReliableFd *pSock = (CReliableFd *)m_pFd;
     int iRet = pSock->Read(pszBuf, iLen);
     if (iRet == 0)
-        Sleep(dwTimeoutMs);
+        Yield(dwTimeoutMs);
     return iRet;
 }
 
@@ -84,7 +84,7 @@ int CNetTask::ReadUnreliable(char *pszBuf, int iLen, uint32_t dwTimeoutMs)
     m_wUdpAddLen = sizeof(m_szUdpAddr);
     int iRet = pSock->Read(pszBuf, iLen, (struct sockaddr *)m_szUdpAddr, (uint32_t *)&m_wUdpAddLen);
     if (iRet == 0)
-        Sleep(dwTimeoutMs);
+        Yield(dwTimeoutMs);
     return iRet;
 }
 
@@ -189,7 +189,7 @@ int CNetTask::ReadTcps(char *pszBuf, int iLen, uint32_t dwTimeoutMs)
     CTcpsReliableFd *pSock = (CTcpsReliableFd*)m_pFd;
     int iRet = pSock->Read(pszBuf, iLen);
     if (iRet == 0)
-        Sleep(dwTimeoutMs);
+        Yield(dwTimeoutMs);
     return iRet;
 }
 
@@ -215,11 +215,6 @@ int CNetTask::WriteTcps(const char *pszBuf, int iLen, uint32_t dwTimeoutMs)
     }
 
     return iOffset;
-}
-
-void CNetTask::Sleep(uint32_t dwTimeoutMs)
-{
-    Yield(dwTimeoutMs);
 }
 
 void CNetTask::Close()
