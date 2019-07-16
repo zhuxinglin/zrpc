@@ -103,13 +103,14 @@ struct ITaskBase
     uint8_t m_wProtocol;
     enum
     {
-        RUN_NOW = 1,
-        RUN_INIT = 2,
-        RUN_WAIT = 3,
-        RUN_LOCK = 4,
-        RUN_SLEEP = 5,
-        RUN_EXEC = 6,
-        RUN_EXIT = 7,
+        RUN_NOW = 0x1,
+        RUN_INIT = 0x2,
+        RUN_WAIT = 0x4,
+        RUN_LOCK = 0x8,
+        RUN_SLEEP = 0x10,
+        RUN_READY = 0x20,
+        RUN_EXEC = 0x40,
+        RUN_EXIT = 0x80,
     };
     uint8_t m_wIsRuning;
     uint8_t m_wRunStatus;

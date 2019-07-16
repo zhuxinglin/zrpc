@@ -77,6 +77,9 @@ CTaskNode *CTaskQueue::AddExecTask(CTaskNode *pNode, bool bIsExist)
         if (!AddWaitTask(pNode))
             return 0;
     }
+    if (bIsExist)
+        return AddTask(pNode, ITaskBase::RUN_EXEC);
+
     return AddTask(pNode, ITaskBase::RUN_NOW);
 }
 
@@ -174,16 +177,22 @@ CTaskNode *CTaskQueue::AddTask(CTaskNode *pNode, int iRunStatus)
     CSpinLock oLock(m_oExec.dwSync);
     if (iRunStatus == ITaskBase::RUN_WAIT)
     {
-        pNode->dwRef --;
+        //__sync_fetch_and_sub(&pNode->dwRef, 1);
+        -- pNode->dwRef;
         if (pNode->dwRef == 0)
             return pNode;
     }
-    else if (pNode->dwRef != 0)
+    else if (iRunStatus == ITaskBase::RUN_EXEC)
     {
-        pNode->dwRef ++;
-        return pNode;
+        if (pNode->dwRef != 0)
+        {
+            //__sync_fetch_and_add(&pNode->dwRef, 1);
+            pNode->dwRef = 2;
+            return pNode;
+        }
+        // __sync_fetch_and_add(&pNode->dwRef, 1);
+        ++pNode->dwRef;
     }
-    pNode->dwRef++;
 
     if (!m_oExec.pHead)
     {
@@ -249,8 +258,9 @@ void CTaskQueue::SwapTimerToExec(uint64_t qwCurTime, int iIndex, int& iSu)
         CTaskNode *pTaskNode = it->second;
         ITaskBase *pBase = pTaskNode->pTask;
 
-        if (pKey->dwTimeout != (uint32_t)-1 
-            && pBase->m_wStatus != ITaskBase::STATUS_TIMEOUT && pBase->m_wRunStatus != ITaskBase::RUN_EXEC)
+#define TIMEOUT_CHECK (ITaskBase::RUN_INIT | ITaskBase::RUN_WAIT | ITaskBase::RUN_LOCK | ITaskBase::RUN_SLEEP)
+        if (pKey->dwTimeout != (uint32_t)-1 && pBase->m_wStatus != ITaskBase::STATUS_TIMEOUT &&
+            pBase->m_wRunStatus & TIMEOUT_CHECK)
         {
             uint64_t qwEndTime = qwCurTime - pKey->qwTimeNs;
             qwEndTime /= 1e3;
@@ -258,14 +268,14 @@ void CTaskQueue::SwapTimerToExec(uint64_t qwCurTime, int iIndex, int& iSu)
             if (pBase->m_wRunStatus == ITaskBase::RUN_INIT)
             {
                 if (qwEndTime > 100 * 1e3)
-                    pBase->m_wRunStatus = ITaskBase::RUN_WAIT;
+                    pBase->m_wRunStatus = ITaskBase::RUN_READY;
                 continue;
             }
 
             if ((uint32_t)qwEndTime >= pKey->dwTimeout)
             {
                 pBase->m_wStatus = ITaskBase::STATUS_TIMEOUT;
-                pBase->m_wRunStatus = ITaskBase::RUN_WAIT;
+                pBase->m_wRunStatus = ITaskBase::RUN_READY;
 
                 UpdateTaskTime(pRb, pTaskNode, *pKey);
 
@@ -276,6 +286,7 @@ void CTaskQueue::SwapTimerToExec(uint64_t qwCurTime, int iIndex, int& iSu)
             }
             break;
         }
+#undef TIMEOUT_CHECK
     }
 }
 

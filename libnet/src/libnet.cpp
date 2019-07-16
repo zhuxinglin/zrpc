@@ -356,6 +356,7 @@ int CNet::AddTimerTask(ITaskBase *pTask, uint32_t dwTimeout)
         {
             if (!pTaskQueue->AddExecTask((CTaskNode *)pTask->m_pTaskQueue))
                 break;
+            CGoPost::Post();
         }
         else if (!pTaskQueue->AddWaitTask((CTaskNode *)pTask->m_pTaskQueue))
             break;

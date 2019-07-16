@@ -40,7 +40,7 @@ private:
             g_oTest << a;
             printf("@@@@@@@@@@@@@@@@@@@@@@  %lu\n", m_qwCid);
 
-            Sleep(0);
+            Sleep(100);
         }
     }
 

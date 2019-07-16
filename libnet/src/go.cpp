@@ -64,9 +64,13 @@ void CGo::Run(uint32_t dwId)
         while ((pTaskNode = pTaskQueue->GetFirstExecTask()))
         {
             ITaskBase *pTask = pTaskNode->pTask;
-            if (pTask->m_wRunStatus == ITaskBase::RUN_NOW 
-                || pTask->m_wRunStatus == ITaskBase::RUN_LOCK 
-                || pTask->m_wRunStatus == ITaskBase::RUN_SLEEP)
+
+            if (pTask->m_wRunStatus == ITaskBase::RUN_NOW)
+            {
+                pTaskQueue->AddExecTask(pTaskNode, false);
+                continue;
+            }
+            else if (pTask->m_wRunStatus == ITaskBase::RUN_LOCK || pTask->m_wRunStatus == ITaskBase::RUN_SLEEP)
             {
                 pTaskQueue->AddWaitExecTask(pTaskNode);
                 continue;
@@ -75,7 +79,8 @@ void CGo::Run(uint32_t dwId)
             {
                 // 这里只实用于注册epoll失败时有效，如正在执行的协程不能做本操作，否则栈中保存堆的地址将不能释放
                 pTask->Error("wait execute timeout");
-                delete pTask;
+                std::shared_ptr<ITaskBase> optr(pTask->m_oPtr);
+                pTask->m_oPtr = nullptr;
                 continue;
             }
 
