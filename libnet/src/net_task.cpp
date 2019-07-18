@@ -74,7 +74,10 @@ int CNetTask::ReadReliable(char *pszBuf, int iLen, uint32_t dwTimeoutMs)
     CReliableFd *pSock = (CReliableFd *)m_pFd;
     int iRet = pSock->Read(pszBuf, iLen);
     if (iRet == 0)
-        Yield(dwTimeoutMs);
+    {
+        if (Yield(dwTimeoutMs) < 0)
+            return -2;
+    }
     return iRet;
 }
 
@@ -84,7 +87,10 @@ int CNetTask::ReadUnreliable(char *pszBuf, int iLen, uint32_t dwTimeoutMs)
     m_wUdpAddLen = sizeof(m_szUdpAddr);
     int iRet = pSock->Read(pszBuf, iLen, (struct sockaddr *)m_szUdpAddr, (uint32_t *)&m_wUdpAddLen);
     if (iRet == 0)
-        Yield(dwTimeoutMs);
+    {
+        if (Yield(dwTimeoutMs) < 0)
+            return -2;
+    }
     return iRet;
 }
 
@@ -101,7 +107,8 @@ int CNetTask::WriteReliable(const char *pszBuf, int iLen, uint32_t dwTimeoutMs)
 
         if (iRet == 0)
         {
-            YieldEventRestore(dwTimeoutMs, m_pFd->GetFd(), ITaskBase::YIELD_ET_OUT, ITaskBase::YIELD_ET_IN);
+            if (YieldEventRestore(dwTimeoutMs, m_pFd->GetFd(), ITaskBase::YIELD_ET_OUT, ITaskBase::YIELD_ET_IN) < 0)
+                return -2;
             continue;
         }
 
@@ -125,7 +132,8 @@ int CNetTask::WriteUnreliable(const char *pszBuf, int iLen, uint32_t dwTimeoutMs
 
         if (iRet == 0)
         {
-            YieldEventRestore(dwTimeoutMs, m_pFd->GetFd(), ITaskBase::YIELD_ET_OUT, ITaskBase::YIELD_ET_IN);
+            if (YieldEventRestore(dwTimeoutMs, m_pFd->GetFd(), ITaskBase::YIELD_ET_OUT, ITaskBase::YIELD_ET_IN) < 0)
+                return -2;
             continue;
         }
 
@@ -189,7 +197,10 @@ int CNetTask::ReadTcps(char *pszBuf, int iLen, uint32_t dwTimeoutMs)
     CTcpsReliableFd *pSock = (CTcpsReliableFd*)m_pFd;
     int iRet = pSock->Read(pszBuf, iLen);
     if (iRet == 0)
-        Yield(dwTimeoutMs);
+    {
+        if (Yield(dwTimeoutMs) < 0)
+            return -2;
+    }
     return iRet;
 }
 
@@ -206,7 +217,8 @@ int CNetTask::WriteTcps(const char *pszBuf, int iLen, uint32_t dwTimeoutMs)
 
         if (iRet == 0)
         {
-            YieldEventRestore(dwTimeoutMs, m_pFd->GetFd(), ITaskBase::YIELD_ET_OUT, ITaskBase::YIELD_ET_IN);
+            if (YieldEventRestore(dwTimeoutMs, m_pFd->GetFd(), ITaskBase::YIELD_ET_OUT, ITaskBase::YIELD_ET_IN) < 0)
+                return -2;
             continue;
         }
 

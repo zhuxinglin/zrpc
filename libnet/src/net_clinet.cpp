@@ -159,7 +159,8 @@ int CNetClient::WriteReliable(const char *pszBuf, int iLen)
 
         if (iRet == 0)
         {
-            Wait(ITaskBase::YIELD_ET_OUT, 0);
+            if ((iRet = Wait(ITaskBase::YIELD_ET_OUT, 0)) < 0)
+                return iRet;
             continue;
         }
 
@@ -183,7 +184,8 @@ int CNetClient::WriteUnreliable(const char *pszBuf, int iLen)
 
         if (iRet == 0)
         {
-            Wait(ITaskBase::YIELD_ET_OUT, 0);
+            if ((iRet = Wait(ITaskBase::YIELD_ET_OUT, 0)) < 0)
+                return iRet;
             continue;
         }
 
@@ -196,11 +198,6 @@ int CNetClient::WriteUnreliable(const char *pszBuf, int iLen)
 
 int CNetClient::Wait(int iEvent, uint32_t dwTimeoutMs)
 {
-    if (dwTimeoutMs == 0)
-        return 0;
-    else if (dwTimeoutMs == (uint32_t)-1)
-        dwTimeoutMs = 0;
-
     CCoroutine *pCor = CCoroutine::GetObj();
     CNetTask *pNetTask = (CNetTask *)pCor->GetTaskBase();
     if (!pNetTask)
@@ -211,10 +208,10 @@ int CNetClient::Wait(int iEvent, uint32_t dwTimeoutMs)
 
     int iRet = pNetTask->YieldEventDel(dwTimeoutMs, m_pFd->GetFd(), iEvent, 0);
 
-    if (dwTimeoutMs != 0 && iRet < 0)
+    if (iRet < 0)
     {
         m_pFd->SetErr("connect or read timeout");
-        return -1;
+        return -2;
     }
 
     return 0;
@@ -257,7 +254,8 @@ int CNetClient::TcpsWrite(const char *pszBuf, int iLen)
 
         if (iRet == 0)
         {
-            Wait(ITaskBase::YIELD_ET_OUT, 0);
+            if ((iRet = Wait(ITaskBase::YIELD_ET_OUT, 0)) < 0)
+                return iRet;
             continue;
         }
 

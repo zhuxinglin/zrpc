@@ -660,7 +660,10 @@ int CNet::Start()
             {
                 pTask->Error(pSchedule->GetErr().c_str());
                 if (pTask->m_wRunStatus == ITaskBase::RUN_NOW)
+                {
                     pTask->m_wRunStatus = ITaskBase::RUN_EXIT;
+                    CGoPost::Post();
+                }
                 else
                     DeleteObj(pTask);
                 continue;
