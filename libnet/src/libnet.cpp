@@ -599,7 +599,7 @@ int CNet::Start()
             pTask->m_sServerName = pEvent->szServerName;
 
             int iFd;
-            if (pEvent->wProtocol != ITaskBase::PROTOCOL_TCP && pEvent->wProtocol != ITaskBase::PROTOCOL_TCPS)
+            if (pEvent->wProtocol == ITaskBase::PROTOCOL_UNIX)
                 iFd = oFd.Accept();
             else
                 iFd = oFd.Accept(pTask->m_szAddr, sizeof(pTask->m_szAddr) - 1);
