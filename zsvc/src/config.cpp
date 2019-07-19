@@ -21,6 +21,8 @@
 
 using namespace zrpc;
 
+#pragma GCC diagnostic ignored "-Wunused-result"
+
 CConfig::CConfig()
 {
 }
@@ -50,10 +52,10 @@ char *CConfig::GetContent(const char *pszFileName)
     }
     fseek(pFile, 0L, SEEK_END);
     char *pszBuf;
-    int iLen = ftell(pFile);
+    size_t dwLen = ftell(pFile);
     fseek(pFile, 0L, SEEK_SET);
-    pszBuf = new char[iLen + 1];
-    fread(pszBuf, 1, iLen, pFile);
+    pszBuf = new char[dwLen + 1];
+    fread(pszBuf, 1U, dwLen, pFile);
     fclose(pFile);
     return pszBuf;
 }

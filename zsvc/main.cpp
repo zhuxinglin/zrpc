@@ -24,6 +24,9 @@
 using namespace znet;
 using namespace zrpc;
 
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wunused-result"
+
 static CJSvc* g_pSvc = 0;
 
 static const char* GetProc(const char* pszProcName)
@@ -81,6 +84,7 @@ static int GetOldPid(const char* pszProcName)
 
     return pid;
 }
+#pragma GCC diagnostic pop
 
 void DoMain(int argc, const char** argv)
 {
