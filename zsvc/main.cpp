@@ -24,9 +24,6 @@
 using namespace znet;
 using namespace zrpc;
 
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wunused-result"
-
 static CJSvc* g_pSvc = 0;
 
 static const char* GetProc(const char* pszProcName)
@@ -51,40 +48,6 @@ static std::string GetConfig(const char* pszProcName)
     sConf.append(GetProc(pszProcName)).append(".cfg");
     return sConf;
 }
-
-static int GetOldPid(const char* pszProcName)
-{
-    std::string sName = ".";
-    sName.append(GetProc(pszProcName));
-
-    FILE* fp = fopen(sName.c_str(), "rb");
-    if (!fp)
-    {
-        printf("process pid file '%s' not exist\n", sName.c_str());
-        return 0;
-    }
-    int pid = 0;
-    fscanf(fp, "%d", &pid);
-    fclose(fp);
-    if (pid == 0)
-    {
-        printf("process pid file '%s', process pid = 0\n", sName.c_str());
-        return 0;
-    }
-
-    std::string sComm = "/proc/";
-    sComm.append(std::to_string(pid)).append("/comm");
-    fp = fopen(sComm.c_str(), "rb");
-    if (!fp)
-    {
-        printf("process not run\n");
-        return 0;
-    }
-    fclose(fp);
-
-    return pid;
-}
-#pragma GCC diagnostic pop
 
 void DoMain(int argc, const char** argv)
 {
@@ -149,20 +112,12 @@ int main(int argc, char const *argv[])
         }
         else if (!strcmp(argv[1], "-HUP"))
         {
-            int pid = GetOldPid(argv[0]);
-            if (pid == 0)
-                return 0;
-            kill(pid, SIGHUP);
-            printf("send SIGHUP %d success\n", pid);
+            CDaemon::RestartChildProcess(argv[0]);
             return 0;
         }
         else if (!strcmp(argv[1], "-QUIT"))
         {
-            int pid = GetOldPid(argv[0]);
-            if (pid == 0)
-                return 0;
-            kill(pid, SIGQUIT);
-            printf("send SIGQUIT %d success\n", pid);
+            CDaemon::Quit(argv[0]);
             return 0;
         }
         else if (!strcmp(argv[1], "-h"))

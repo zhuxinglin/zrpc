@@ -36,6 +36,9 @@ public:
 	// 通知退出进程
 	static void Quit(const char* pszProcCmd);
 	// @Param pszProcCmd args[0]
+	// 通知重启子进程
+	static void RestartChildProcess(const char *pszProcCmd);
+	// @Param pszProcCmd args[0]
 	// 通过执行进程命令args[0]获得进程名
 	static std::string GetProc(const char* pszProcCmd);
 	// @Param iPid 进程的PID

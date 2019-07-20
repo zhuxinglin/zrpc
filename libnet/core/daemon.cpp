@@ -20,6 +20,8 @@
 
 using namespace znet;
 
+#pragma GCC diagnostic ignored "-Wunused-result"
+
 // @Param pszProcCmd args[0]
 // 通过执行进程命令args[0]获得进程名
 std::string CDaemon::GetProc(const char* pszProcCmd)
@@ -70,7 +72,7 @@ std::string CDaemon::GetProc(int iPid)
 std::string CDaemon::GetProcPidFile(const char *p)
 {
 	std::string sName = ".";
-	return sName.append(GetProc(p));
+	return sName.append(GetProc(p)).append(".pid");
 }
 
 // 写进程PID
@@ -276,10 +278,9 @@ int CDaemon::DoDaemon(void (*Dmain)(int, const char **), int argc, const char **
 // 通过执行进程命令args[0]获得老进程PID
 int CDaemon::GetOldPid(const char* pszProcName)
 {
-    std::string sName = ".";
-    sName.append(GetProc(pszProcName));
+	std::string sName = GetProcPidFile(pszProcName);
 
-    FILE* fp = fopen(sName.c_str(), "rb");
+	FILE* fp = fopen(sName.c_str(), "rb");
     if (!fp)
     {
         printf("process pid file '%s' not exist\n", sName.c_str());
@@ -316,5 +317,17 @@ void CDaemon::Quit(const char* p)
 		return;
 	kill(pid, SIGQUIT);
 	printf("send SIGQUIT %d success\n", pid);
+	exit(0);
+}
+
+// @Param pszProcCmd args[0]
+// 通知重启子进程
+void CDaemon::RestartChildProcess(const char *pszProcCmd)
+{
+	int pid = GetOldPid(pszProcCmd);
+	if (pid == 0)
+		return;
+	kill(pid, SIGHUP);
+	printf("send SIGHUP %d success\n", pid);
 	exit(0);
 }
