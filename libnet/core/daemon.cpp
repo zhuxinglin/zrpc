@@ -20,23 +20,61 @@
 
 using namespace znet;
 
-static std::string GetProcPidFile(const char *p)
+// @Param pszProcCmd args[0]
+// 通过执行进程命令args[0]获得进程名
+std::string CDaemon::GetProc(const char* pszProcCmd)
 {
-	int len = strlen(p);
-	const char *e = p + (len - 1);
-	while (*e && len >= 0)
-	{
-		if (*e == '/')
-			break;
-		e--;
-		len--;
-	}
-	e++;
-	std::string sName = ".";
-	return sName.append(e);
+	int len = strlen(pszProcCmd);
+    const char *e = pszProcCmd + (len - 1);
+    while (*e && len >= 0)
+    {
+        if (*e == '/')
+            break;
+        e--;
+        len--;
+    }
+
+    e++;
+    return e;
 }
 
-static void WritePid(const char* p)
+// @Param iPid 进程的PID
+// 通过PID获得进程名
+std::string CDaemon::GetProc(int iPid)
+{
+	std::string sComm = "/proc/";
+	sComm.append(std::to_string(iPid)).append("/comm");
+	FILE* fp = fopen(sComm.c_str(), "rb");
+	if (!fp)
+		return std::string();
+	char szBuf[64];
+	int iLen = fread(szBuf, 1 , sizeof(szBuf), fp);
+	fclose(fp);
+
+	char* p = szBuf;
+	while (iLen > 0 && *p)
+	{
+		if (*p == '\r' || *p == '\n')
+		{
+			*p = 0;
+			break;
+		}
+		++ p;
+		-- iLen;
+	}
+
+	return std::string(szBuf);
+}
+
+// 获得进程PID文件名
+std::string CDaemon::GetProcPidFile(const char *p)
+{
+	std::string sName = ".";
+	return sName.append(GetProc(p));
+}
+
+// 写进程PID
+void CDaemon::WritePid(const char* p)
 {
 	FILE *fp = fopen(GetProcPidFile(p).c_str(), "wb");
 	if (!fp)
@@ -49,7 +87,8 @@ static void WritePid(const char* p)
 	fclose(fp);
 }
 
-static void CheckProcess(const char *p)
+// 检查进程是否执行
+void CDaemon::CheckProcess(const char *p)
 {
 	FILE *fp = fopen(GetProcPidFile(p).c_str(), "rb");
 	if (!fp)
@@ -71,6 +110,7 @@ static void CheckProcess(const char *p)
 	exit(0);
 }
 
+// 重定向标准输入输出
 int CDaemon::MapPrint()
 {
 	int iFd;
@@ -109,6 +149,7 @@ int CDaemon::MapPrint()
 	return -1;
 }
 
+// Daemon 初始化
 int CDaemon::DaemonInit()
 {
 	pid_t pid;
@@ -116,6 +157,7 @@ int CDaemon::DaemonInit()
 	signal(SIGPIPE, SIG_IGN);
 	signal(SIGTTOU, SIG_IGN);
 	signal(SIGTTIN, SIG_IGN);
+	signal(SIGHUP, SIG_IGN);
 
 	do
 	{
@@ -146,13 +188,18 @@ int CDaemon::DaemonInit()
 //		if (chdir("/") < 0)
 //			break;
 
-		// if (MapPrint() == -1)
-		// 	break;
+		if (MapPrint() == -1)
+			break;
 		return 0;
 	}while(0);
 	return -1;
 }
 
+// @Param DoMain 进程主函数回调
+// @Param argc 参数数量
+// @Param args 参数列表
+// @Param 收到退出信号回调函数
+// 函数托离终端
 int CDaemon::DoDaemon(void (*Dmain)(int, const char **), int argc, const char **args, void(*Call)(int), bool bIsMonitor)
 {
 	assert(args != nullptr);
@@ -211,7 +258,11 @@ int CDaemon::DoDaemon(void (*Dmain)(int, const char **), int argc, const char **
 		}
 		else
 		{
-			signal(SIGHUP, Call);
+			if (Call)
+				signal(SIGHUP, Call);
+			else
+				signal(SIGHUP, SIG_IGN);
+			
 			signal(SIGQUIT, SIG_IGN);
 
 			Dmain(argc, args);
@@ -219,4 +270,51 @@ int CDaemon::DoDaemon(void (*Dmain)(int, const char **), int argc, const char **
 		}
 	}
 	return pid;
+}
+
+// @Param pszProcCmd args[0]
+// 通过执行进程命令args[0]获得老进程PID
+int CDaemon::GetOldPid(const char* pszProcName)
+{
+    std::string sName = ".";
+    sName.append(GetProc(pszProcName));
+
+    FILE* fp = fopen(sName.c_str(), "rb");
+    if (!fp)
+    {
+        printf("process pid file '%s' not exist\n", sName.c_str());
+        return 0;
+    }
+    int pid = 0;
+    fscanf(fp, "%d", &pid);
+    fclose(fp);
+    if (pid == 0)
+    {
+        printf("process pid file '%s', process pid = 0\n", sName.c_str());
+        return 0;
+    }
+
+    std::string sComm = "/proc/";
+    sComm.append(std::to_string(pid)).append("/comm");
+    fp = fopen(sComm.c_str(), "rb");
+    if (!fp)
+    {
+        printf("process not run\n");
+        return 0;
+    }
+    fclose(fp);
+
+    return pid;
+}
+
+// @Param pszProcCmd args[0]
+// 通知退出进程
+void CDaemon::Quit(const char* p)
+{
+	int pid = GetOldPid(p);
+	if (pid == 0)
+		return;
+	kill(pid, SIGQUIT);
+	printf("send SIGQUIT %d success\n", pid);
+	exit(0);
 }
