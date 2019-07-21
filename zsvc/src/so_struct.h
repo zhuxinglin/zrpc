@@ -19,6 +19,7 @@
 
 #include "plugin_base.h"
 #include <dlfcn.h>
+#include <memory>
 
 namespace zrpc
 {
@@ -29,8 +30,9 @@ typedef struct _SoFunAddr
     zplugin::SoExportFunAddr pFun;
     zplugin::CPluginBase *pPlugin;
     std::string sSoName;
-    int iFlag;
+    int iDelFlag;
     volatile uint32_t dwCount;
+    std::shared_ptr<zplugin::CSharedData> pSo;
 } CSoFunAddr;
 
 typedef std::set<uint64_t> set_key;

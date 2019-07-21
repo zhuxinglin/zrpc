@@ -43,21 +43,22 @@ struct CHttpController : public CControllerBase
     virtual int WriteResp(const char *pszData, int iDataLen, int iCode, int iRet, int32_t dwTimoutMs, bool bIsHeader) = 0;
 };
 
-#define HEADER_FLAGE    0x61613535
-#define END_FLAGE   0x03
+#define HEADER_FLAGE    0x61613535      // 数据包头开始 aa355   主要作用抓包
+#define END_FLAGE   0x03                // 数据包结束3
 
-struct CBinaryHeader
+// 二进制协议头
+struct CBinaryProtocolHeader
 {
-    CBinaryHeader(int32_t len, uint16_t cmd, uint8_t ret, uint8_t ver = 0) : dwHeader(HEADER_FLAGE),
-                                                                             iLen(len),
-                                                                             szVersion(ver),
-                                                                             wCmd(cmd),
-                                                                             iRet(ret)
+    CBinaryProtocolHeader(int32_t len, uint16_t cmd, uint8_t ret, uint8_t ver = 0) : dwHeader(HEADER_FLAGE),
+                                                                                     iLen(len),
+                                                                                     wCmd(cmd),
+                                                                                     szVersion(ver),
+                                                                                     iRet(ret)
     {}
     uint32_t dwHeader;  // aa55=0x61613535
-    int32_t iLen;
-    uint8_t szVersion;
+    int32_t iLen;       // iLen = sizeof(CBinaryProtocolHeader) + data_len + 1
     uint16_t wCmd;
+    uint8_t szVersion;
     uint8_t iRet;
     char szBody[0];
 
@@ -77,9 +78,15 @@ struct CBinaryHeader
     }
 };
 
+struct CSharedData
+{
+    void* pPtr[2];
+    uint64_t qwPtr;
+};
+
 struct CPluginBase
 {
-    virtual int Initialize(znet::CLog *pLog, znet::CCoroutine *pCo, znet::CNet *pN) = 0;
+    virtual int Initialize(znet::CLog *pLog, znet::CCoroutine *pCo, znet::CNet *pN, CSharedData *pProc, CSharedData* pSo) = 0;
     virtual int GetRouteTable(std::set<uint64_t>& setKey) = 0;
     virtual int Process(znet::SharedTask& oCo, CControllerBase* pController, uint64_t dwKey, std::string *pMessage) = 0;
     virtual int Process(znet::SharedTask& oCo, CControllerBase* pController, uint64_t dwKey, std::string *pReq, std::string *pResp) = 0;

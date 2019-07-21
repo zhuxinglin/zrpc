@@ -43,11 +43,11 @@ void CBinaryHandle::Run()
     if (iCode != 200)
     {
         CBinarySvc* pSvc = (CBinarySvc*)m_oMsgPtr.get();
-        char szBuf[sizeof(zplugin::CBinaryHeader) + 1];
-        zplugin::CBinaryHeader* pBin = (zplugin::CBinaryHeader*)szBuf;
+        char szBuf[sizeof(zplugin::CBinaryProtocolHeader) + 1];
+        zplugin::CBinaryProtocolHeader* pBin = (zplugin::CBinaryProtocolHeader*)szBuf;
         pBin->Set(0, m_wCmd, iRet);
         pBin->Hton();
         *((uint8_t*)pBin->szBody) = (uint8_t)END_FLAGE;
-        pSvc->Write((const char*)szBuf, sizeof(zplugin::CBinaryHeader) + 1, 3e3);
+        pSvc->Write((const char*)szBuf, sizeof(zplugin::CBinaryProtocolHeader) + 1, 3e3);
     }
 }

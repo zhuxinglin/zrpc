@@ -80,7 +80,7 @@ void CBinarySvc::Error(const char* pszExitStr)
 
 int CBinarySvc::ReadData(std::shared_ptr<std::string>& oBuf, uint16_t& wCmd)
 {
-    int iOffset = sizeof(zplugin::CBinaryHeader);
+    int iOffset = sizeof(zplugin::CBinaryProtocolHeader);
     while (true)
     {
         int iLen = Read(m_pszRecvBuff, iOffset, 0xFFFFFFFF);
@@ -96,9 +96,9 @@ int CBinarySvc::ReadData(std::shared_ptr<std::string>& oBuf, uint16_t& wCmd)
         iOffset -= iLen;
 
         oBuf->append(m_pszRecvBuff, iLen);
-        if (oBuf->size() == sizeof(zplugin::CBinaryHeader))
+        if (oBuf->size() == sizeof(zplugin::CBinaryProtocolHeader))
         {
-            zplugin::CBinaryHeader* pH = (zplugin::CBinaryHeader*)oBuf->c_str();
+            zplugin::CBinaryProtocolHeader* pH = (zplugin::CBinaryProtocolHeader*)oBuf->c_str();
             if (pH->dwHeader != HEADER_FLAGE)
             {
                 LOGE << "error data package";

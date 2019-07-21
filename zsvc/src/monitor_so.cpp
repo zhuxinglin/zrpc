@@ -104,6 +104,7 @@ void CMonitorSo::Run()
 
                 if (!pSoInfo)
                     pSoInfo = new map_so_info;
+
                 std::string sSoPath(m_sSoPath);
                 sSoPath.append(pIe->name);
                 if (pSoPlugin->UpdateSo(sSoPath.c_str(), pSoInfo) < 0)

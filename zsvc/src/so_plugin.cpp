@@ -30,6 +30,7 @@ using namespace zplugin;
 CSoPlugin::CSoPlugin()
 {
     m_mapRoute = new map_so_info;
+    m_pProc = new zplugin::CSharedData;
 }
 
 CSoPlugin::~CSoPlugin()
@@ -76,9 +77,13 @@ int CSoPlugin::LoadSo(const char *pszPluginPah)
 
 int CSoPlugin::UpdateSo(const char *pszSoName, map_so_info *pmapRoute)
 {
+    // 是否为新增so
+    //TODO:
+    std::shared_ptr<zplugin::CSharedData> pSo = GetSoShareData(pszSoName);
+
     set_key *pkey;
     CSoFunAddr *pAddr;
-    pAddr = GetLoadSo(pszSoName, &pkey);
+    pAddr = GetLoadSo(pszSoName, &pkey, pSo);
     if (!pAddr)
         return -1;
 
@@ -128,7 +133,8 @@ int CSoPlugin::InnerSo(znet::SharedTask& oCo, CControllerBase* pController, uint
 int CSoPlugin::LoadCallSo(const char *pszSoName)
 {
     set_key* pkey;
-    CSoFunAddr *pAddr = GetLoadSo(pszSoName, &pkey);
+    std::shared_ptr<zplugin::CSharedData> pSo(nullptr);
+    CSoFunAddr *pAddr = GetLoadSo(pszSoName, &pkey, pSo);
     if (!pAddr)
     {
         return -1;
@@ -138,7 +144,7 @@ int CSoPlugin::LoadCallSo(const char *pszSoName)
     return 0;
 }
 
-CSoFunAddr *CSoPlugin::GetLoadSo(const char *pszSoName, set_key **psetKey)
+CSoFunAddr *CSoPlugin::GetLoadSo(const char *pszSoName, set_key **psetKey, std::shared_ptr<zplugin::CSharedData>& pSo)
 {
     void *pHandle = dlopen(pszSoName, RTLD_NOW);
     if (!pHandle)
@@ -159,9 +165,19 @@ CSoFunAddr *CSoPlugin::GetLoadSo(const char *pszSoName, set_key **psetKey)
     pAddr->pSoHandle = pHandle;
     pAddr->pFun = (SoExportFunAddr)pFunAddr;
     pAddr->pPlugin = pAddr->pFun();
-    pAddr->iFlag = 0;
+    pAddr->iDelFlag = 0;
     pAddr->sSoName = pszSoName;
     pAddr->dwCount = 0;
+    if (pSo)
+    {
+        pAddr->pSo.reset(new zplugin::CSharedData);
+        memset(pAddr->pSo.get(), 0, sizeof(zplugin::CSharedData));
+    }
+    else
+    {
+        pAddr->pSo = pSo;
+    }
+
     if (!pAddr->pPlugin)
     {
         LOGE << "create '" << pszSoName << "',fun 'SoPlugin' fail";
@@ -170,7 +186,7 @@ CSoFunAddr *CSoPlugin::GetLoadSo(const char *pszSoName, set_key **psetKey)
         return 0;
     }
 
-    if (pAddr->pPlugin->Initialize(znet::CLog::GetObj(), znet::CCoroutine::GetObj(), znet::CNet::GetObj()) < 0)
+    if (pAddr->pPlugin->Initialize(znet::CLog::GetObj(), znet::CCoroutine::GetObj(), znet::CNet::GetObj(), m_pProc, pSo.get()) < 0)
     {
         LOGE << "create '" << pszSoName << "',fun 'Initialize' fail";
         delete pAddr;
@@ -196,6 +212,7 @@ int CSoPlugin::Swap(map_so_info **pmapRoute)
     map_so_info *pTemp = *pmapRoute;
     for (map_so_info_it it = m_mapRoute->begin(); it != m_mapRoute->end(); ++it)
     {
+        GetSoName(it->first->sSoName.c_str());
         const char *s = strstr(it->first->sSoName.c_str(), SO_VERSION);
         s += sizeof(SO_VERSION);
         while(*s != 0 && *s != '_') ++s;
@@ -205,7 +222,7 @@ int CSoPlugin::Swap(map_so_info **pmapRoute)
         {
             if (iter->first->sSoName.find(sTmp.c_str()) != std::string::npos)
             {
-                it->first->iFlag = 1;
+                it->first->iDelFlag = 1;
                 continue;
             }
 
@@ -223,9 +240,9 @@ int CSoPlugin::Del(map_so_info *pmapRoute, bool bIsAll)
 {
     for (map_so_info_it it = pmapRoute->begin(); it != pmapRoute->end(); ++it)
     {
-        if (it->first->iFlag == 0 && bIsAll)
+        if (it->first->iDelFlag == 0 && bIsAll)
             continue;
-        
+
         // 正在执行中
         if (it->first->dwCount != 0)
             return -1;
@@ -240,15 +257,11 @@ int CSoPlugin::Del(map_so_info *pmapRoute, bool bIsAll)
     return 0;
 }
 
-int CSoPlugin::Repeat(std::string sSoName)
+int CSoPlugin::Repeat(std::string& sSoName)
 {
+    std::string sTmp = GetSoName(sSoName.c_str());
     for (map_so_info_it it = m_mapRoute->begin(); it != m_mapRoute->end();)
     {
-        std::string sTmp = sSoName;
-        const char *s = sSoName.c_str();
-        const char *c = strstr(s, SO_VERSION) + sizeof(SO_VERSION);
-        while (*c != 0 && *c != '_') ++c;
-        sTmp.resize(c - s);
         uint32_t dwPost;
         dwPost = it->first->sSoName.find(sTmp);
         if (dwPost == std::string::npos)
@@ -286,7 +299,7 @@ int CSoPlugin::Uninstall(map_so_info *pmapRoute, const char *pszSoName)
     {
         if (it->first->sSoName.compare(pszSoName) == 0)
         {
-            it->first->iFlag = 1;
+            it->first->iDelFlag = 1;
             iRet = 0;
             continue;
         }
@@ -294,4 +307,28 @@ int CSoPlugin::Uninstall(map_so_info *pmapRoute, const char *pszSoName)
         pmapRoute->insert(map_so_info::value_type(it->first, it->second));
     }
     return iRet;
+}
+
+std::shared_ptr<zplugin::CSharedData> CSoPlugin::GetSoShareData(const char *pszSoName)
+{
+    std::string sTmp = GetSoName(pszSoName);
+    std::shared_ptr<zplugin::CSharedData> pSo(nullptr);
+    for (map_so_info_it it = m_mapRoute->begin(); it != m_mapRoute->end(); ++it)
+    {
+        if (it->first->sSoName.find(sTmp) == std::string::npos)
+            continue;
+        pSo = it->first->pSo;
+    }
+    return pSo;
+}
+
+std::string CSoPlugin::GetSoName(const char* pszSoName)
+{
+    std::string sTmp = pszSoName;
+    const char *s = pszSoName;
+    const char *c = strstr(s, SO_VERSION) + sizeof(SO_VERSION);
+    while (*c != 0 && *c != '_')
+        ++c;
+    sTmp.resize(c - s);
+    return std::move(sTmp);
 }

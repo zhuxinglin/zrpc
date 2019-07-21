@@ -18,7 +18,6 @@
 #ifndef __SO_PLUGIN_H__
 #define __SO_PLUGIN_H__
 
-#include "plugin_base.h"
 #include <map>
 #include "so_struct.h"
 
@@ -43,11 +42,14 @@ public:
 
 private:
     int LoadCallSo(const char* pszSoName);
-    CSoFunAddr *GetLoadSo(const char* pszSoName, set_key** psetKey);
-    int Repeat(std::string sSoName);
+    CSoFunAddr *GetLoadSo(const char *pszSoName, set_key **psetKey, std::shared_ptr<zplugin::CSharedData>& pSo);
+    int Repeat(std::string& sSoName);
+    std::shared_ptr<zplugin::CSharedData> GetSoShareData(const char *pszSoName);
+    std::string GetSoName(const char *pszSoName);
 
 private:
     map_so_info* m_mapRoute;
+    zplugin::CSharedData *m_pProc{nullptr};
 };
 
 }
