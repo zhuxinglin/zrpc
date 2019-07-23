@@ -313,6 +313,7 @@ int CNet::Register(ITaskBase *pBase, void *pData, uint16_t wProtocol, int iFd, u
     if (wProtocol != ITaskBase::PROTOCOL_TIMER)
     {
         m_sErr = "error protocol";
+        delete pBase;
         return -1;
     }
 
