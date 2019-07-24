@@ -540,7 +540,7 @@ ITaskBase *CNet::NewTask(ITaskBase *pBase, void *pData, uint16_t wProtocol, uint
         pBase->m_wRunStatus = ITaskBase::RUN_INIT;
 
     pBase->m_dwTimeout = dwTimeoutUs;
-    pBase->m_qwConnectTime = CTimerFd::GetUs();
+    pBase->m_qwConnectTime = CTimerFd::GetNs();
     pBase->m_pData = pData;
     return pBase;
 }

@@ -20,6 +20,7 @@
 #include "task_base.h"
 #include "rbtree.h"
 #include "file_fd.h"
+#include <map>
 
 namespace znet
 {
@@ -64,7 +65,7 @@ struct CTaskKey
     CTaskKey(uint64_t qwNs, uint32_t dwTo) : qwTimeNs(qwNs), dwTimeout(dwTo)
     {}
 
-    bool operator>(CTaskKey& rhs)
+    bool operator>(const CTaskKey& rhs) const
     {
         if (qwTimeNs > rhs.qwTimeNs)
         {
@@ -79,7 +80,7 @@ struct CTaskKey
         return false;
     }
 
-    bool operator<(CTaskKey &rhs)
+    bool operator<(const CTaskKey &rhs) const
     {
         if (qwTimeNs < rhs.qwTimeNs)
         {
@@ -93,16 +94,25 @@ struct CTaskKey
         }
         return false;
     }
+
+    bool operator == (const CTaskKey &rhs) const
+    {
+        if ((qwTimeNs == rhs.qwTimeNs) && (dwTimeout == rhs.dwTimeout))
+            return true;
+        return false;
+    }
 }__attribute__((aligned(4)));
 
 typedef struct _TaskWaitRb
 {
-    typedef rbtree<CTaskKey, CTaskNode *> TaskRb;
+    typedef std::multimap<CTaskKey, CTaskNode *> TaskRb;
     typedef TaskRb::iterator TaskIt;
     TaskRb oTaskRb;
+
     typedef rbtree<uint64_t, CTaskKey> FdRb;
     typedef FdRb::iterator FdIt;
     FdRb oFdRb;
+
     volatile uint32_t dwSync;
     _TaskWaitRb() : dwSync(0)
     {}

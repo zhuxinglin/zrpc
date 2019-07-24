@@ -32,7 +32,7 @@ public:
     int Create(uint32_t dwTimeoutUs, bool bIsTimer = true);
     int Write(uint32_t dwTimeoutUs, bool bIsTimer = true);
     int Read(uint64_t* pTimeoutUs);
-    static uint64_t GetUs();
+    static uint64_t GetNs();
 };
 
 }

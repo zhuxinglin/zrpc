@@ -73,7 +73,7 @@ void CSchedule::Run(uint32_t dwId)
 {
     struct epoll_event ev[256];
     CTaskQueue *pTaskQueue = CTaskQueue::GetObj();
-    uint64_t qwLastTime = CTimerFd::GetUs();
+    uint64_t qwLastTime = CTimerFd::GetNs();
     while (m_bExit)
     {
         int iCount = m_oEvent.Wait(ev, 256, 1);
@@ -88,7 +88,7 @@ void CSchedule::Run(uint32_t dwId)
                 CGoPost::Post();
         }
 
-        uint64_t qwCurTime = CTimerFd::GetUs();
+        uint64_t qwCurTime = CTimerFd::GetNs();
         uint32_t dwTimeout = qwCurTime - qwLastTime;
         if (dwTimeout < 1e6)
             continue;

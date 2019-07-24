@@ -72,7 +72,7 @@ int CTimerFd::Read(uint64_t *pTimeoutUs)
     return read(m_iFd, pTimeoutUs, sizeof(uint64_t));
 }
 
-uint64_t CTimerFd::GetUs()
+uint64_t CTimerFd::GetNs()
 {
     struct timespec ts;
     clock_gettime(CLOCK_MONOTONIC, &ts);

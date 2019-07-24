@@ -120,16 +120,15 @@ CTaskNode *CTaskQueue::AddWaitTask(CTaskNode *pNode)
 {
     {
         CTaskWaitRb *pRb = GetWaitRb(pNode->pTask->m_qwCid);
-        CTaskKey oKey(CTimerFd::GetUs(), pNode->pTask->m_dwTimeout);
+        CTaskKey oKey(CTimerFd::GetNs(), pNode->pTask->m_dwTimeout);
         pNode->pTask->m_qwBeginTime = oKey.qwTimeNs;
 
         CSpinLock oLock(&pRb->dwSync);
-        if (!pRb->oTaskRb.insert(oKey, pNode))
-            return 0;
+        pRb->oTaskRb.insert(CTaskWaitRb::TaskRb::value_type(oKey, pNode));
 
         if (!pRb->oFdRb.insert(pNode->pTask->m_qwCid, oKey))
         {
-            pRb->oTaskRb.erase(oKey);
+            DelMultiMap(pRb, oKey, pNode->pTask->m_qwCid);
             return 0;
         }
     }
@@ -213,8 +212,8 @@ CTaskNode* CTaskQueue::UpdateTask(CTaskWaitRb *pRb, uint64_t qwCid, bool bIsLock
     if (!it)
         return 0;
 
-    CTaskWaitRb::TaskIt *itNode = pRb->oTaskRb.find(it->second);
-    if (!itNode)
+    CTaskWaitRb::TaskIt itNode = pRb->oTaskRb.find(it->second);
+    if (itNode == pRb->oTaskRb.end())
     {
         pRb->oFdRb.erase(qwCid);
         return 0;
@@ -235,7 +234,29 @@ int CTaskQueue::DelRbTask(CTaskWaitRb *pRb, CTaskNode *pNode)
 
     CSpinLock oLock(&pRb->dwSync);
     pRb->oFdRb.erase(pNode->pTask->m_qwCid);
-    return pRb->oTaskRb.erase(oKey);
+    return DelMultiMap(pRb, oKey, pNode->pTask->m_qwCid);
+}
+
+int CTaskQueue::DelMultiMap(CTaskWaitRb *&pRb, const CTaskKey& oKey, uint64_t qwCId)
+{
+    CTaskWaitRb::TaskIt it = pRb->oTaskRb.find(oKey);
+    if (it == pRb->oTaskRb.end())
+        return -1;
+
+    for (; it != pRb->oTaskRb.end(); ++ it)
+    {
+        if (it->first == oKey)
+        {
+            if (qwCId == it->second->pTask->m_qwCid)
+            {
+                pRb->oTaskRb.erase(it);
+                break;
+            }
+            continue;
+        }
+        return -1;
+    }
+    return 0;
 }
 
 int CTaskQueue::SwapTimerToExec(uint64_t qwCurTime)
@@ -249,22 +270,27 @@ int CTaskQueue::SwapTimerToExec(uint64_t qwCurTime)
 void CTaskQueue::SwapTimerToExec(uint64_t qwCurTime, int iIndex, int& iSu)
 {
     CTaskWaitRb *pRb = &m_pWait[iIndex];
-    CTaskWaitRb::TaskIt *it = 0;
     CSpinLock oLock(pRb->dwSync);
-    while (pRb->oTaskRb.begin(&it))
+    CTaskWaitRb::TaskIt it = pRb->oTaskRb.begin();
+    for (; it != pRb->oTaskRb.end(); ++ it)
     {
-        CTaskKey* pKey = &it->first;
+        const CTaskKey& oKey = it->first;
 
         CTaskNode *pTaskNode = it->second;
         ITaskBase *pBase = pTaskNode->pTask;
 
-#define TIMEOUT_CHECK (ITaskBase::RUN_INIT | ITaskBase::RUN_WAIT | ITaskBase::RUN_LOCK | ITaskBase::RUN_SLEEP)
-        if (pKey->dwTimeout != (uint32_t)-1 && pBase->m_wStatus != ITaskBase::STATUS_TIMEOUT &&
-            pBase->m_wRunStatus & TIMEOUT_CHECK)
-        {
-            uint64_t qwEndTime = qwCurTime - pKey->qwTimeNs;
-            qwEndTime /= 1e3;
+        if (oKey.dwTimeout == (uint32_t)-1)
+            break;
 
+        uint64_t qwEndTime = qwCurTime - oKey.qwTimeNs;
+        qwEndTime /= 1e3;
+
+        if ((uint32_t)qwEndTime < oKey.dwTimeout)
+            break;
+
+#define TIMEOUT_CHECK (ITaskBase::RUN_INIT | ITaskBase::RUN_WAIT | ITaskBase::RUN_LOCK | ITaskBase::RUN_SLEEP)
+        if (pBase->m_wStatus != ITaskBase::STATUS_TIMEOUT && pBase->m_wRunStatus & TIMEOUT_CHECK)
+        {
             if (pBase->m_wRunStatus == ITaskBase::RUN_INIT)
             {
                 if (qwEndTime > 100 * 1e3)
@@ -272,33 +298,28 @@ void CTaskQueue::SwapTimerToExec(uint64_t qwCurTime, int iIndex, int& iSu)
                 continue;
             }
 
-            if ((uint32_t)qwEndTime >= pKey->dwTimeout)
-            {
-                pBase->m_wStatus = ITaskBase::STATUS_TIMEOUT;
-                pBase->m_wRunStatus = ITaskBase::RUN_READY;
+            pBase->m_wStatus = ITaskBase::STATUS_TIMEOUT;
+            pBase->m_wRunStatus = ITaskBase::RUN_READY;
 
-                UpdateTaskTime(pRb, pTaskNode, *pKey);
+            UpdateTaskTime(pRb, pTaskNode, oKey);
 
-                AddTask(pTaskNode, ITaskBase::RUN_EXEC);
-                it = 0;
-                iSu = 0;
-                continue;
-            }
-            break;
+            AddTask(pTaskNode, ITaskBase::RUN_EXEC);
+            iSu = 0;
         }
 #undef TIMEOUT_CHECK
     }
 }
 
-void CTaskQueue::UpdateTaskTime(CTaskWaitRb *pRb, CTaskNode *pTaskNode, CTaskKey &oKey)
+void CTaskQueue::UpdateTaskTime(CTaskWaitRb *pRb, CTaskNode *pTaskNode, const CTaskKey &oKey)
 {
     ITaskBase *pBase = pTaskNode->pTask;
-    pBase->m_qwBeginTime = CTimerFd::GetUs();
+    pBase->m_qwBeginTime = CTimerFd::GetNs();
 
-    pRb->oTaskRb.erase(oKey);
-    pRb->oFdRb.erase(pBase->m_qwCid);
+    DelMultiMap(pRb, oKey, pBase->m_qwCid);
+    CTaskWaitRb::FdIt *it = pRb->oFdRb.find(pBase->m_qwCid);
+    it->second.qwTimeNs = pBase->m_qwBeginTime;
+    it->second.dwTimeout = pBase->m_dwTimeout;
 
     CTaskKey oNewKey(pBase->m_qwBeginTime, pBase->m_dwTimeout);
-    pRb->oTaskRb.insert(oNewKey, pTaskNode);
-    pRb->oFdRb.insert(pBase->m_qwCid, oNewKey);
+    pRb->oTaskRb.insert(CTaskWaitRb::TaskRb::value_type(oNewKey, pTaskNode));
 }

@@ -57,7 +57,8 @@ private:
     CTaskNode *UpdateTask(CTaskWaitRb *pRb, uint64_t qwCid, bool bIsLock);
     void SwapTimerToExec(uint64_t qwCurTime, int iIndex, int& iSu);
     CTaskWaitRb* GetWaitRb(uint64_t qwCid);
-    void UpdateTaskTime(CTaskWaitRb *pRb, CTaskNode *pTaskNode, CTaskKey& oKey);
+    void UpdateTaskTime(CTaskWaitRb *pRb, CTaskNode *pTaskNode, const CTaskKey& oKey);
+    int DelMultiMap(CTaskWaitRb *&pRb, const CTaskKey& oKey, uint64_t qwCId);
 
 private:
     CMemoryPool m_oPool;
