@@ -26,26 +26,10 @@ using namespace zrpc;
 
 static CJSvc* g_pSvc = 0;
 
-static const char* GetProc(const char* pszProcName)
-{
-    int len = strlen(pszProcName);
-    const char *e = pszProcName + (len - 1);
-    while (*e && len >= 0)
-    {
-        if (*e == '/')
-            break;
-        e--;
-        len--;
-    }
-
-    e++;
-    return e;
-}
-
 static std::string GetConfig(const char* pszProcName)
 {
     std::string sConf("./conf/");
-    sConf.append(GetProc(pszProcName)).append(".cfg");
+    sConf.append(CDaemon::GetProc(pszProcName)).append(".cfg");
     return sConf;
 }
 
