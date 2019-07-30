@@ -85,7 +85,7 @@ struct zk_create_request : public zk_len
 {
     std::string path;
     std::string data;
-    zk_cal acl;
+    zk_acl acl;
     int flags;
 };
 
@@ -136,7 +136,7 @@ struct zk_exists_response : public zk_len
 ///********************************************************
 struct zk_get_acl_request : public zk_len
 {
-    std::strin path;
+    std::string path;
 };
 
 struct zk_get_acl_response : public zk_len
