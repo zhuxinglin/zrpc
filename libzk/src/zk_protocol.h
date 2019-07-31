@@ -20,6 +20,36 @@
 #include <string>
 #include <list>
 
+static inline int64_t htonll(int64_t v)
+{
+    if (htonl(1) == 1)
+        return v;
+
+    char* s = reinterpret_cast<char*>(&v);
+    for (int i = 0; i < 4; ++ i)
+    {
+        int tmp = s[i];
+        s[i] = s[8 - i - 1];
+        s[8 - i - 1] = tmp;
+    }
+    return v;
+}
+
+static inline int64_t ntohll(int64_t v)
+{
+    if (ntohl(1) == 1)
+        return v;
+
+    char* s = reinterpret_cast<char*>(&v);
+    for (int i = 0; i < 4; ++ i)
+    {
+        int tmp = s[8 - i - 1];
+        s[8 - i - 1] = s[i];
+        s[i] = tmp;
+    }
+    return v;
+}
+
 struct zk_len
 {
     uint32_t len;
@@ -54,10 +84,19 @@ struct zk_check_version_request : public zk_len
 struct zk_connect_request : public zk_len
 {
     int protocol_version;
-    long last_zxid_seen;
+    int64_t last_zxid_seen;
     int timeout;
-    long session_id;
-    std::string passwd;
+    int64_t session_id;
+    char passwd[16];
+
+    void Hton()
+    {
+        len = htonl(len);
+        protocol_version = htonl(protocol_version);
+        last_zxid_seen = htonll(last_zxid_seen);
+        timeout = htonl(timeout);
+        session_id = htonll(session_id);
+    }
 };
 
 struct zk_connect_response : public zk_len

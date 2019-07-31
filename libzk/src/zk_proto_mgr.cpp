@@ -14,6 +14,7 @@
 
 
 #include "zk_proto_mgr.h"
+#include "zk_protocol.h"
 
 using namespace zkapi;
 
@@ -26,11 +27,6 @@ ZkProtoMgr::ZkProtoMgr() : m_pWatcher(nullptr),
 ZkProtoMgr::~ZkProtoMgr()
 {
 
-}
-
-void ZkProtoMgr::Release()
-{
-    delete this;
 }
 
 const char* ZkProtoMgr::GetErr()
@@ -46,14 +42,15 @@ int ZkProtoMgr::Init(const char *pszHost, IWatcher *pWatcher, uint32_t dwTimeout
         return -1;
     }
 
-    m_oCli.SetConnTimeoutMs(dwTimeout * 1000);
+    m_iTimeout = dwTimeout;
+    m_oCli.SetConnTimeoutMs(3 * 1000);
     if (pWatcher)
         m_pWatcher = pWatcher;
 
     if (pClientId)
         memcpy(&m_oClientId, pClientId, sizeof(m_oClientId));
     else
-        memcpy(&m_oClientId, 0, sizeof(m_oClientId));
+        memset(&m_oClientId, 0, sizeof(m_oClientId));
 
     if (SetConnectAddr(pszHost) < 0)
     {
@@ -61,9 +58,15 @@ int ZkProtoMgr::Init(const char *pszHost, IWatcher *pWatcher, uint32_t dwTimeout
         return -1;
     }
 
-    znet::CNet::GetObj()->Register(this, );
+    znet::CNet::GetObj()->Register(this, 0, znet::ITaskBase::PROTOCOL_TIMER, -1, 0);
 
     return 0;
+}
+
+void ZkProtoMgr::Close()
+{
+    m_bIsExit = false;
+    m_oCli.Close();
 }
 
 int ZkProtoMgr::SetConnectAddr(const char *pszHost)
@@ -113,5 +116,49 @@ void ZkProtoMgr::Error(const char* pszExitStr)
 
 void ZkProtoMgr::Run()
 {
+    ConnectZkSvr();
+    while (m_bIsExit)
+    {
+        int iLen = 0;
+        int iRet = m_oCli.Read(reinterpret_cast<char*>(&iLen), sizeof(iLen));
+    }
+}
 
+int ZkProtoMgr::ConnectZkSvr()
+{
+    auto conn = [&]() -> int 
+    {
+        zk_connect_request *pReq = new zk_connect_request;
+        pReq->len = sizeof(zk_connect_request);
+        pReq->protocol_version = 0;
+        pReq->last_zxid_seen = this->m_iLastZxid;
+        pReq->timeout = this->m_iTimeout;
+        pReq->session_id = this->m_oClientId.client_id;
+        memcpy(pReq->passwd, this->m_oClientId.password, sizeof(pReq->passwd));
+        pReq->Hton();
+        int iRet = m_oCli.Write(reinterpret_cast<char*>(pReq), sizeof(zk_connect_request), 3000);
+        delete pReq;
+        return iRet;
+    };
+    while (1)
+    {
+        if (m_iCurrHostIndex >= static_cast<int>(m_vAddr.size()))
+            m_iCurrHostIndex = 0;
+
+        ++ m_iCurrHostIndex;
+        const address_info &addr = m_vAddr[m_iCurrHostIndex];
+        int iRet = m_oCli.Connect(addr.ip.c_str(), addr.port);
+        if (iRet != 0)
+            continue;
+
+        if (conn() < 0)
+        {
+            m_oCli.Close();
+            continue;
+        }
+
+        break;
+    }
+
+    return 0;
 }

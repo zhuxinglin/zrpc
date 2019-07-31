@@ -468,7 +468,7 @@ int CTcpCli::Create(const char *pszAddr, uint16_t wPort, uint32_t dwTimeout, ITa
         GetSockAddr(&addr4, &addr6, &pAddr, pszAddr, wPort, &iAddrLen, 1);
 
         struct timeval tv;
-        tv.tv_sec = 3;
+        tv.tv_sec = dwTimeout / 1000;
         tv.tv_usec = 0;
 
         if (SetFdOpt(SOL_SOCKET, SO_SNDTIMEO, &tv, sizeof(tv)) < 0)

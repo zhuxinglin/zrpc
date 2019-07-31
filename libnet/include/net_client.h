@@ -37,6 +37,7 @@ public:
     int Write(const char *pszBuf, int ilen, uint32_t dwTimeoutMs = 0xFFFFFFFF);
     void SetConnTimeoutMs(uint32_t dwTimeoutMs){m_dwConnTimeout = dwTimeoutMs;}
     std::string GetErr(){return m_pFd->GetErr();};
+    void Close();
 
 private:
     int TcpConnect(const char* pszAddr, uint16_t wPort);

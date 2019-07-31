@@ -30,9 +30,9 @@ public:
     ~ZkProtoMgr();
 
 private:
-    virtual void Release();
     virtual const char* GetErr();
     virtual int Init(const char *pszHost, IWatcher *pWatcher, uint32_t dwTimeout, const clientid_t *pClientId);
+    virtual void Close();
 
 private:
     virtual void Run();
@@ -40,6 +40,7 @@ private:
 
 private:
     int SetConnectAddr(const char *pszHost);
+    int ConnectZkSvr();
 
 private:
     clientid_t m_oClientId;
@@ -47,6 +48,9 @@ private:
     IWatcher* m_pWatcher;
     int m_iCurrHostIndex;
     znet::CNetClient m_oCli;
+    bool m_bIsExit{true};
+    int m_iTimeout;
+    int64_t m_iLastZxid{0};
 
     struct address_info
     {

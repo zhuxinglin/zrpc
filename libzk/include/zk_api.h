@@ -34,10 +34,9 @@ struct clientid_t
 struct IZkApi
 {
     static IZkApi* CreateObj();
-    virtual void Release() = 0;
     virtual const char* GetErr() = 0;
     virtual int Init(const char *pszHost, IWatcher *pWatcher, uint32_t dwTimeout, const clientid_t *pClientId) = 0;
-    virtual char* GetErr() = 0;
+    virtual void Close() = 0;
 };
 
 }

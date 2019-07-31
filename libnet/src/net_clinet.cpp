@@ -48,7 +48,17 @@ int CNetClient::Connect(const char *pszAddr, uint16_t wPort, uint16_t wProtocol,
     else if (wProtocol <= ITaskBase::PROTOCOL_UDPG)
         iRet = UdpConnect(pszAddr, wPort);
 
+    if (iRet < 0)
+        Close();
+
     return iRet;
+}
+
+void CNetClient::Close()
+{
+    if (m_pFd)
+        delete m_pFd;
+    m_pFd = 0;
 }
 
 int CNetClient::Read(char *pszBuf, int iLen, uint32_t dwTimeoutMs)
