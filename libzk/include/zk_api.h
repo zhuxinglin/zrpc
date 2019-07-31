@@ -16,9 +16,9 @@
 #define __ZK_API__H__
 
 #include <stdint.h>
-#include <string>
-#include <net_client.h>
-#include <libnet.h>
+
+namespace zkapi
+{
 
 struct IWatcher
 {
@@ -31,30 +31,15 @@ struct clientid_t
     char password[16];
 };
 
-class ZkApi
+struct IZkApi
 {
-public:
-    ZkApi();
-    ~ZkApi();
-
-public:
-    int Init(const char *pszHost, IWatcher *pWatcher, uint32_t dwTimeout, const clientid_t *pClientId);
-
-private:
-    clientid_t m_oClientId;
-    std::string m_sErr;
-    IWatcher* m_pWatcher;
-    int m_iCurrHostIndex;
-    int m_iHostCount;
-    znet::CNetClient m_oCli;
-
-    struct address_info
-    {
-        std::string ip;
-        uint16_t port;
-    };
-    std::vector<address_info> m_vAddr;
+    static IZkApi* CreateObj();
+    virtual void Release() = 0;
+    virtual const char* GetErr() = 0;
+    virtual int Init(const char *pszHost, IWatcher *pWatcher, uint32_t dwTimeout, const clientid_t *pClientId) = 0;
+    virtual char* GetErr() = 0;
 };
 
+}
 
 #endif
