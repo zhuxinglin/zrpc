@@ -20,6 +20,11 @@
 #include <string>
 #include <list>
 
+#define WATCHER_EVENT_XID -1 
+#define PING_XID -2
+#define AUTH_XID -4
+#define SET_WATCHES_XID -8
+
 static inline int64_t htonll(int64_t v)
 {
     if (htonl(1) == 1)
@@ -65,12 +70,6 @@ struct zk_auth_packet : public zk_len
     {
         len = htonl(len);
         type = htonl(type);
-    }
-
-    void Ntoh()
-    {
-        len = ntohl(len);
-        type = ntohl(type);
     }
 };
 
@@ -247,11 +246,19 @@ struct zk_multi_header : public zk_len
 };
 
 ///********************************************************
-struct zk_reply_header : public zk_len
+struct zk_reply_header
 {
     int xid;
     long zxid;
     int err;
+    char data[0];
+
+    void Ntoh()
+    {
+        xid = ntohl(xid);
+        zxid = ntohll(zxid);
+        err = ntohl(err);
+    }
 };
 ///********************************************************
 struct zk_request_header : public zk_len
@@ -321,10 +328,16 @@ struct zk_sync_response : public zk_len
 };
 
 ///********************************************************
-struct zk_watcher_event : public zk_len
+struct zk_watcher_event
 {
     int type;
     int state;
-    std::string path;
+    char path[0];
+
+    void Ntoh()
+    {
+        type = ntohl(type);
+        state = ntohl(state);
+    }
 };
 #endif /* __ZK_PROTOCOL__H__ */

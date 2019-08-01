@@ -6,7 +6,7 @@ int main()
 {
     znet::CNet::GetObj()->Init(2, 1024 * 10);
     zkapi::IZkApi* pzk = zkapi::IZkApi::CreateObj();
-    pzk->Init("192.169.0.61:2181,192.169.0.62:2181,192.169.0.63:2181", nullptr, 3U, nullptr);
+    pzk->Init("220.181.38.150:80,192.169.0.62:2181,192.169.0.63:2181", nullptr, 3U, nullptr);
     znet::CNet::GetObj()->Start();
     return 0;
 }

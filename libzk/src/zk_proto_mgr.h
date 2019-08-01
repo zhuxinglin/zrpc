@@ -16,10 +16,8 @@
 #define __ZK_PROTO_MGR_H__
 
 #include "../include/zk_api.h"
-#include <string>
 #include <net_client.h>
-#include <libnet.h>
-#include <memory>
+#include "watcher_event.h"
 
 namespace zkapi
 {
@@ -42,17 +40,17 @@ private:
 private:
     int setConnectAddr(const char *pszHost);
     int connectZkSvr();
-    void dispatchMsg(std::shared_ptr<char>& oMsg, int iSumLen);
+    int dispatchMsg(std::shared_ptr<char>& oMsg, int iSumLen);
 
 private:
     clientid_t m_oClientId;
     std::string m_sErr;
-    IWatcher* m_pWatcher;
     int m_iCurrHostIndex;
     znet::CNetClient m_oCli;
     bool m_bIsExit{true};
     int m_iTimeout;
     int64_t m_iLastZxid{0};
+    WatcherEvent m_oEvent;
 
     struct address_info
     {

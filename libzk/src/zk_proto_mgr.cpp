@@ -15,11 +15,11 @@
 
 #include "zk_proto_mgr.h"
 #include "zk_protocol.h"
+#include <string.h>
 
 using namespace zkapi;
 
-ZkProtoMgr::ZkProtoMgr() : m_pWatcher(nullptr),
-                           m_iCurrHostIndex(0)
+ZkProtoMgr::ZkProtoMgr() : m_iCurrHostIndex(0)
 {
 
 }
@@ -44,8 +44,6 @@ int ZkProtoMgr::Init(const char *pszHost, IWatcher *pWatcher, uint32_t dwTimeout
 
     m_iTimeout = dwTimeout;
     m_oCli.SetConnTimeoutMs(3 * 1000);
-    if (pWatcher)
-        m_pWatcher = pWatcher;
 
     if (pClientId)
         memcpy(&m_oClientId, pClientId, sizeof(m_oClientId));
@@ -57,6 +55,8 @@ int ZkProtoMgr::Init(const char *pszHost, IWatcher *pWatcher, uint32_t dwTimeout
         m_sErr = "check host error";
         return -1;
     }
+
+    m_oEvent.Init(pWatcher);
 
     znet::CNet::GetObj()->Register(this, 0, znet::ITaskBase::PROTOCOL_TIMER, -1, 0);
 
@@ -149,7 +149,12 @@ void ZkProtoMgr::Run()
             continue;
         }
 
-        dispatchMsg(oMsg, iSumLen);
+        if (dispatchMsg(oMsg, iSumLen) < 0)
+        {
+            oMsg = nullptr;
+            m_oCli.Close();
+            connectZkSvr();
+        }
     }
 }
 
@@ -191,7 +196,33 @@ int ZkProtoMgr::connectZkSvr()
     return 0;
 }
 
-void ZkProtoMgr::dispatchMsg(std::shared_ptr<char>& oMsg, int iSumLen)
+int ZkProtoMgr::dispatchMsg(std::shared_ptr<char>& oMsg, int iSumLen)
 {
-    
+    zk_reply_header* hdr = reinterpret_cast<zk_reply_header*>(oMsg.get());
+    hdr->Ntoh();
+    if (hdr->zxid > 0)
+        m_iLastZxid = hdr->zxid;
+
+    if (hdr->xid == WATCHER_EVENT_XID)
+    {
+        zk_watcher_event* evt = reinterpret_cast<zk_watcher_event*>(hdr->data);
+        evt->Ntoh();
+        iSumLen -= (sizeof(zk_reply_header) - sizeof(zk_watcher_event));
+        std::shared_ptr<char> o(new char[iSumLen + 1]);
+        memcpy(o.get(), evt->path, iSumLen);
+        ZkEvent oEv(o, evt->type);
+        m_oEvent.Push(oEv);
+    }
+    else if (hdr->xid == SET_WATCHES_XID)
+    {}
+    else if (hdr->xid == AUTH_XID)
+    {
+        if (hdr->err != 0)
+            return -1;
+    }
+    else
+    {
+
+    }
+    return 0;
 }
