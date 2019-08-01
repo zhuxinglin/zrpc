@@ -52,7 +52,7 @@ int ZkProtoMgr::Init(const char *pszHost, IWatcher *pWatcher, uint32_t dwTimeout
     else
         memset(&m_oClientId, 0, sizeof(m_oClientId));
 
-    if (SetConnectAddr(pszHost) < 0)
+    if (setConnectAddr(pszHost) < 0)
     {
         m_sErr = "check host error";
         return -1;
@@ -69,7 +69,7 @@ void ZkProtoMgr::Close()
     m_oCli.Close();
 }
 
-int ZkProtoMgr::SetConnectAddr(const char *pszHost)
+int ZkProtoMgr::setConnectAddr(const char *pszHost)
 {
     const char* p = pszHost;
     const char* s = p;
@@ -116,15 +116,44 @@ void ZkProtoMgr::Error(const char* pszExitStr)
 
 void ZkProtoMgr::Run()
 {
-    ConnectZkSvr();
+    connectZkSvr();
     while (m_bIsExit)
     {
         int iLen = 0;
         int iRet = m_oCli.Read(reinterpret_cast<char*>(&iLen), sizeof(iLen));
+        if (iRet < 0)
+        {
+            if (m_bIsExit)
+                connectZkSvr();
+            continue;
+        }
+
+        iLen = ntohl(iLen) - sizeof(iLen);
+        int iSumLen = iLen;
+        std::shared_ptr<char> oMsg(new char[iLen + 1]);
+        char* p = oMsg.get();
+        do
+        {
+            iRet = m_oCli.Read(p, iLen);
+            if (iRet < 0)
+                break;
+
+            iLen -= iRet;
+            p += iRet;
+        }while (iLen > 0);
+
+        if (iRet < 0)
+        {
+            if (m_bIsExit)
+                connectZkSvr();
+            continue;
+        }
+
+        dispatchMsg(oMsg, iSumLen);
     }
 }
 
-int ZkProtoMgr::ConnectZkSvr()
+int ZkProtoMgr::connectZkSvr()
 {
     auto conn = [&]() -> int 
     {
@@ -145,10 +174,10 @@ int ZkProtoMgr::ConnectZkSvr()
         if (m_iCurrHostIndex >= static_cast<int>(m_vAddr.size()))
             m_iCurrHostIndex = 0;
 
-        ++ m_iCurrHostIndex;
         const address_info &addr = m_vAddr[m_iCurrHostIndex];
+        ++ m_iCurrHostIndex;
         int iRet = m_oCli.Connect(addr.ip.c_str(), addr.port);
-        if (iRet != 0)
+        if (iRet < 0)
             continue;
 
         if (conn() < 0)
@@ -156,9 +185,13 @@ int ZkProtoMgr::ConnectZkSvr()
             m_oCli.Close();
             continue;
         }
-
         break;
     }
 
     return 0;
+}
+
+void ZkProtoMgr::dispatchMsg(std::shared_ptr<char>& oMsg, int iSumLen)
+{
+    
 }

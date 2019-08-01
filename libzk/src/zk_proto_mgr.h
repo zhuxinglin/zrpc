@@ -19,6 +19,7 @@
 #include <string>
 #include <net_client.h>
 #include <libnet.h>
+#include <memory>
 
 namespace zkapi
 {
@@ -39,8 +40,9 @@ private:
     virtual void Error(const char* pszExitStr);
 
 private:
-    int SetConnectAddr(const char *pszHost);
-    int ConnectZkSvr();
+    int setConnectAddr(const char *pszHost);
+    int connectZkSvr();
+    void dispatchMsg(std::shared_ptr<char>& oMsg, int iSumLen);
 
 private:
     clientid_t m_oClientId;
