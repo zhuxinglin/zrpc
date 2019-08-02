@@ -41,6 +41,8 @@ private:
     int setConnectAddr(const char *pszHost);
     int connectZkSvr();
     int dispatchMsg(std::shared_ptr<char>& oMsg, int iSumLen);
+    int ping();
+    int Read(std::shared_ptr<char>& oMsg);
 
 private:
     clientid_t m_oClientId;

@@ -42,7 +42,7 @@ int ZkProtoMgr::Init(const char *pszHost, IWatcher *pWatcher, uint32_t dwTimeout
         return -1;
     }
 
-    m_iTimeout = dwTimeout;
+    m_iTimeout = dwTimeout * 1000;
     m_oCli.SetConnTimeoutMs(3 * 1000);
 
     if (pClientId)
@@ -116,46 +116,75 @@ void ZkProtoMgr::Error(const char* pszExitStr)
 
 void ZkProtoMgr::Run()
 {
-    connectZkSvr();
+    bool bIsConnect = true;
+    
     while (m_bIsExit)
     {
-        int iLen = 0;
-        int iRet = m_oCli.Read(reinterpret_cast<char*>(&iLen), sizeof(iLen));
-        if (iRet < 0)
+        if (bIsConnect)
         {
-            if (m_bIsExit)
-                connectZkSvr();
-            continue;
-        }
-
-        iLen = ntohl(iLen) - sizeof(iLen);
-        int iSumLen = iLen;
-        std::shared_ptr<char> oMsg(new char[iLen + 1]);
-        char* p = oMsg.get();
-        do
-        {
-            iRet = m_oCli.Read(p, iLen);
-            if (iRet < 0)
-                break;
-
-            iLen -= iRet;
-            p += iRet;
-        }while (iLen > 0);
-
-        if (iRet < 0)
-        {
-            if (m_bIsExit)
-                connectZkSvr();
-            continue;
-        }
-
-        if (dispatchMsg(oMsg, iSumLen) < 0)
-        {
-            oMsg = nullptr;
             m_oCli.Close();
             connectZkSvr();
+            bIsConnect = false;
+        }
+
+        {
+            std::shared_ptr<char> oMsg;
+            int iSumLen = Read(oMsg);
+            if (iSumLen < 0)
+            {
+                bIsConnect = true;
+                continue;
+            }
+
+            if (dispatchMsg(oMsg, iSumLen) < 0)
+                bIsConnect = true;
         }
     }
+}
+
+int ZkProtoMgr::Read(std::shared_ptr<char>& oMsg)
+{
+    int iLen = 0;
+    int iRet;
+    while (1)
+    {
+        iRet = m_oCli.Read(reinterpret_cast<char*>(&iLen), sizeof(iLen), m_iTimeout);
+        if (iRet < 0)
+        {
+            if (iRet == -1)
+                return -1;
+
+            // ·¢ËÍping
+            if (ping() < 0)
+                return -1;
+            continue;
+        }
+
+        if (iRet == sizeof(iLen))
+            break;
+    }
+
+    iLen = ntohl(iLen);
+    if (iLen < 0)
+        return -1;
+
+    int iSumLen = iLen;
+    oMsg.reset(new char[iLen + 1]);
+    char* p = oMsg.get();
+    do
+    {
+        iRet = m_oCli.Read(p, iLen);
+        if (iRet < 0)
+            break;
+
+        iLen -= iRet;
+        p += iRet;
+    }while (iLen > 0);
+
+    if (iRet < 0)
+        return -1;
+
+    return iSumLen;
 }
 
 int ZkProtoMgr::connectZkSvr()
@@ -163,11 +192,11 @@ int ZkProtoMgr::connectZkSvr()
     auto conn = [&]() -> int 
     {
         zk_connect_request *pReq = new zk_connect_request;
-        pReq->len = sizeof(zk_connect_request);
         pReq->protocol_version = 0;
         pReq->last_zxid_seen = this->m_iLastZxid;
         pReq->timeout = this->m_iTimeout;
         pReq->session_id = this->m_oClientId.client_id;
+        pReq->passwd_len = sizeof(pReq->passwd);
         memcpy(pReq->passwd, this->m_oClientId.password, sizeof(pReq->passwd));
         pReq->Hton();
         int iRet = m_oCli.Write(reinterpret_cast<char*>(pReq), sizeof(zk_connect_request), 3000);
@@ -190,10 +219,40 @@ int ZkProtoMgr::connectZkSvr()
             m_oCli.Close();
             continue;
         }
+
+        {
+            std::shared_ptr<char> oMsg;
+            iRet = Read(oMsg);
+            if (iRet < 0)
+            {
+                m_oCli.Close();
+                continue;
+            }
+
+            zk_connect_response* co = reinterpret_cast<zk_connect_response*>(oMsg.get());
+            co->Ntoh();
+
+            // if (m_oClientId.client_id != 0 && m_oClientId.client_id != co->session_id)
+            // {
+            //     m_oCli.Close();
+            //     continue;
+            // }
+
+            m_oClientId.client_id = co->session_id;
+            memcpy(m_oClientId.password, co->passwd, sizeof(m_oClientId.client_id));
+            m_iTimeout = co->timeout;
+        }
         break;
     }
 
     return 0;
+}
+
+int ZkProtoMgr::ping()
+{
+    zk_request_header hdr(PING_XID, ZOO_PING_OP);
+    hdr.Hton();
+    return m_oCli.Write(reinterpret_cast<char*>(&hdr), sizeof(hdr));
 }
 
 int ZkProtoMgr::dispatchMsg(std::shared_ptr<char>& oMsg, int iSumLen)
@@ -222,7 +281,7 @@ int ZkProtoMgr::dispatchMsg(std::shared_ptr<char>& oMsg, int iSumLen)
     }
     else
     {
-
+        
     }
     return 0;
 }

@@ -80,31 +80,44 @@ struct zk_check_version_request : public zk_len
 };
 
 ///********************************************************
+#pragma pack(4)
 struct zk_connect_request : public zk_len
 {
     int protocol_version;
     int64_t last_zxid_seen;
     int timeout;
     int64_t session_id;
+    int32_t passwd_len;
     char passwd[16];
 
     void Hton()
     {
-        len = htonl(len);
+        len = htonl(sizeof(zk_connect_request) - sizeof(zk_len));
         protocol_version = htonl(protocol_version);
         last_zxid_seen = htonll(last_zxid_seen);
         timeout = htonl(timeout);
         session_id = htonll(session_id);
+        passwd_len = htonl(passwd_len);
     }
 };
 
-struct zk_connect_response : public zk_len
+struct zk_connect_response
 {
     int protocol_version;
     int timeout;
-    long session_id;
-    std::string passwd;
+    int64_t session_id;
+    int32_t passwd_len;
+    char passwd[16];
+
+    void Ntoh()
+    {
+        protocol_version = ntohl(protocol_version);
+        timeout = ntohl(timeout);
+        session_id = ntohll(session_id);
+        passwd_len = ntohl(passwd_len);
+    }
 };
+#pragma pack()
 
 ///********************************************************
 struct zk_id
@@ -148,17 +161,17 @@ struct zk_error_response : public zk_len
 ///********************************************************
 struct zk_stat
 {
-    long czxid;
-    long mzxid;
-    long ctime;
-    long mtime;
+    int64_t czxid;
+    int64_t mzxid;
+    int64_t ctime;
+    int64_t mtime;
     int version;
     int cversion;
     int aversion;
-    long ephemeral_owner;
+    int64_t ephemeral_owner;
     int data_length;
     int num_children;
-    long pzxid;
+    int64_t pzxid;
 };
 
 struct zk_exists_request : public zk_len
@@ -249,7 +262,7 @@ struct zk_multi_header : public zk_len
 struct zk_reply_header
 {
     int xid;
-    long zxid;
+    int64_t zxid;
     int err;
     char data[0];
 
@@ -263,8 +276,20 @@ struct zk_reply_header
 ///********************************************************
 struct zk_request_header : public zk_len
 {
-    int zid;
+    int xid;
     int type;
+
+    zk_request_header(int x, int t) : xid(x), type(t)
+    {
+        len = sizeof(zk_request_header) - sizeof(zk_len);
+    }
+
+    void Hton()
+    {
+        len = htonl(len);
+        xid = htonl(xid);
+        type = htonl(type);
+    }
 };
 ///********************************************************
 struct zk_set_acl_request : public zk_len
@@ -311,7 +336,7 @@ struct zk_set_sasl_response : public zk_len
 ///********************************************************
 struct zk_set_watches : public zk_len
 {
-    long relative_zxid;
+    int64_t relative_zxid;
     std::list<std::string> data_watches;
     std::list<std::string> exist_watches;
     std::list<std::string> child_watches;

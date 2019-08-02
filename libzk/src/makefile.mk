@@ -1,6 +1,7 @@
 
 OBJS	+= \
-src/zk_api.o \
-src/zk_proto_mgr.o \
-src/watcher_event.o \
-
+build/zk_api.o \
+build/zk_proto_mgr.o \
+build/watcher_event.o \
+build/hashtable_itr.o \
+build/hashtable.o
