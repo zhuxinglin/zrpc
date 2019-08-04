@@ -1,13 +1,12 @@
 
-OBJS	+= \
-src/go.o \
-src/libnet.o \
-src/schedule.o \
-src/net_task.o \
-src/net_clinet.o \
-src/task_base.o \
-src/log.o \
-src/co_cond.o \
-src/co_sem.o \
-src/co_lock.o \
-src/go_post.o
+OBJS += build/go.o \
+build/libnet.o \
+build/schedule.o \
+build/net_task.o \
+build/net_clinet.o \
+build/task_base.o \
+build/log.o \
+build/co_cond.o \
+build/co_sem.o \
+build/co_lock.o \
+build/go_post.o

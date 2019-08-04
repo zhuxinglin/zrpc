@@ -16,17 +16,21 @@
 #include "zk_proto_mgr.h"
 #include "zk_protocol.h"
 #include <string.h>
+#include "zk_hashtable.h"
 
 using namespace zkapi;
+using namespace zkproto;
 
 ZkProtoMgr::ZkProtoMgr() : m_iCurrHostIndex(0)
 {
-
+    m_iXid = time(0);
+    m_pEvent = new WatcherEvent;
 }
 
 ZkProtoMgr::~ZkProtoMgr()
 {
-
+    m_pEvent->Exit();
+    Close();
 }
 
 const char* ZkProtoMgr::GetErr()
@@ -56,7 +60,11 @@ int ZkProtoMgr::Init(const char *pszHost, IWatcher *pWatcher, uint32_t dwTimeout
         return -1;
     }
 
-    m_oEvent.Init(pWatcher);
+    active_node_watchers = ZkHashTable::create_zk_hashtable();
+    active_exist_watchers = ZkHashTable::create_zk_hashtable();
+    active_child_watchers = ZkHashTable::create_zk_hashtable();
+
+    m_pEvent->Init(pWatcher);
 
     znet::CNet::GetObj()->Register(this, 0, znet::ITaskBase::PROTOCOL_TIMER, -1, 0);
 
@@ -65,19 +73,37 @@ int ZkProtoMgr::Init(const char *pszHost, IWatcher *pWatcher, uint32_t dwTimeout
 
 void ZkProtoMgr::Close()
 {
+    if (!m_bIsConnect)
+    {
+        zk_request_header hdr(getXid(), ZOO_CLOSE_OP);
+        hdr.Hton();
+        m_oCli.Write(reinterpret_cast<char*>(&hdr), sizeof(hdr), 3000);
+    }
     m_bIsExit = false;
     m_oCli.Close();
+    if (active_node_watchers)
+        ZkHashTable::destroy_zk_hashtable(active_node_watchers);
+    active_node_watchers = nullptr;
+
+    if (active_exist_watchers)
+        ZkHashTable::destroy_zk_hashtable(active_exist_watchers);
+    active_exist_watchers = nullptr;
+
+    if (active_child_watchers)
+        ZkHashTable::destroy_zk_hashtable(active_child_watchers);
+    active_child_watchers = nullptr;
 }
 
 int ZkProtoMgr::setConnectAddr(const char *pszHost)
 {
-    const char* p = pszHost;
-    const char* s = p;
+    const char* e = pszHost + strlen(pszHost);
     const char* d = nullptr;
-    while (*p)
+    -- e;
+    const char* s = pszHost;
+    while (e != s)
     {
-        char c = *p;
-        ++ p;
+        char c = *e;
+        -- e;
         if (('0' > c && c > '9') && c != ',' && c != ':' && c != '.')
             return -1;
 
@@ -86,8 +112,7 @@ int ZkProtoMgr::setConnectAddr(const char *pszHost)
             if (c == ',')
             {
                 address_info addr;
-                addr.ip.append(s, d - s - 1);
-                s = p;
+                addr.ip.append(e + 2, d - e - 3);
                 addr.port = atoi(d);
                 d = nullptr;
                 m_vAddr.push_back(addr);
@@ -96,13 +121,13 @@ int ZkProtoMgr::setConnectAddr(const char *pszHost)
         }
 
         if (c == ':')
-            d = p;
+            d = e + 2;
     }
 
     if (d)
     {
         address_info addr;
-        addr.ip.append(s, d - s - 1);
+        addr.ip.append(e, d - e - 1);
         addr.port = atoi(d);
         m_vAddr.push_back(addr);
     }
@@ -116,28 +141,26 @@ void ZkProtoMgr::Error(const char* pszExitStr)
 
 void ZkProtoMgr::Run()
 {
-    bool bIsConnect = true;
-    
     while (m_bIsExit)
     {
-        if (bIsConnect)
+        if (m_bIsConnect)
         {
             m_oCli.Close();
             connectZkSvr();
-            bIsConnect = false;
+            m_bIsConnect = false;
         }
 
         {
             std::shared_ptr<char> oMsg;
             int iSumLen = Read(oMsg);
-            if (iSumLen < 0)
+            if (iSumLen < 0 || !m_bIsExit)
             {
-                bIsConnect = true;
+                m_bIsConnect = true;
                 continue;
             }
 
             if (dispatchMsg(oMsg, iSumLen) < 0)
-                bIsConnect = true;
+                m_bIsConnect = true;
         }
     }
 }
@@ -146,7 +169,7 @@ int ZkProtoMgr::Read(std::shared_ptr<char>& oMsg)
 {
     int iLen = 0;
     int iRet;
-    while (1)
+    while (m_bIsExit)
     {
         iRet = m_oCli.Read(reinterpret_cast<char*>(&iLen), sizeof(iLen), m_iTimeout);
         if (iRet < 0)
@@ -154,7 +177,7 @@ int ZkProtoMgr::Read(std::shared_ptr<char>& oMsg)
             if (iRet == -1)
                 return -1;
 
-            // ·¢ËÍping
+            // ping
             if (ping() < 0)
                 return -1;
             continue;
@@ -165,7 +188,7 @@ int ZkProtoMgr::Read(std::shared_ptr<char>& oMsg)
     }
 
     iLen = ntohl(iLen);
-    if (iLen < 0)
+    if (iLen < 0 || !m_bIsExit)
         return -1;
 
     int iSumLen = iLen;
@@ -179,15 +202,55 @@ int ZkProtoMgr::Read(std::shared_ptr<char>& oMsg)
 
         iLen -= iRet;
         p += iRet;
-    }while (iLen > 0);
+    }while (iLen > 0 && m_bIsExit);
 
-    if (iRet < 0)
+    if (iRet < 0 || !m_bIsExit)
         return -1;
 
     return iSumLen;
 }
 
 int ZkProtoMgr::connectZkSvr()
+{
+    while (m_bIsExit)
+    {
+        if (m_iCurrHostIndex >= static_cast<int>(m_vAddr.size()))
+            m_iCurrHostIndex = 0;
+
+        const address_info &addr = m_vAddr[m_iCurrHostIndex];
+        ++ m_iCurrHostIndex;
+        uint16_t wVer = 4; 
+        if (strchr(addr.ip.c_str(), ':'))
+            wVer = 6;
+
+        int iRet = m_oCli.Connect(addr.ip.c_str(), addr.port, ITaskBase::PROTOCOL_TCP, wVer);
+        if (iRet < 0)
+            continue;
+
+        if (connectResp() < 0)
+        {
+            m_oCli.Close();
+            continue;
+        }
+
+        if (sendSetWatcher() < 0)
+        {
+            m_oCli.Close();
+            continue;
+        }
+
+        if (sendAuthInfo() < 0)
+        {
+            m_oCli.Close();
+            continue;
+        }
+        break;
+    }
+
+    return 0;
+}
+
+int ZkProtoMgr::connectResp()
 {
     auto conn = [&]() -> int 
     {
@@ -199,52 +262,31 @@ int ZkProtoMgr::connectZkSvr()
         pReq->passwd_len = sizeof(pReq->passwd);
         memcpy(pReq->passwd, this->m_oClientId.password, sizeof(pReq->passwd));
         pReq->Hton();
+
         int iRet = m_oCli.Write(reinterpret_cast<char*>(pReq), sizeof(zk_connect_request), 3000);
         delete pReq;
         return iRet;
     };
-    while (1)
-    {
-        if (m_iCurrHostIndex >= static_cast<int>(m_vAddr.size()))
-            m_iCurrHostIndex = 0;
 
-        const address_info &addr = m_vAddr[m_iCurrHostIndex];
-        ++ m_iCurrHostIndex;
-        int iRet = m_oCli.Connect(addr.ip.c_str(), addr.port);
-        if (iRet < 0)
-            continue;
+    if (conn() < 0)
+        return -1;
 
-        if (conn() < 0)
-        {
-            m_oCli.Close();
-            continue;
-        }
+    std::shared_ptr<char> oMsg;
+    if (Read(oMsg) < 0)
+        return -1;
 
-        {
-            std::shared_ptr<char> oMsg;
-            iRet = Read(oMsg);
-            if (iRet < 0)
-            {
-                m_oCli.Close();
-                continue;
-            }
+    zk_connect_response* co = reinterpret_cast<zk_connect_response*>(oMsg.get());
+    co->Ntoh();
 
-            zk_connect_response* co = reinterpret_cast<zk_connect_response*>(oMsg.get());
-            co->Ntoh();
+    // if (m_oClientId.client_id != 0 && m_oClientId.client_id != co->session_id)
+    // {
+    //     m_oCli.Close();
+    //     continue;
+    // }
 
-            // if (m_oClientId.client_id != 0 && m_oClientId.client_id != co->session_id)
-            // {
-            //     m_oCli.Close();
-            //     continue;
-            // }
-
-            m_oClientId.client_id = co->session_id;
-            memcpy(m_oClientId.password, co->passwd, sizeof(m_oClientId.client_id));
-            m_iTimeout = co->timeout;
-        }
-        break;
-    }
-
+    m_oClientId.client_id = co->session_id;
+    memcpy(m_oClientId.password, co->passwd, sizeof(m_oClientId.client_id));
+    m_iTimeout = co->timeout;
     return 0;
 }
 
@@ -255,7 +297,75 @@ int ZkProtoMgr::ping()
     return m_oCli.Write(reinterpret_cast<char*>(&hdr), sizeof(hdr));
 }
 
-int ZkProtoMgr::dispatchMsg(std::shared_ptr<char>& oMsg, int iSumLen)
+int ZkProtoMgr::sendSetWatcher()
+{
+    zk_set_watches* wa = new zk_set_watches;
+    ZkHashTable::collect_keys(active_node_watchers, wa->data_watches);
+    ZkHashTable::collect_keys(active_exist_watchers, wa->exist_watches);
+    ZkHashTable::collect_keys(active_child_watchers, wa->child_watches);
+    if (wa->data_watches.empty() && wa->exist_watches.empty() && wa->child_watches.empty())
+    {
+        delete wa;
+        return 0;
+    }
+
+    wa->relative_zxid = m_iLastZxid;
+
+    std::string data = getData();
+    wa->Hton(data);
+    delete wa;
+
+    return sendData(data, SET_WATCHES_XID, ZOO_SETWATCHES_OP);
+}
+
+int ZkProtoMgr::sendAuthInfo()
+{
+    if (m_vAuth.empty())
+        return 0;
+
+    for (auto it = m_vAuth.begin(); it != m_vAuth.end(); ++ it)
+    {
+        if (sendAuthPackage(*it) < 0)
+            return -1;
+    }
+    return 0;
+}
+
+std::string&& ZkProtoMgr::getData()
+{
+    std::string data;
+    data.resize(sizeof(zk_request_header));
+    return std::move(data);
+}
+
+int ZkProtoMgr::sendData(std::string& data, int32_t xid, int type, uint32_t dwTimeout)
+{
+    zk_request_header hdr(xid, type);
+    hdr.len = data.size() - sizeof(hdr.len);
+    hdr.Hton();
+    data.insert(0, reinterpret_cast<char *>(&hdr), sizeof(hdr));
+    return m_oCli.Write(data.c_str(), data.size(), dwTimeout);
+}
+
+int ZkProtoMgr::getXid()
+{
+    return m_iXid++;
+}
+
+template <class T>
+int ZkProtoMgr::sendAuthPackage(const T &it)
+{
+    zk_auth_packet *au = new zk_auth_packet;
+    au->type = 0;
+    au->scheme = it.scheme;
+    au->auth = it.auth;
+    std::string data = getData();
+    au->Hton(data);
+    delete au;
+    return sendData(data, AUTH_XID, ZOO_SETAUTH_OP);
+}
+
+int ZkProtoMgr::dispatchMsg(std::shared_ptr<char> &oMsg, int iSumLen)
 {
     zk_reply_header* hdr = reinterpret_cast<zk_reply_header*>(oMsg.get());
     hdr->Ntoh();
@@ -270,18 +380,394 @@ int ZkProtoMgr::dispatchMsg(std::shared_ptr<char>& oMsg, int iSumLen)
         std::shared_ptr<char> o(new char[iSumLen + 1]);
         memcpy(o.get(), evt->path, iSumLen);
         ZkEvent oEv(o, evt->type);
-        m_oEvent.Push(oEv);
+        m_pEvent->Push(oEv);
     }
     else if (hdr->xid == SET_WATCHES_XID)
     {}
     else if (hdr->xid == AUTH_XID)
     {
-        if (hdr->err != 0)
-            return -1;
+        if (m_vAuth.empty())
+        {
+            std::shared_ptr<return_result> oRes(new return_result);
+            oRes->err = hdr->err;
+            oRes->type = AUTH_XID;
+            oRes->xid = hdr->xid;
+            m_oChan << oRes;
+        }
+        else
+        {
+            if (hdr->err != 0)
+                return -1;
+        }
     }
     else
     {
-        
+        if (hdr->xid == PING_XID)
+        {
+            
+        }
     }
     return 0;
+}
+
+int ZkProtoMgr::AddAuth(const char *pszScheme, const std::string sCert)
+{
+    auth_info oAu;
+    oAu.scheme = pszScheme;
+    oAu.auth.append(sCert);
+
+    if (sendAuthPackage(oAu) < 0)
+    {
+        m_sErr = "send auth failed";
+        return -1;
+    }
+
+    std::shared_ptr<return_result> oRes;
+    m_oChan.SetOutputTimeout(3000);
+    m_oChan >> oRes;
+    if (!oRes)
+    {
+        m_sErr = "auth failed, timeout";
+        return -1;
+    }
+
+    if (oRes->err == -1)
+    {
+        m_sErr = "auth failed";
+        return -1;
+    }
+
+    m_vAuth.push_back(oAu);
+    return 0;
+}
+
+std::string &&ZkProtoMgr::prependString(const char *path, int flags)
+{
+    if (m_sChroot.empty())
+        return std::move(std::string(path));
+
+    if (strlen(path) == 1)
+        return std::move(std::string(m_sChroot));
+
+    std::string sStr = m_sChroot;
+    sStr.append(path);
+    if (!isValidPath(sStr.c_str(), sStr.length(), flags))
+    {
+        m_sErr = "check path failed -> ";
+        m_sErr.append(path);
+        return std::move(std::string());
+    }
+    return std::move(sStr);
+}
+
+int ZkProtoMgr::Create(const char *pszPath, const std::string &sValue,
+                       const std::vector<zkproto::zk_acl>* acl, int flags, std::string &sPathBuffer)
+{
+    zk_create_request *cr = new zk_create_request;
+    cr->path = prependString(pszPath, flags);
+    if (cr->path.empty())
+    {
+        delete cr;
+        return -1;
+    }
+    cr->flags = flags;
+    cr->data = sValue;
+
+    if (acl)
+        cr->acl = *acl;
+
+    std::string data = getData();
+    cr->Hton(data);
+    delete cr;
+    int xid = getXid();
+    return sendData(data, xid, ZOO_CREATE_OP);
+}
+
+int ZkProtoMgr::Delete(const char *pszPath, int version)
+{
+    zk_delete_request *de = new zk_delete_request;
+    de->path = prependString(pszPath, 0);
+    if (de->path.empty())
+    {
+        delete de;
+        return -1;
+    }
+    de->version = version;
+    std::string data = getData();
+    de->Hton(data);
+    delete de;
+    int xid = getXid();
+    return sendData(data, xid, ZOO_DELETE_OP);
+}
+
+int ZkProtoMgr::Exists(const char *pszPath, int watch, zkproto::zk_stat *stat)
+{
+    zk_exists_request* ex = new zk_exists_request;
+    ex->path = prependString(pszPath, 0);
+    if (ex->path.empty())
+    {
+        delete ex;
+        return -1;
+    }
+    ex->watch = watch;
+    std::string data = getData();
+    ex->Hton(data);
+    delete ex;
+    int xid = getXid();
+    return sendData(data, xid, ZOO_DELETE_OP);
+}
+
+int ZkProtoMgr::GetData(const char *pszPath, int watch, std::string &sBuff, zkproto::zk_stat *stat)
+{
+    zk_get_data_request *gd = new zk_get_data_request;
+    gd->path = prependString(pszPath, 0);
+    if (gd->path.empty())
+    {
+        delete gd;
+        return -1;
+    }
+    gd->watch = watch!=0;
+    std::string data = getData();
+    gd->Hton(data);
+    delete gd;
+    int xid = getXid();
+    return sendData(data, xid, ZOO_GETDATA_OP);
+}
+
+int ZkProtoMgr::SetData(const char *pszPath, const std::string &sBuffer, int version)
+{
+    zk_set_data_request *sd = new zk_set_data_request;
+    sd->path = prependString(pszPath, 0);
+    if (sd->path.empty())
+    {
+        delete sd;
+        return -1;
+    }
+    sd->data = sBuffer;
+    sd->version = version;
+    std::string data = getData();
+    sd->Hton(data);
+    delete sd;
+    int xid = getXid();
+    return sendData(data, xid, ZOO_SETDATA_OP);
+}
+
+int ZkProtoMgr::GetChildern(const char *pszPath, int watch, std::vector<std::string> &str)
+{
+    zk_get_children_request* gc = new zk_get_children_request;
+    gc->path = prependString(pszPath, 0);
+    if (gc->path.empty())
+    {
+        delete gc;
+        return -1;
+    }
+    gc->watch = watch;
+    std::string data = getData();
+    gc->Hton(data);
+    delete gc;
+    int xid = getXid();
+    return sendData(data, xid, ZOO_GETCHILDREN_OP);
+}
+
+int ZkProtoMgr::GetChildern(const char *pszPath, int watch, std::vector<std::string> &str, zkproto::zk_stat *stat)
+{
+    zk_get_children_request* gc = new zk_get_children_request;
+    gc->path = prependString(pszPath, 0);
+    if (gc->path.empty())
+    {
+        delete gc;
+        return -1;
+    }
+    gc->watch = watch;
+    std::string data = getData();
+    gc->Hton(data);
+    delete gc;
+    int xid = getXid();
+    return sendData(data, xid, ZOO_GETCHILDREN2_OP);
+}
+
+int ZkProtoMgr::GetAcl(const char *pszPath, std::vector<zkproto::zk_acl> &acl, zkproto::zk_stat *stat)
+{
+    zk_get_acl_request *ga = new zk_get_acl_request;
+    ga->path = prependString(pszPath, 0);
+    if (ga->path.empty())
+    {
+        delete ga;
+        return -1;
+    }
+    std::string data = getData();
+    ga->Hton(data);
+    delete ga;
+    int xid = getXid();
+    return sendData(data, xid, ZOO_GETACL_OP);
+}
+
+int ZkProtoMgr::SetAcl(const char *pszPath, int version, const std::vector<zkproto::zk_acl> &acl)
+{
+    zk_set_acl_request* sa = new zk_set_acl_request;
+    sa->path = prependString(pszPath, 0);
+    if (sa->path.empty())
+    {
+        delete sa;
+        return -1;
+    }
+    sa->acl = acl;
+    sa->version = version;
+
+    std::string data = getData();
+    sa->Hton(data);
+    delete sa;
+    int xid = getXid();
+    return sendData(data, xid, ZOO_SETACL_OP);
+}
+
+int ZkProtoMgr::Multi(int count, const std::vector<zoo_op_t> &ops, std::vector<zoo_op_result_t> *result)
+{
+    std::string data = getData();
+    zk_multi_header* mh = new zk_multi_header;
+    int xid = getXid();
+    for (auto it = ops.begin(); it != ops.end(); ++ it)
+    {
+        mh->type = it->type;
+        mh->done = 0;
+        mh->err = -1;
+        data.append(reinterpret_cast<char*>(&mh), sizeof(zk_multi_header));
+        switch(it->type)
+        {
+        case ZOO_CREATE_OP:
+        {
+            zk_create_request* cr = new zk_create_request;
+            cr->path = prependString(it->create_op.path.c_str(), it->create_op.flags);
+            if (cr->path.empty())
+            {
+                delete cr;
+                goto Exit0;
+            }
+            cr->flags = it->create_op.flags;
+            cr->data = it->create_op.data;
+            if (!it->create_op.acl.empty())
+                cr->acl = it->create_op.acl;
+            cr->Hton(data);
+            delete cr;
+        }
+        break;
+
+        case ZOO_DELETE_OP:
+        {
+            zk_delete_request* de = new zk_delete_request;
+            de->path = prependString(it->delete_op.path.c_str(), 0);
+            if (de->path.empty())
+            {
+                delete de;
+                goto Exit0;
+            }
+            de->version = it->delete_op.version;
+            de->Hton(data);
+            delete de;
+        }
+        break;
+
+        case ZOO_SETDATA_OP:
+        {
+            zk_set_data_request *sd = new zk_set_data_request;
+            sd->path = prependString(it->set_op.path.c_str(), 0);
+            if (sd->path.empty())
+            {
+                delete sd;
+                goto Exit0;
+            }
+            sd->data = it->set_op.data;
+            sd->version = it->set_op.version;
+            sd->Hton(data);
+            delete sd;
+        }
+        break;
+
+        case ZOO_CHECK_OP:
+        {
+            zk_check_version_request* cv = new zk_check_version_request;
+            cv->path = prependString(it->check_op.path.c_str(), 0);
+            if (cv->path.empty())
+            {
+                delete cv;
+                goto Exit0;
+            }
+            cv->version = it->check_op.version;
+            cv->Hton(data);
+            delete cv;
+        }
+        break;
+
+        default:
+            m_sErr = "error type : ";
+            m_sErr.append(std::to_string(it->type));
+            goto Exit0;
+        break;
+        }
+    }
+    mh->type = -1;
+    mh->done = 1;
+    mh->err = -1;
+    data.append(reinterpret_cast<char*>(&mh), sizeof(zk_multi_header));
+    delete mh;
+    return sendData(data, xid, ZOO_MULTI_OP);
+Exit0:
+    delete mh;
+    return -1;
+}
+
+int ZkProtoMgr::Sync(const char* pszPath)
+{
+    zk_sync_request sy;
+    sy.path = prependString(pszPath, 0);
+    if (sy.path.empty())
+        return -1;
+
+    std::string data = getData();
+    sy.Hton(data);
+    int xid = getXid();
+    return sendData(data, xid, ZOO_SYNC_OP);
+}
+
+int ZkProtoMgr::isValidPath(const char* path, int len, const int flags)
+{
+    char lastc = '/';
+    char c;
+    int i = 0;
+
+  if (path == 0)
+    return 0;
+  if (len == 0)
+    return 0;
+  if (path[0] != '/')
+    return 0;
+  if (len == 1) // done checking - it's the root
+    return 1;
+  if (path[len - 1] == '/' && !(flags & 2))
+    return 0;
+
+  i = 1;
+  for (; i < len; lastc = path[i], i++) {
+    c = path[i];
+
+    if (c == 0) {
+      return 0;
+    } else if (c == '/' && lastc == '/') {
+      return 0;
+    } else if (c == '.' && lastc == '.') {
+      if (path[i-2] == '/' && (((i + 1 == len) && !(flags & 2))
+                               || path[i+1] == '/')) {
+        return 0;
+      }
+    } else if (c == '.') {
+      if ((path[i-1] == '/') && (((i + 1 == len) && !(flags & 2))
+                                 || path[i+1] == '/')) {
+        return 0;
+      }
+    } else if (c > 0x00 && c < 0x1f) {
+      return 0;
+    }
+  }
+
+  return 1;
 }

@@ -63,11 +63,8 @@ void CNetClient::Close()
 
 int CNetClient::Read(char *pszBuf, int iLen, uint32_t dwTimeoutMs)
 {
-    if (m_pFd->GetFd() < 0)
-    {
-        m_pFd->SetErr("not connect");
+    if (!m_pFd || m_pFd->GetFd() < 0)
         return -1;
-    }
 
     int iRet = -1;
     if (m_wProtocol <= ITaskBase::PROTOCOL_UNIX)
@@ -81,11 +78,8 @@ int CNetClient::Read(char *pszBuf, int iLen, uint32_t dwTimeoutMs)
 
 int CNetClient::Write(const char *pszBuf, int iLen, uint32_t dwTimeoutMs)
 {
-    if (m_pFd->GetFd() < 0)
-    {
-        m_pFd->SetErr("not connect");
+    if (!m_pFd || m_pFd->GetFd() < 0)
         return -1;
-    }
 
     int iRet = -1;
     if (m_wProtocol <= ITaskBase::PROTOCOL_UNIX)
@@ -218,10 +212,7 @@ int CNetClient::Wait(int iEvent, uint32_t dwTimeoutMs)
     int iRet = pNetTask->YieldEventDel(dwTimeoutMs, m_pFd->GetFd(), iEvent, 0);
 
     if (iRet < 0)
-    {
-        m_pFd->SetErr("connect or read timeout");
         return -2;
-    }
 
     return 0;
 }

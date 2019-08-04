@@ -39,9 +39,17 @@ void WatcherEvent::Push(ZkEvent& oEv)
     m_oChan << oEv;
 }
 
+void WatcherEvent::Exit()
+{
+    m_bIsExit = false;
+    ZkEvent oEv;
+    oEv.type = -1;
+    Push(oEv);
+}
+
 void WatcherEvent::Run()
 {
-    while (1)
+    while (m_bIsExit)
     {
         ZkEvent oEv;
         m_oChan >> oEv;

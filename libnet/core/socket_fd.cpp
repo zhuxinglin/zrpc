@@ -194,12 +194,9 @@ int CSockFd::GetConnectErr()
     int iError = 0;
     uint32_t dwLen = sizeof(iError);
     if (GetFdOpt(SOL_SOCKET, SO_ERROR, &iError, &dwLen) < 0)
-        iError = -1;
+        return -1;
 
-    if (iError == 0)
-        return 0;
-
-    return -1;
+    return iError;
 }
 
 int CSockFd::Wait(int iEvent, uint32_t dwTimeoutMs, ITaskBase *pTask)
@@ -476,7 +473,6 @@ int CTcpCli::Create(const char *pszAddr, uint16_t wPort, uint32_t dwTimeout, ITa
             break;
         }
 
-        tv.tv_sec = 3;
         if (SetFdOpt(SOL_SOCKET, SO_RCVTIMEO, &tv, sizeof(tv)) < 0)
         {
             break;
@@ -521,7 +517,7 @@ int CTcpCli::Create(const char *pszAddr, uint16_t wPort, uint32_t dwTimeout, ITa
         }
 */
 
-        if (!m_bAsync && WaitConnect(dwTimeout, pTask) < 0)
+        if (m_bAsync && WaitConnect(dwTimeout, pTask) < 0)
         {
             SetFdErr("connect server timeout!", &addr4, &addr6, pszAddr, wPort, dwTimeout);
             break;

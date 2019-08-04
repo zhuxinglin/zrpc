@@ -19,19 +19,23 @@
 #include <arpa/inet.h>
 #include <string>
 #include <list>
+#include <vector>
 
 #define WATCHER_EVENT_XID -1 
 #define PING_XID -2
 #define AUTH_XID -4
 #define SET_WATCHES_XID -8
 
+namespace zkproto
+{
+
 static inline int64_t htonll(int64_t v)
 {
     if (htonl(1) == 1)
         return v;
 
-    char* s = reinterpret_cast<char*>(&v);
-    for (int i = 0; i < 4; ++ i)
+    char *s = reinterpret_cast<char *>(&v);
+    for (int i = 0; i < 4; ++i)
     {
         int tmp = s[i];
         s[i] = s[8 - i - 1];
@@ -45,8 +49,8 @@ static inline int64_t ntohll(int64_t v)
     if (ntohl(1) == 1)
         return v;
 
-    char* s = reinterpret_cast<char*>(&v);
-    for (int i = 0; i < 4; ++ i)
+    char *s = reinterpret_cast<char *>(&v);
+    for (int i = 0; i < 4; ++i)
     {
         int tmp = s[8 - i - 1];
         s[8 - i - 1] = s[i];
@@ -55,28 +59,58 @@ static inline int64_t ntohll(int64_t v)
     return v;
 }
 
+static inline void set_string(std::string &d, const std::string &s)
+{
+    int len = -1;
+    if (s.empty())
+    {
+        len = htonl(len);
+        d.append(reinterpret_cast<char *>(&len), sizeof(len));
+    }
+    else
+    {
+        len = htonl(s.length());
+        d.append(reinterpret_cast<char *>(&len), sizeof(len));
+        d.append(s);
+    }
+}
+
+static inline void set_bytes(std::string &d, const std::string &s)
+{
+    set_string(d, s);
+}
+
 struct zk_len
 {
     uint32_t len;
 };
 
-struct zk_auth_packet : public zk_len
+struct zk_auth_packet
 {
     int type;
     std::string scheme;
     std::string auth;
 
-    void Hton()
+    void Hton(std::string &s)
     {
-        len = htonl(len);
         type = htonl(type);
+        s.append(reinterpret_cast<char *>(&type), sizeof(type));
+        set_string(s, scheme);
+        set_bytes(s, auth);
     }
 };
 
-struct zk_check_version_request : public zk_len
+struct zk_check_version_request
 {
     std::string path;
     int version;
+
+    void Hton(std::string& d)
+    {
+        set_string(d, path);
+        version = htonl(version);
+        d.append(reinterpret_cast<char *>(&version), sizeof(version));
+    }
 };
 
 ///********************************************************
@@ -124,20 +158,44 @@ struct zk_id
 {
     std::string scheme;
     std::string id;
+
+    void Hton(std::string& s)
+    {
+        set_string(s, scheme);
+        set_string(s, id);
+    }
 };
 
 struct zk_acl
 {
     int perms;
     zk_id id;
+
+    void Hton(std::string& s)
+    {
+        perms = htonl(perms);
+        s.append(reinterpret_cast<char*>(&perms), sizeof(perms));
+        id.Hton(s);
+    }
 };
 
-struct zk_create_request : public zk_len
+struct zk_create_request
 {
     std::string path;
     std::string data;
-    zk_acl acl;
+    std::vector<zk_acl> acl;
     int flags;
+
+    void Hton(std::string& d)
+    {
+        set_string(d, path);
+        set_bytes(d, data);
+        for (auto it = acl.begin(); it != acl.end(); ++ it)
+            it->Hton(d);
+
+        flags = htonl(flags);
+        d.append(reinterpret_cast<char*>(&flags), sizeof(flags));
+    }
 };
 
 struct zk_create_response : public zk_len
@@ -146,10 +204,17 @@ struct zk_create_response : public zk_len
 };
 
 ///********************************************************
-struct zk_delete_request : public zk_len
+struct zk_delete_request
 {
     std::string path;
     int version;
+
+    void Hton(std::string d)
+    {
+        set_string(d, path);
+        version = htonl(version);
+        d.append(reinterpret_cast<char*>(&version), sizeof(version));
+    }
 };
 
 ///********************************************************
@@ -159,6 +224,19 @@ struct zk_error_response : public zk_len
 };
 
 ///********************************************************
+struct zk_exists_request
+{
+    std::string path;
+    int32_t watch;
+
+    void Hton(std::string d)
+    {
+        set_string(d, path);
+        watch = htonl(watch);
+        d.append(reinterpret_cast<char*>(&watch), sizeof(watch));
+    }
+};
+
 struct zk_stat
 {
     int64_t czxid;
@@ -174,20 +252,20 @@ struct zk_stat
     int64_t pzxid;
 };
 
-struct zk_exists_request : public zk_len
-{
-    std::string path;
-    bool watch;
-};
-
+#pragma pack(4)
 struct zk_exists_response : public zk_len
 {
     zk_stat stat;
 };
+#pragma pack()
 ///********************************************************
-struct zk_get_acl_request : public zk_len
+struct zk_get_acl_request
 {
     std::string path;
+    void Hton(std::string& d)
+    {
+        set_string(d, path);
+    }
 };
 
 struct zk_get_acl_response : public zk_len
@@ -197,10 +275,22 @@ struct zk_get_acl_response : public zk_len
 };
 
 ///********************************************************
-struct zk_get_children2_request : public zk_len
+struct zk_get_children_request
 {
     std::string path;
-    bool watch;
+    int32_t watch;
+
+    void Hton(std::string& d)
+    {
+        set_string(d, path);
+        watch = htonl(watch);
+        d.append(reinterpret_cast<char*>(&watch), sizeof(watch));
+    }
+};
+
+struct zk_get_children_response : public zk_len
+{
+    std::list<std::string> children;
 };
 
 struct zk_get_children2_response : public zk_len
@@ -210,22 +300,17 @@ struct zk_get_children2_response : public zk_len
 };
 
 ///********************************************************
-struct zk_get_children_request : public zk_len
+struct zk_get_data_request
 {
     std::string path;
-    bool watch;
-};
+    int32_t watch;
 
-struct zk_get_children_response : public zk_len
-{
-    std::list<std::string> children;
-};
-
-///********************************************************
-struct zk_get_data_request : public zk_len
-{
-    std::string path;
-    bool watch;
+    void Hton(std::string& d)
+    {
+        set_string(d, path);
+        watch = htonl(watch);
+        d.append(reinterpret_cast<char*>(&watch), sizeof(watch));
+    }
 };
 
 struct zk_get_data_response : public zk_len
@@ -251,19 +336,26 @@ struct zk_get_sasl_request : public zk_len
 };
 
 ///********************************************************
-struct zk_multi_header : public zk_len
+struct zk_multi_header
 {
-    int type;
-    bool done;
-    int err;
+    int32_t type;
+    int32_t done;
+    int32_t err;
+
+    void Hton()
+    {
+        type = htonl(type);
+        done = htonl(done);
+        err = htonl(err);
+    }
 };
 
 ///********************************************************
 struct zk_reply_header
 {
-    int xid;
+    int32_t xid;
     int64_t zxid;
-    int err;
+    int32_t err;
     char data[0];
 
     void Ntoh()
@@ -292,11 +384,20 @@ struct zk_request_header : public zk_len
     }
 };
 ///********************************************************
-struct zk_set_acl_request : public zk_len
+struct zk_set_acl_request
 {
     std::string path;
-    zk_acl acl;
+    std::vector<zk_acl> acl;
     int version;
+
+    void Hton(std::string& d)
+    {
+        set_string(d, path);
+        for (auto it = acl.begin(); it != acl.end(); ++ it)
+            it->Hton(d);
+        version = htonl(version);
+        d.append(reinterpret_cast<char*>(&version), sizeof(version));
+    }
 };
 
 struct zk_set_acl_response : public zk_len
@@ -305,11 +406,19 @@ struct zk_set_acl_response : public zk_len
 };
 
 ///********************************************************
-struct zk_set_data_request : public zk_len
+struct zk_set_data_request
 {
     std::string path;
     std::string data;
     int version;
+
+    void Hton(std::string& d)
+    {
+        set_string(d, path);
+        set_bytes(d, data);
+        version = htonl(version);
+        d.append(reinterpret_cast<char*>(&version), sizeof(version));
+    }
 };
 
 struct zk_set_data_response : public zk_len
@@ -334,17 +443,64 @@ struct zk_set_sasl_response : public zk_len
     std::string token;
 };
 ///********************************************************
-struct zk_set_watches : public zk_len
+struct zk_set_watches
 {
     int64_t relative_zxid;
     std::list<std::string> data_watches;
     std::list<std::string> exist_watches;
     std::list<std::string> child_watches;
+
+    void Hton(std::string &s)
+    {
+        int i = htonl(-1);
+        relative_zxid = htonll(relative_zxid);
+        s.append(reinterpret_cast<char *>(&relative_zxid), sizeof(relative_zxid));
+        if (data_watches.empty())
+            s.append(reinterpret_cast<char *>(i), sizeof(i));
+        else
+        {
+            for (auto it = data_watches.begin(); it != data_watches.end(); ++it)
+            {
+                size_t k = htonl((*it).length());
+                s.append(reinterpret_cast<char *>(k), sizeof(k));
+                s.append(*it);
+            }
+        }
+
+        if (exist_watches.empty())
+            s.append(reinterpret_cast<char *>(i), sizeof(i));
+        else
+        {
+            for (auto it = exist_watches.begin(); it != exist_watches.end(); ++it)
+            {
+                size_t k = htonl((*it).length());
+                s.append(reinterpret_cast<char *>(k), sizeof(k));
+                s.append(*it);
+            }
+        }
+
+        if (child_watches.empty())
+            s.append(reinterpret_cast<char *>(i), sizeof(i));
+        else
+        {
+            for (auto it = child_watches.begin(); it != child_watches.end(); ++it)
+            {
+                size_t k = htonl((*it).length());
+                s.append(reinterpret_cast<char *>(k), sizeof(k));
+                s.append(*it);
+            }
+        }
+    }
 };
 ///********************************************************
-struct zk_sync_request : public zk_len
+struct zk_sync_request
 {
     std::string path;
+
+    void Hton(std::string& d)
+    {
+        set_string(d, path);
+    }
 };
 
 struct zk_sync_response : public zk_len
@@ -365,4 +521,8 @@ struct zk_watcher_event
         state = ntohl(state);
     }
 };
+
+}
+
+
 #endif /* __ZK_PROTOCOL__H__ */

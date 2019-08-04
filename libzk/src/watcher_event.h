@@ -45,11 +45,13 @@ public:
 public:
     int Init(IWatcher* pWatcher);
     void Push(ZkEvent& oEv);
+    void Exit();
 
 private:
     virtual void Run();
 
 private:
+    bool m_bIsExit = true;
     IWatcher* m_pWatcher;
     znet::CCoChan<ZkEvent> m_oChan;
 };

@@ -4,6 +4,7 @@ CXX := g++
 AR := ar
 SRC = src
 CORE = core
+BUILD_DIR=build
 INCLUDES=-I./include -I./core -I./src -I/usr/local/include
 
 LIBS=
@@ -16,11 +17,13 @@ OBJS +=
 
 LIB=libnet.a
 
-$(SRC)/%.o: $(SRC)/%.cpp
-	$(CXX) -c $(CFLAGS) $(INCLUDES) $(SRC)/$*.cpp -o $(SRC)/$*.o
+$(BUILD_DIR)/%.o: $(SRC)/%.cpp
+	if [ ! -d $(BUILD_DIR) ]; then mkdir -p $(BUILD_DIR); fi;\
+	$(CXX) -c $(CFLAGS) $(INCLUDES) $(SRC)/$*.cpp -o $(BUILD_DIR)/$*.o
 
-$(CORE)/%.o: $(CORE)/%.cpp
-	$(CXX) -c $(CFLAGS) $(INCLUDES) $(CORE)/$*.cpp -o $(CORE)/$*.o
+$(BUILD_DIR)/%.o: $(CORE)/%.cpp
+	if [ ! -d $(BUILD_DIR) ]; then mkdir -p $(BUILD_DIR); fi;\
+	$(CXX) -c $(CFLAGS) $(INCLUDES) $(CORE)/$*.cpp -o $(BUILD_DIR)/$*.o
 
 %.o: %.cpp
 	$(CXX) -c $(INCLUDES) $(CFLAGS) $*.cpp -o $*.o
@@ -31,4 +34,4 @@ $(LIB): $(OBJS)
 	$(AR) -rcs $@ $^
 
 clean:
-	rm -rf $(SRC)/*.o $(LIB) $(CORE)/*.o
+	rm -rf $(BUILD_DIR) $(LIB)

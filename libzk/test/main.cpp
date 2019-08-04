@@ -1,6 +1,7 @@
 
 #include "../include/zk_api.h"
 #include "libnet.h"
+#include <unistd.h>
 
 int main()
 {

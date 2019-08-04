@@ -1,11 +1,10 @@
 
-OBJS+= \
-src/config.o \
-src/http_parser.o \
-src/http_svc.o \
-src/monitor_so.o \
-src/zsvc.o \
-src/so_plugin.o \
-src/so_uninstall.o \
-src/binary_svc.o \
-src/binary_handle.o \
+OBJS+=build/config.o \
+build/http_parser.o \
+build/http_svc.o \
+build/monitor_so.o \
+build/zsvc.o \
+build/so_plugin.o \
+build/so_uninstall.o \
+build/binary_svc.o \
+build/binary_handle.o \
