@@ -112,7 +112,7 @@ public:
     virtual int Delete(const char* pszPath, int version) = 0;
     virtual int Exists(const char *pszPath, int watch, zkproto::zk_stat *stat) = 0;
     virtual int GetData(const char *pszPath, int watch, std::string &sBuff, zkproto::zk_stat *stat) = 0;
-    virtual int SetData(const char* pszPath, const std::string& sBuffer, int version) = 0;
+    virtual int SetData(const char* pszPath, const std::string& sBuffer, int version, zkproto::zk_stat *stat) = 0;
     virtual int GetChildern(const char* pszPath, int watch, std::vector<std::string>& str) = 0;
     virtual int GetChildern(const char *pszPath, int watch, std::vector<std::string> &str, zkproto::zk_stat* stat) = 0;
     virtual int GetAcl(const char *pszPath, std::vector<zkproto::zk_acl> &acl, zkproto::zk_stat *stat) = 0;

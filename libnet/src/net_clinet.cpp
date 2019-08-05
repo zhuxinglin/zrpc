@@ -38,6 +38,11 @@ CNetClient::~CNetClient()
 
 int CNetClient::Connect(const char *pszAddr, uint16_t wPort, uint16_t wProtocol, uint16_t wVer)
 {
+    if (m_pFd)
+        return -1;
+
+    ++ m_dwCloseRef;
+
     m_wProtocol = wProtocol;
     m_wVer = wVer;
     int iRet = -1;
@@ -56,13 +61,12 @@ int CNetClient::Connect(const char *pszAddr, uint16_t wPort, uint16_t wProtocol,
 
 void CNetClient::Close()
 {
-    if (m_pFd)
-        delete m_pFd;
-    m_pFd = 0;
+    IsClose();
 }
 
 int CNetClient::Read(char *pszBuf, int iLen, uint32_t dwTimeoutMs)
 {
+    Reference oRef(this);
     if (!m_pFd || m_pFd->GetFd() < 0)
         return -1;
 
@@ -78,6 +82,7 @@ int CNetClient::Read(char *pszBuf, int iLen, uint32_t dwTimeoutMs)
 
 int CNetClient::Write(const char *pszBuf, int iLen, uint32_t dwTimeoutMs)
 {
+    Reference oRef(this);
     if (!m_pFd || m_pFd->GetFd() < 0)
         return -1;
 
@@ -266,3 +271,24 @@ int CNetClient::TcpsWrite(const char *pszBuf, int iLen, uint32_t dwTimeoutMs)
     return iOffset;
 }
 
+void CNetClient::IsOpen()
+{
+    CSpinLock oLock(m_dwSync);
+    if (m_dwCloseRef == 0)
+        return;
+    ++ m_dwCloseRef;
+}
+
+void CNetClient::IsClose()
+{
+    {
+        CSpinLock oLock(m_dwSync);
+        -- m_dwCloseRef;
+        if (m_dwCloseRef != 0)
+            return;
+    }
+
+    if (m_pFd)
+        delete m_pFd;
+    m_pFd = 0;
+}

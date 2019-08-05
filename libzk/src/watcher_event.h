@@ -27,13 +27,15 @@ namespace zkapi
 struct ZkEvent
 {
     ZkEvent() = default;
-    ZkEvent(std::shared_ptr<char>& o, int t):oMsg(o), type(t)
+    ZkEvent(int t, int s):type(t), state(s)
     {}
     ~ZkEvent() = default;
     ZkEvent(const ZkEvent&) = default;
 
     std::shared_ptr<char> oMsg;
     int type;
+    int state;
+    int msg_len{0};
 };
 
 class WatcherEvent : public znet::ITaskBase

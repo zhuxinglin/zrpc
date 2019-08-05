@@ -80,6 +80,33 @@ static inline void set_bytes(std::string &d, const std::string &s)
     set_string(d, s);
 }
 
+struct zk_response_info
+{
+    int len;
+    char data[0];
+};
+
+static inline char* get_string(std::string& d, char* m, int& lm)
+{
+    zk_response_info* re = reinterpret_cast<zk_response_info*>(m);
+    re->len = ntohl(re->len);
+
+    if (re->len > lm)
+        return nullptr;
+
+    if (re->len < 0)
+        return re->data;
+
+    d.append(re->data, re->len);
+    lm -= (re->len + sizeof(re->len));
+    return (re->data + re->len);
+}
+
+static inline char* get_bytes(std::string& d, char* m, int& lm)
+{
+    return get_string(d, m, lm);
+}
+
 struct zk_len
 {
     uint32_t len;
@@ -164,6 +191,11 @@ struct zk_id
         set_string(s, scheme);
         set_string(s, id);
     }
+
+    void Ntoh(char* m, int& len)
+    {
+        
+    }
 };
 
 struct zk_acl
@@ -176,6 +208,11 @@ struct zk_acl
         perms = htonl(perms);
         s.append(reinterpret_cast<char*>(&perms), sizeof(perms));
         id.Hton(s);
+    }
+
+    void Ntoh(char* m, int& len)
+    {
+        
     }
 };
 
@@ -198,9 +235,16 @@ struct zk_create_request
     }
 };
 
-struct zk_create_response : public zk_len
+struct zk_create_response
 {
     std::string path;
+
+    int Ntoh(char* msg, int len)
+    {
+        if (get_string(path, msg, len) == nullptr)
+            return -1;
+        return 0;
+    }
 };
 
 ///********************************************************
@@ -250,10 +294,54 @@ struct zk_stat
     int data_length;
     int num_children;
     int64_t pzxid;
+
+    void Ntoh(zk_stat* s = nullptr)
+    {
+        if (s)
+        {
+            czxid = ntohll(s->czxid);
+            mzxid = ntohll(s->mzxid);
+            ctime = ntohll(s->ctime);
+            mtime = ntohll(s->mtime);
+            version = ntohl(s->version);
+            cversion = ntohl(s->cversion);
+            aversion = ntohl(s->aversion);
+            ephemeral_owner = ntohll(s->ephemeral_owner);
+            data_length = ntohl(s->data_length);
+            num_children = ntohl(s->num_children);
+            pzxid = ntohll(s->pzxid);
+        }
+        else
+        {
+            czxid = ntohll(czxid);
+            mzxid = ntohll(mzxid);
+            ctime = ntohll(ctime);
+            mtime = ntohll(mtime);
+            version = ntohl(version);
+            cversion = ntohl(cversion);
+            aversion = ntohl(aversion);
+            ephemeral_owner = ntohll(ephemeral_owner);
+            data_length = ntohl(data_length);
+            num_children = ntohl(num_children);
+            pzxid = ntohll(pzxid);
+        }
+        
+        czxid = ntohll(czxid);
+        mzxid = ntohll(mzxid);
+        ctime = ntohll(ctime);
+        mtime = ntohll(mtime);
+        version = ntohl(version);
+        cversion = ntohl(cversion);
+        aversion = ntohl(aversion);
+        ephemeral_owner = ntohll(ephemeral_owner);
+        data_length = ntohl(data_length);
+        num_children = ntohl(num_children);
+        pzxid = ntohll(pzxid);
+    }
 };
 
 #pragma pack(4)
-struct zk_exists_response : public zk_len
+struct zk_exists_response
 {
     zk_stat stat;
 };
@@ -268,10 +356,22 @@ struct zk_get_acl_request
     }
 };
 
-struct zk_get_acl_response : public zk_len
+struct zk_get_acl_response
 {
-    zk_acl acl;
-    zk_stat stat;
+    zk_get_acl_response(std::vector<zk_acl>& a, zk_stat& s) : acl(a), stat(s){}
+    std::vector<zk_acl>& acl;
+    zk_stat& stat;
+
+    void Ntoh(char* msg, int len)
+    {
+        int count = ntohl(*reinterpret_cast<int*>(msg));
+        msg += sizeof(count);
+        len -= sizeof(count);
+
+        for (int i = 0; i < count; ++ i)
+        {
+        }
+    }
 };
 
 ///********************************************************
@@ -288,15 +388,51 @@ struct zk_get_children_request
     }
 };
 
-struct zk_get_children_response : public zk_len
+struct zk_get_children_response
 {
-    std::list<std::string> children;
+    zk_get_children_response(std::vector<std::string>& c):children(c){}
+    std::vector<std::string>& children;
+
+    void Ntoh(char* msg, int len)
+    {
+        int count = ntohl(*reinterpret_cast<int*>(msg));
+        msg += sizeof(count);
+        len -= sizeof(count);
+
+        for (int i = 0; i < count; ++ i)
+        {
+            std::string d;
+            msg = get_string(d, msg, len);
+            if (!msg)
+                break;
+            children.push_back(d);
+        }
+    }
 };
 
-struct zk_get_children2_response : public zk_len
+struct zk_get_children2_response
 {
-    std::list<std::string> children;
-    zk_stat stat;
+    zk_get_children2_response(std::vector<std::string>& c, zk_stat& s):children(c),stat(s){}
+    std::vector<std::string>& children;
+    zk_stat& stat;
+
+    void Ntoh(char* msg, int len)
+    {
+        int count = ntohl(*reinterpret_cast<int*>(msg));
+        msg += sizeof(count);
+        len -= sizeof(count);
+
+        for (int i = 0; i < count; ++ i)
+        {
+            std::string d;
+            msg = get_string(d, msg, len);
+            if (!msg)
+                return ;
+            children.push_back(d);
+        }
+
+        stat.Ntoh(reinterpret_cast<zk_stat*>(msg));
+    }
 };
 
 ///********************************************************
@@ -313,10 +449,50 @@ struct zk_get_data_request
     }
 };
 
-struct zk_get_data_response : public zk_len
+struct zk_get_data_response
 {
+    zk_get_data_response(std::string& d, zk_stat& s):data(d), stat(s){}
+    std::string& data;
+    zk_stat& stat;
+
+    int Ntoh(char* msg, int len)
+    {
+        msg = get_bytes(data, msg, len);
+        if (msg == nullptr)
+            return -1;
+
+        if (len != sizeof(stat))
+            return -1;
+
+        stat.Ntoh(reinterpret_cast<zk_stat*>(msg));
+        return 0;
+    }
+};
+
+///********************************************************
+struct zk_set_data_request
+{
+    std::string path;
     std::string data;
+    int version;
+
+    void Hton(std::string& d)
+    {
+        set_string(d, path);
+        set_bytes(d, data);
+        version = htonl(version);
+        d.append(reinterpret_cast<char*>(&version), sizeof(version));
+    }
+};
+
+struct zk_set_data_response
+{
     zk_stat stat;
+
+    void Ntoh()
+    {
+        stat.Ntoh();
+    }
 };
 
 ///********************************************************
@@ -393,6 +569,8 @@ struct zk_set_acl_request
     void Hton(std::string& d)
     {
         set_string(d, path);
+        int count = htonl(acl.size());
+        d.append(reinterpret_cast<char*>(&count), sizeof(count));
         for (auto it = acl.begin(); it != acl.end(); ++ it)
             it->Hton(d);
         version = htonl(version);
@@ -405,26 +583,6 @@ struct zk_set_acl_response : public zk_len
     zk_stat stat;
 };
 
-///********************************************************
-struct zk_set_data_request
-{
-    std::string path;
-    std::string data;
-    int version;
-
-    void Hton(std::string& d)
-    {
-        set_string(d, path);
-        set_bytes(d, data);
-        version = htonl(version);
-        d.append(reinterpret_cast<char*>(&version), sizeof(version));
-    }
-};
-
-struct zk_set_data_response : public zk_len
-{
-    zk_stat stat;
-};
 ///********************************************************
 struct zk_set_max_children_request : public zk_len
 {
@@ -452,44 +610,23 @@ struct zk_set_watches
 
     void Hton(std::string &s)
     {
-        int i = htonl(-1);
         relative_zxid = htonll(relative_zxid);
         s.append(reinterpret_cast<char *>(&relative_zxid), sizeof(relative_zxid));
-        if (data_watches.empty())
-            s.append(reinterpret_cast<char *>(i), sizeof(i));
-        else
-        {
-            for (auto it = data_watches.begin(); it != data_watches.end(); ++it)
-            {
-                size_t k = htonl((*it).length());
-                s.append(reinterpret_cast<char *>(k), sizeof(k));
-                s.append(*it);
-            }
-        }
 
-        if (exist_watches.empty())
-            s.append(reinterpret_cast<char *>(i), sizeof(i));
-        else
-        {
-            for (auto it = exist_watches.begin(); it != exist_watches.end(); ++it)
-            {
-                size_t k = htonl((*it).length());
-                s.append(reinterpret_cast<char *>(k), sizeof(k));
-                s.append(*it);
-            }
-        }
+        int count = htonl(data_watches.size());
+        s.append(reinterpret_cast<char*>(&count), sizeof(count));
+        for (auto it = data_watches.begin(); it != data_watches.end(); ++it)
+            set_string(s, *it);
 
-        if (child_watches.empty())
-            s.append(reinterpret_cast<char *>(i), sizeof(i));
-        else
-        {
-            for (auto it = child_watches.begin(); it != child_watches.end(); ++it)
-            {
-                size_t k = htonl((*it).length());
-                s.append(reinterpret_cast<char *>(k), sizeof(k));
-                s.append(*it);
-            }
-        }
+        count = htonl(exist_watches.size());
+        s.append(reinterpret_cast<char*>(&count), sizeof(count));
+        for (auto it = exist_watches.begin(); it != exist_watches.end(); ++it)
+            set_string(s, *it);
+
+        count = htonl(child_watches.size());
+        s.append(reinterpret_cast<char*>(&count), sizeof(count));
+        for (auto it = child_watches.begin(); it != child_watches.end(); ++it)
+            set_string(s, *it);
     }
 };
 ///********************************************************

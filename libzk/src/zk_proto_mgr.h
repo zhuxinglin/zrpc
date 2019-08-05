@@ -41,7 +41,7 @@ private:
     virtual int Delete(const char *pszPath, int version);
     virtual int Exists(const char *pszPath, int watch, zkproto::zk_stat *stat);
     virtual int GetData(const char *pszPath, int watch, std::string &sBuff, zkproto::zk_stat *stat);
-    virtual int SetData(const char *pszPath, const std::string &sBuffer, int version);
+    virtual int SetData(const char *pszPath, const std::string &sBuffer, int version, zkproto::zk_stat *stat);
     virtual int GetChildern(const char *pszPath, int watch, std::vector<std::string> &str);
     virtual int GetChildern(const char *pszPath, int watch, std::vector<std::string> &str, zkproto::zk_stat *stat);
     virtual int GetAcl(const char *pszPath, std::vector<zkproto::zk_acl> &acl, zkproto::zk_stat *stat);
@@ -65,11 +65,14 @@ private:
     int sendAuthPackage(const T& it);
     std::string&& prependString(const char* path, int flags);
     int isValidPath(const char* path, int len, const int flags);
+    std::string subString(const std::string& server_path);
 
     std::string&& getData();
     int sendData(std::string& data, int32_t xid, int type, uint32_t dwTimeout = 0xFFFFFFFF);
     int Read(std::shared_ptr<char>& oMsg);
     int getXid();
+    struct return_result;
+    int readResult(std::shared_ptr<return_result>& oRes);
 
 private:
     clientid_t m_oClientId;
@@ -118,10 +121,10 @@ private:
 
     struct return_result
     {
-        std::string msg;
-        int type;
+        std::shared_ptr<char> msg;
         int err;
         int xid;
+        int msg_len{0};
     };
     znet::CCoChan<std::shared_ptr<return_result> > m_oChan;
 };

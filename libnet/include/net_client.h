@@ -20,6 +20,7 @@
 #include "socket_fd.h"
 #include "task_base.h"
 #include "co_lock.h"
+#include <atomic>
 
 namespace znet
 {
@@ -51,6 +52,9 @@ private:
     int TcpsRead(char *pszBuf, int iLen, uint32_t dwTimeoutMs);
     int TcpsWrite(const char *pszBuf, int iLen, uint32_t dwTimeoutMs);
 
+    void IsOpen();
+    void IsClose();
+
 private:
     uint16_t m_wProtocol;
     uint16_t m_wVer;
@@ -59,6 +63,26 @@ private:
     uint16_t m_wAddrLen;
     CFileFd *m_pFd;
     CCoLock m_oLock;
+
+    class Reference
+    {
+    public:
+        Reference(CNetClient* p)
+        {
+            p->IsOpen();
+            m_pNetClient = p;
+        }
+        ~Reference()
+        {
+            m_pNetClient->IsClose();
+        }
+
+    private:
+        friend CNetClient;
+        CNetClient* m_pNetClient;
+    };
+    volatile uint32_t m_dwSync{0};
+    std::atomic_uint m_dwCloseRef{0};
 };
 
 }

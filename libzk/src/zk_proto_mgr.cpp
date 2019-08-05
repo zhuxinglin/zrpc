@@ -54,7 +54,23 @@ int ZkProtoMgr::Init(const char *pszHost, IWatcher *pWatcher, uint32_t dwTimeout
     else
         memset(&m_oClientId, 0, sizeof(m_oClientId));
 
-    if (setConnectAddr(pszHost) < 0)
+    const char* chroot = strchr(pszHost, '/');
+    std::string sHost;
+    if (chroot)
+    {
+        m_sChroot = chroot;
+        sHost.append(pszHost, chroot - pszHost);
+        if (!isValidPath(m_sChroot.c_str(), m_sChroot.length(), 0))
+        {
+            m_sErr = "chech path failed, path ->";
+            m_sErr.append(m_sChroot);
+            return -1;
+        }
+    }
+    else
+        sHost.append(pszHost);
+
+    if (setConnectAddr(sHost.c_str()) < 0)
     {
         m_sErr = "check host error";
         return -1;
@@ -344,7 +360,13 @@ int ZkProtoMgr::sendData(std::string& data, int32_t xid, int type, uint32_t dwTi
     hdr.len = data.size() - sizeof(hdr.len);
     hdr.Hton();
     data.insert(0, reinterpret_cast<char *>(&hdr), sizeof(hdr));
-    return m_oCli.Write(data.c_str(), data.size(), dwTimeout);
+    int iRet = m_oCli.Write(data.c_str(), data.size(), dwTimeout);
+    if (iRet < 0)
+    {
+        m_sErr = "send data failed, ret: ";
+        m_sErr.append(std::to_string(iRet));
+    }
+    return iRet;
 }
 
 int ZkProtoMgr::getXid()
@@ -372,14 +394,21 @@ int ZkProtoMgr::dispatchMsg(std::shared_ptr<char> &oMsg, int iSumLen)
     if (hdr->zxid > 0)
         m_iLastZxid = hdr->zxid;
 
+    iSumLen -= sizeof(zk_reply_header);
     if (hdr->xid == WATCHER_EVENT_XID)
     {
         zk_watcher_event* evt = reinterpret_cast<zk_watcher_event*>(hdr->data);
         evt->Ntoh();
-        iSumLen -= (sizeof(zk_reply_header) - sizeof(zk_watcher_event));
-        std::shared_ptr<char> o(new char[iSumLen + 1]);
-        memcpy(o.get(), evt->path, iSumLen);
-        ZkEvent oEv(o, evt->type);
+        ZkEvent oEv(evt->type, evt->state);
+        iSumLen -= sizeof(zk_watcher_event);
+        if (iSumLen > 0)
+        {
+            std::shared_ptr<char> o(new char[iSumLen + 1]);
+            memcpy(o.get(), evt->path, iSumLen);
+            oEv.oMsg = o;
+            oEv.msg_len = iSumLen;
+        }
+
         m_pEvent->Push(oEv);
     }
     else if (hdr->xid == SET_WATCHES_XID)
@@ -390,7 +419,6 @@ int ZkProtoMgr::dispatchMsg(std::shared_ptr<char> &oMsg, int iSumLen)
         {
             std::shared_ptr<return_result> oRes(new return_result);
             oRes->err = hdr->err;
-            oRes->type = AUTH_XID;
             oRes->xid = hdr->xid;
             m_oChan << oRes;
         }
@@ -403,9 +431,31 @@ int ZkProtoMgr::dispatchMsg(std::shared_ptr<char> &oMsg, int iSumLen)
     else
     {
         if (hdr->xid == PING_XID)
+            return 0;
+
+        std::shared_ptr<return_result> oRes(new return_result);
+        oRes->err = hdr->err;
+        oRes->xid = hdr->xid;
+        if (hdr->err == 0 && iSumLen > 0)
         {
-            
+            std::shared_ptr<char> o(new char[iSumLen + 1]);
+            memcpy(o.get(), hdr->data, iSumLen);
+            oRes->msg = o;
+            oRes->msg_len = iSumLen;
         }
+        m_oChan << oRes;
+    }
+    return 0;
+}
+
+int ZkProtoMgr::readResult(std::shared_ptr<return_result>& oRes)
+{
+    m_oChan.SetOutputTimeout(30000);
+    m_oChan >> oRes;
+    if (!oRes)
+    {
+        m_sErr = "auth failed, timeout";
+        return -1;
     }
     return 0;
 }
@@ -417,19 +467,11 @@ int ZkProtoMgr::AddAuth(const char *pszScheme, const std::string sCert)
     oAu.auth.append(sCert);
 
     if (sendAuthPackage(oAu) < 0)
-    {
-        m_sErr = "send auth failed";
         return -1;
-    }
 
     std::shared_ptr<return_result> oRes;
-    m_oChan.SetOutputTimeout(3000);
-    m_oChan >> oRes;
-    if (!oRes)
-    {
-        m_sErr = "auth failed, timeout";
+    if (readResult(oRes) < 0)
         return -1;
-    }
 
     if (oRes->err == -1)
     {
@@ -460,6 +502,25 @@ std::string &&ZkProtoMgr::prependString(const char *path, int flags)
     return std::move(sStr);
 }
 
+std::string ZkProtoMgr::subString(const std::string& server_path)
+{
+    if (m_sChroot.empty())
+        return server_path;
+
+    if (server_path.find(m_sChroot) == std::string::npos)
+    {
+        m_sErr = "server path ";
+        m_sErr.append(server_path).append(" does not include chroot path ").append(m_sChroot);
+        return server_path;
+    }
+
+    if (server_path.compare(m_sChroot) == 0) {
+        return "/";
+    }
+
+    return std::string(server_path.c_str() + m_sChroot.length());
+}
+
 int ZkProtoMgr::Create(const char *pszPath, const std::string &sValue,
                        const std::vector<zkproto::zk_acl>* acl, int flags, std::string &sPathBuffer)
 {
@@ -480,7 +541,22 @@ int ZkProtoMgr::Create(const char *pszPath, const std::string &sValue,
     cr->Hton(data);
     delete cr;
     int xid = getXid();
-    return sendData(data, xid, ZOO_CREATE_OP);
+    if (sendData(data, xid, ZOO_CREATE_OP) < 0)
+        return -1;
+
+    std::shared_ptr<return_result> oRes;
+    if (readResult(oRes) < 0)
+        return -1;
+
+    if (oRes->err != 0)
+        return -1;
+
+    zk_create_response resp;
+    if (resp.Ntoh(oRes->msg.get(), oRes->msg_len) < 0)
+        return -1;
+
+    sPathBuffer.append(subString(resp.path));
+    return 0;
 }
 
 int ZkProtoMgr::Delete(const char *pszPath, int version)
@@ -497,7 +573,17 @@ int ZkProtoMgr::Delete(const char *pszPath, int version)
     de->Hton(data);
     delete de;
     int xid = getXid();
-    return sendData(data, xid, ZOO_DELETE_OP);
+    if (sendData(data, xid, ZOO_DELETE_OP) < 0)
+        return 0;
+
+    std::shared_ptr<return_result> oRes;
+    if (readResult(oRes) < 0)
+        return -1;
+
+    if (oRes->err != 0)
+        return -1;
+
+    return 0;
 }
 
 int ZkProtoMgr::Exists(const char *pszPath, int watch, zkproto::zk_stat *stat)
@@ -509,12 +595,22 @@ int ZkProtoMgr::Exists(const char *pszPath, int watch, zkproto::zk_stat *stat)
         delete ex;
         return -1;
     }
-    ex->watch = watch;
+    ex->watch = watch != 0;
     std::string data = getData();
     ex->Hton(data);
     delete ex;
     int xid = getXid();
-    return sendData(data, xid, ZOO_DELETE_OP);
+    if (sendData(data, xid, ZOO_DELETE_OP) < 0)
+        return -1;
+
+    std::shared_ptr<return_result> oRes;
+    if (readResult(oRes) < 0)
+        return -1;
+
+    if (oRes->err != 0)
+        return -1;
+
+    return 0;
 }
 
 int ZkProtoMgr::GetData(const char *pszPath, int watch, std::string &sBuff, zkproto::zk_stat *stat)
@@ -526,15 +622,28 @@ int ZkProtoMgr::GetData(const char *pszPath, int watch, std::string &sBuff, zkpr
         delete gd;
         return -1;
     }
-    gd->watch = watch!=0;
+    gd->watch = watch != 0;
     std::string data = getData();
     gd->Hton(data);
     delete gd;
     int xid = getXid();
-    return sendData(data, xid, ZOO_GETDATA_OP);
+    if (sendData(data, xid, ZOO_GETDATA_OP) < 0)
+        return -1;
+
+    std::shared_ptr<return_result> oRes;
+    if (readResult(oRes) < 0)
+        return -1;
+
+    if (stat)
+    {
+        zk_get_data_response resp(sBuff, *stat);
+        resp.Ntoh(oRes->msg.get(), oRes->msg_len);
+    }
+
+    return 0;
 }
 
-int ZkProtoMgr::SetData(const char *pszPath, const std::string &sBuffer, int version)
+int ZkProtoMgr::SetData(const char *pszPath, const std::string &sBuffer, int version, zkproto::zk_stat *stat)
 {
     zk_set_data_request *sd = new zk_set_data_request;
     sd->path = prependString(pszPath, 0);
@@ -549,7 +658,21 @@ int ZkProtoMgr::SetData(const char *pszPath, const std::string &sBuffer, int ver
     sd->Hton(data);
     delete sd;
     int xid = getXid();
-    return sendData(data, xid, ZOO_SETDATA_OP);
+    if (sendData(data, xid, ZOO_SETDATA_OP) < 0)
+        return -1;
+
+    std::shared_ptr<return_result> oRes;
+    if (readResult(oRes) < 0)
+        return -1;
+
+    if (stat)
+    {
+        zk_set_data_response* resp = reinterpret_cast<zk_set_data_response*>(oRes->msg.get());
+        resp->Ntoh();
+        *stat = resp->stat;
+    }
+
+    return 0;
 }
 
 int ZkProtoMgr::GetChildern(const char *pszPath, int watch, std::vector<std::string> &str)
@@ -566,7 +689,16 @@ int ZkProtoMgr::GetChildern(const char *pszPath, int watch, std::vector<std::str
     gc->Hton(data);
     delete gc;
     int xid = getXid();
-    return sendData(data, xid, ZOO_GETCHILDREN_OP);
+    if (sendData(data, xid, ZOO_GETCHILDREN_OP) < 0)
+        return -1;
+
+    std::shared_ptr<return_result> oRes;
+    if (readResult(oRes) < 0)
+        return -1;
+
+    zk_get_children_response resp(str);
+    resp.Ntoh(oRes->msg.get(), oRes->msg_len);
+    return 0;
 }
 
 int ZkProtoMgr::GetChildern(const char *pszPath, int watch, std::vector<std::string> &str, zkproto::zk_stat *stat)
@@ -583,7 +715,19 @@ int ZkProtoMgr::GetChildern(const char *pszPath, int watch, std::vector<std::str
     gc->Hton(data);
     delete gc;
     int xid = getXid();
-    return sendData(data, xid, ZOO_GETCHILDREN2_OP);
+    if (sendData(data, xid, ZOO_GETCHILDREN2_OP) < 0)
+        return -1;
+
+    std::shared_ptr<return_result> oRes;
+    if (readResult(oRes) < 0)
+        return -1;
+
+    if (stat)
+    {
+        zk_get_children2_response resp(str, *stat);
+        resp.Ntoh(oRes->msg.get(), oRes->msg_len);
+    }
+    return 0;
 }
 
 int ZkProtoMgr::GetAcl(const char *pszPath, std::vector<zkproto::zk_acl> &acl, zkproto::zk_stat *stat)
@@ -599,7 +743,19 @@ int ZkProtoMgr::GetAcl(const char *pszPath, std::vector<zkproto::zk_acl> &acl, z
     ga->Hton(data);
     delete ga;
     int xid = getXid();
-    return sendData(data, xid, ZOO_GETACL_OP);
+    if (sendData(data, xid, ZOO_GETACL_OP) < 0)
+        return -1;
+
+    std::shared_ptr<return_result> oRes;
+    if (readResult(oRes) < 0)
+        return -1;
+
+    if (stat)
+    {
+        zk_get_acl_response resp(acl, *stat);
+        resp.Ntoh(oRes->msg.get(), oRes->msg_len);
+    }
+    return 0;
 }
 
 int ZkProtoMgr::SetAcl(const char *pszPath, int version, const std::vector<zkproto::zk_acl> &acl)
@@ -618,14 +774,19 @@ int ZkProtoMgr::SetAcl(const char *pszPath, int version, const std::vector<zkpro
     sa->Hton(data);
     delete sa;
     int xid = getXid();
-    return sendData(data, xid, ZOO_SETACL_OP);
+    if (sendData(data, xid, ZOO_SETACL_OP) < 0)
+        return -1;
+
+    std::shared_ptr<return_result> oRes;
+    if (readResult(oRes) < 0)
+        return -1;
+    return 0;
 }
 
 int ZkProtoMgr::Multi(int count, const std::vector<zoo_op_t> &ops, std::vector<zoo_op_result_t> *result)
 {
     std::string data = getData();
     zk_multi_header* mh = new zk_multi_header;
-    int xid = getXid();
     for (auto it = ops.begin(); it != ops.end(); ++ it)
     {
         mh->type = it->type;
@@ -710,7 +871,17 @@ int ZkProtoMgr::Multi(int count, const std::vector<zoo_op_t> &ops, std::vector<z
     mh->err = -1;
     data.append(reinterpret_cast<char*>(&mh), sizeof(zk_multi_header));
     delete mh;
-    return sendData(data, xid, ZOO_MULTI_OP);
+    {
+        int xid = getXid();
+        if (sendData(data, xid, ZOO_MULTI_OP) < 0)
+            return -1;
+
+        std::shared_ptr<return_result> oRes;
+        if (readResult(oRes) < 0)
+            return -1;
+    }
+
+    return 0;
 Exit0:
     delete mh;
     return -1;
@@ -726,7 +897,13 @@ int ZkProtoMgr::Sync(const char* pszPath)
     std::string data = getData();
     sy.Hton(data);
     int xid = getXid();
-    return sendData(data, xid, ZOO_SYNC_OP);
+    if (sendData(data, xid, ZOO_SYNC_OP) < 0)
+        return 0;
+
+    std::shared_ptr<return_result> oRes;
+    if (readResult(oRes) < 0)
+        return -1;
+    return 0;
 }
 
 int ZkProtoMgr::isValidPath(const char* path, int len, const int flags)
