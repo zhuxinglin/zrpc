@@ -85,12 +85,14 @@ typedef struct zoo_op {
     };
 } zoo_op_t;
 
-typedef struct zoo_op_result {
+struct zoo_op_result_t
+{
+    zoo_op_result_t() = default;
     int err;
-    char *value;
-	int valuelen;
-    struct Stat *stat;
-} zoo_op_result_t; 
+    std::vector<std::string> value;
+    struct zkproto::zk_stat stat;
+    std::vector<zkproto::zk_acl> acl;
+};
 
 struct IZkApi
 {
@@ -117,7 +119,7 @@ public:
     virtual int GetChildern(const char *pszPath, int watch, std::vector<std::string> &str, zkproto::zk_stat* stat) = 0;
     virtual int GetAcl(const char *pszPath, std::vector<zkproto::zk_acl> &acl, zkproto::zk_stat *stat) = 0;
     virtual int SetAcl(const char* pszPath, int version, const std::vector<zkproto::zk_acl>& acl) = 0;
-    virtual int Multi(int count, const std::vector<zoo_op_t>& ops, std::vector<zoo_op_result_t>* result) = 0;
+    virtual int Multi(const std::vector<zoo_op_t>& ops, std::vector<zoo_op_result_t>* result) = 0;
     virtual int Sync(const char* pszPath) = 0;
 };
 

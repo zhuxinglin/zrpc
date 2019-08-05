@@ -46,7 +46,7 @@ private:
     virtual int GetChildern(const char *pszPath, int watch, std::vector<std::string> &str, zkproto::zk_stat *stat);
     virtual int GetAcl(const char *pszPath, std::vector<zkproto::zk_acl> &acl, zkproto::zk_stat *stat);
     virtual int SetAcl(const char *pszPath, int version, const std::vector<zkproto::zk_acl> &acl);
-    virtual int Multi(int count, const std::vector<zoo_op_t> &ops, std::vector<zoo_op_result_t> *result);
+    virtual int Multi(const std::vector<zoo_op_t> &ops, std::vector<zoo_op_result_t> *result);
     virtual int Sync(const char* pszPath);
 
 private:
@@ -66,6 +66,10 @@ private:
     std::string&& prependString(const char* path, int flags);
     int isValidPath(const char* path, int len, const int flags);
     std::string subString(const std::string& server_path);
+    int sendMultiPackage(const std::vector<zoo_op_t> &ops);
+    char* getMulti(const std::vector<zoo_op_t> &ops, std::vector<zoo_op_result_t>& result, char* data, int& len);
+    char* getMultiPackage(int type, int err, const std::vector<zoo_op_t> &ops, 
+                std::vector<zoo_op_result_t>& result, char* data, int& len);
 
     std::string&& getData();
     int sendData(std::string& data, int32_t xid, int type, uint32_t dwTimeout = 0xFFFFFFFF);

@@ -21,6 +21,16 @@
 using namespace zkapi;
 using namespace zkproto;
 
+#define COMPLETION_WATCH -1
+#define COMPLETION_VOID 0
+#define COMPLETION_STAT 1
+#define COMPLETION_DATA 2
+#define COMPLETION_STRINGLIST 3
+#define COMPLETION_STRINGLIST_STAT 4
+#define COMPLETION_ACLLIST 5
+#define COMPLETION_STRING 6
+#define COMPLETION_MULTI 7
+
 ZkProtoMgr::ZkProtoMgr() : m_iCurrHostIndex(0)
 {
     m_iXid = time(0);
@@ -552,7 +562,7 @@ int ZkProtoMgr::Create(const char *pszPath, const std::string &sValue,
         return -1;
 
     zk_create_response resp;
-    if (resp.Ntoh(oRes->msg.get(), oRes->msg_len) < 0)
+    if (!resp.Ntoh(oRes->msg.get(), oRes->msg_len))
         return -1;
 
     sPathBuffer.append(subString(resp.path));
@@ -581,7 +591,7 @@ int ZkProtoMgr::Delete(const char *pszPath, int version)
         return -1;
 
     if (oRes->err != 0)
-        return -1;
+        return -2;
 
     return 0;
 }
@@ -608,7 +618,7 @@ int ZkProtoMgr::Exists(const char *pszPath, int watch, zkproto::zk_stat *stat)
         return -1;
 
     if (oRes->err != 0)
-        return -1;
+        return -2;
 
     return 0;
 }
@@ -667,9 +677,8 @@ int ZkProtoMgr::SetData(const char *pszPath, const std::string &sBuffer, int ver
 
     if (stat)
     {
-        zk_set_data_response* resp = reinterpret_cast<zk_set_data_response*>(oRes->msg.get());
-        resp->Ntoh();
-        *stat = resp->stat;
+        zk_set_data_response resp(*stat);
+        resp.Ntoh(oRes->msg.get(), oRes->msg_len);
     }
 
     return 0;
@@ -780,10 +789,31 @@ int ZkProtoMgr::SetAcl(const char *pszPath, int version, const std::vector<zkpro
     std::shared_ptr<return_result> oRes;
     if (readResult(oRes) < 0)
         return -1;
+
+    if (oRes->err != 0)
+        return -2;
+
     return 0;
 }
 
-int ZkProtoMgr::Multi(int count, const std::vector<zoo_op_t> &ops, std::vector<zoo_op_result_t> *result)
+int ZkProtoMgr::Multi(const std::vector<zoo_op_t> &ops, std::vector<zoo_op_result_t> *result)
+{
+    if (sendMultiPackage(ops) < 0)
+        return -1;
+
+    std::shared_ptr<return_result> oRes;
+    if (readResult(oRes) < 0)
+        return -1;
+
+    if (!result)
+        return 0;
+
+    getMulti(ops, *result, oRes->msg.get(), oRes->msg_len);
+
+    return 0;
+}
+
+int ZkProtoMgr::sendMultiPackage(const std::vector<zoo_op_t> &ops)
 {
     std::string data = getData();
     zk_multi_header* mh = new zk_multi_header;
@@ -871,13 +901,10 @@ int ZkProtoMgr::Multi(int count, const std::vector<zoo_op_t> &ops, std::vector<z
     mh->err = -1;
     data.append(reinterpret_cast<char*>(&mh), sizeof(zk_multi_header));
     delete mh;
+
     {
         int xid = getXid();
         if (sendData(data, xid, ZOO_MULTI_OP) < 0)
-            return -1;
-
-        std::shared_ptr<return_result> oRes;
-        if (readResult(oRes) < 0)
             return -1;
     }
 
@@ -885,6 +912,99 @@ int ZkProtoMgr::Multi(int count, const std::vector<zoo_op_t> &ops, std::vector<z
 Exit0:
     delete mh;
     return -1;
+}
+
+char* ZkProtoMgr::getMulti(const std::vector<zoo_op_t> &ops, std::vector<zoo_op_result_t>& result, char* data, int& len)
+{
+    for (auto it = ops.begin(); it != ops.end(); ++ it)
+    {
+        zk_multi_header* muhdr = reinterpret_cast<zk_multi_header*>(data);
+        muhdr->Ntoh();
+        if (!muhdr->done)
+            break;
+
+        len -= sizeof(zk_multi_header);
+        if (muhdr->type == -1)
+        {
+            zk_error_response* er = reinterpret_cast<zk_error_response*>(muhdr);
+            er->Ntoh();
+
+            len -= sizeof(zk_error_response);
+            data = getMultiPackage(it->type, er->err, ops, result, er->data, len);
+            continue;
+        }
+
+        data = getMultiPackage(it->type, 0, ops, result, muhdr->data, len);
+    }
+    return data;
+}
+
+char* ZkProtoMgr::getMultiPackage(int type, int err, const std::vector<zoo_op_t> &ops, 
+                        std::vector<zoo_op_result_t>& result, char* data, int& len)
+{
+    zoo_op_result_t oRes;
+    oRes.err = err;
+    if (err)
+    {
+        result.push_back(oRes);
+        return data;
+    }
+
+    switch(type)
+    {
+    case COMPLETION_DATA:
+    {
+        std::string sData;
+        zk_get_data_response resp(sData, oRes.stat);
+        oRes.value.push_back(sData);
+        data = resp.Ntoh(data, len);
+    }
+    break;
+
+    case COMPLETION_STAT:
+    {
+        zk_set_data_response resp(oRes.stat);
+        data = resp.Ntoh(data, len);
+    }
+    break;
+
+    case COMPLETION_STRINGLIST:
+    {
+        zk_get_children_response resp(oRes.value);
+        data = resp.Ntoh(data, len);
+    }
+    break;
+
+    case COMPLETION_STRINGLIST_STAT:
+    {
+        zk_get_children2_response resp(oRes.value, oRes.stat);
+        data = resp.Ntoh(data, len);
+    }
+    break;
+
+    case COMPLETION_STRING:
+    {
+        zk_create_response resp;
+        data = resp.Ntoh(data, len);
+    }
+    break;
+
+    case COMPLETION_ACLLIST:
+    {
+        zk_get_acl_response resp(oRes.acl, oRes.stat);
+        data = resp.Ntoh(data, len);
+    }
+    break;
+
+    case COMPLETION_VOID:
+    break;
+
+    case COMPLETION_MULTI:
+        data = getMulti(ops, result, data, len);
+    break;
+    }
+    result.push_back(oRes);
+    return data;
 }
 
 int ZkProtoMgr::Sync(const char* pszPath)
