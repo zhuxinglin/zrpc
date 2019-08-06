@@ -82,7 +82,7 @@ private:
         CNetClient* m_pNetClient;
     };
     volatile uint32_t m_dwSync{0};
-    std::atomic_uint m_dwCloseRef{0};
+    std::atomic_uint m_dwCloseRef;
 };
 
 }

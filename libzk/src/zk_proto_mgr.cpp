@@ -249,27 +249,19 @@ int ZkProtoMgr::connectZkSvr()
         if (strchr(addr.ip.c_str(), ':'))
             wVer = 6;
 
+        m_oCli.Close();
         int iRet = m_oCli.Connect(addr.ip.c_str(), addr.port, ITaskBase::PROTOCOL_TCP, wVer);
         if (iRet < 0)
             continue;
 
         if (connectResp() < 0)
-        {
-            m_oCli.Close();
             continue;
-        }
 
         if (sendSetWatcher() < 0)
-        {
-            m_oCli.Close();
             continue;
-        }
 
         if (sendAuthInfo() < 0)
-        {
-            m_oCli.Close();
             continue;
-        }
         break;
     }
 
@@ -357,7 +349,7 @@ int ZkProtoMgr::sendAuthInfo()
     return 0;
 }
 
-std::string&& ZkProtoMgr::getData()
+std::string ZkProtoMgr::getData()
 {
     std::string data;
     data.resize(sizeof(zk_request_header));
@@ -407,18 +399,10 @@ int ZkProtoMgr::dispatchMsg(std::shared_ptr<char> &oMsg, int iSumLen)
     iSumLen -= sizeof(zk_reply_header);
     if (hdr->xid == WATCHER_EVENT_XID)
     {
-        zk_watcher_event* evt = reinterpret_cast<zk_watcher_event*>(hdr->data);
-        evt->Ntoh();
-        ZkEvent oEv(evt->type, evt->state);
-        iSumLen -= sizeof(zk_watcher_event);
-        if (iSumLen > 0)
-        {
-            std::shared_ptr<char> o(new char[iSumLen + 1]);
-            memcpy(o.get(), evt->path, iSumLen);
-            oEv.oMsg = o;
-            oEv.msg_len = iSumLen;
-        }
-
+        zk_watcher_event evt;
+        evt.Ntoh(hdr->data, iSumLen);
+        evt.path = subString(evt.path);
+        ZkEvent oEv(evt.type, evt.state, evt.path);
         m_pEvent->Push(oEv);
     }
     else if (hdr->xid == SET_WATCHES_XID)
@@ -464,7 +448,7 @@ int ZkProtoMgr::readResult(std::shared_ptr<return_result>& oRes)
     m_oChan >> oRes;
     if (!oRes)
     {
-        m_sErr = "auth failed, timeout";
+        m_sErr = "read failed, timeout";
         return -1;
     }
     return 0;
@@ -493,7 +477,7 @@ int ZkProtoMgr::AddAuth(const char *pszScheme, const std::string sCert)
     return 0;
 }
 
-std::string &&ZkProtoMgr::prependString(const char *path, int flags)
+std::string ZkProtoMgr::prependString(const char *path, int flags)
 {
     if (m_sChroot.empty())
         return std::move(std::string(path));
@@ -559,7 +543,7 @@ int ZkProtoMgr::Create(const char *pszPath, const std::string &sValue,
         return -1;
 
     if (oRes->err != 0)
-        return -1;
+        return -2;
 
     zk_create_response resp;
     if (!resp.Ntoh(oRes->msg.get(), oRes->msg_len))
@@ -644,6 +628,9 @@ int ZkProtoMgr::GetData(const char *pszPath, int watch, std::string &sBuff, zkpr
     if (readResult(oRes) < 0)
         return -1;
 
+    if (oRes->err != 0)
+        return -2;
+
     if (stat)
     {
         zk_get_data_response resp(sBuff, *stat);
@@ -675,6 +662,9 @@ int ZkProtoMgr::SetData(const char *pszPath, const std::string &sBuffer, int ver
     if (readResult(oRes) < 0)
         return -1;
 
+    if (oRes->err != 0)
+        return -2;
+
     if (stat)
     {
         zk_set_data_response resp(*stat);
@@ -705,6 +695,9 @@ int ZkProtoMgr::GetChildern(const char *pszPath, int watch, std::vector<std::str
     if (readResult(oRes) < 0)
         return -1;
 
+    if (oRes->err != 0)
+        return -2;
+
     zk_get_children_response resp(str);
     resp.Ntoh(oRes->msg.get(), oRes->msg_len);
     return 0;
@@ -730,6 +723,9 @@ int ZkProtoMgr::GetChildern(const char *pszPath, int watch, std::vector<std::str
     std::shared_ptr<return_result> oRes;
     if (readResult(oRes) < 0)
         return -1;
+
+    if (oRes->err != 0)
+        return -2;
 
     if (stat)
     {
@@ -758,6 +754,9 @@ int ZkProtoMgr::GetAcl(const char *pszPath, std::vector<zkproto::zk_acl> &acl, z
     std::shared_ptr<return_result> oRes;
     if (readResult(oRes) < 0)
         return -1;
+
+    if (oRes->err != 0)
+        return -2;
 
     if (stat)
     {
@@ -807,6 +806,9 @@ int ZkProtoMgr::Multi(const std::vector<zoo_op_t> &ops, std::vector<zoo_op_resul
 
     if (!result)
         return 0;
+
+    if (oRes->err != 0)
+        return -2;
 
     getMulti(ops, *result, oRes->msg.get(), oRes->msg_len);
 
@@ -890,9 +892,11 @@ int ZkProtoMgr::sendMultiPackage(const std::vector<zoo_op_t> &ops)
         break;
 
         default:
+        {
             m_sErr = "error type : ";
             m_sErr.append(std::to_string(it->type));
             goto Exit0;
+        }
         break;
         }
     }
@@ -1019,10 +1023,11 @@ int ZkProtoMgr::Sync(const char* pszPath)
     int xid = getXid();
     if (sendData(data, xid, ZOO_SYNC_OP) < 0)
         return 0;
-
+/*
     std::shared_ptr<return_result> oRes;
     if (readResult(oRes) < 0)
         return -1;
+*/
     return 0;
 }
 

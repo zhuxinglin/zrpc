@@ -24,7 +24,7 @@ WatcherEvent::WatcherEvent()
 
 WatcherEvent::~WatcherEvent()
 {
-
+    delete m_pWatcher;
 }
 
 int WatcherEvent::Init(IWatcher* pWatcher)

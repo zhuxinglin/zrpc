@@ -63,7 +63,7 @@ private:
     int sendAuthInfo();
     template<class T>
     int sendAuthPackage(const T& it);
-    std::string&& prependString(const char* path, int flags);
+    std::string prependString(const char* path, int flags);
     int isValidPath(const char* path, int len, const int flags);
     std::string subString(const std::string& server_path);
     int sendMultiPackage(const std::vector<zoo_op_t> &ops);
@@ -71,7 +71,7 @@ private:
     char* getMultiPackage(int type, int err, const std::vector<zoo_op_t> &ops, 
                 std::vector<zoo_op_result_t>& result, char* data, int& len);
 
-    std::string&& getData();
+    std::string getData();
     int sendData(std::string& data, int32_t xid, int type, uint32_t dwTimeout = 0xFFFFFFFF);
     int Read(std::shared_ptr<char>& oMsg);
     int getXid();

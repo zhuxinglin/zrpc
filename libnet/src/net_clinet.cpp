@@ -27,6 +27,7 @@ CNetClient::CNetClient() : m_dwConnTimeout(3000),
                            m_wAddrLen(0),
                            m_pFd(0)
 {
+    m_dwCloseRef = 0;
 }
 
 CNetClient::~CNetClient()
@@ -41,8 +42,7 @@ int CNetClient::Connect(const char *pszAddr, uint16_t wPort, uint16_t wProtocol,
     if (m_pFd)
         return -1;
 
-    ++ m_dwCloseRef;
-
+    m_dwCloseRef = 1;
     m_wProtocol = wProtocol;
     m_wVer = wVer;
     int iRet = -1;
@@ -281,6 +281,7 @@ void CNetClient::IsOpen()
 
 void CNetClient::IsClose()
 {
+    if (m_dwCloseRef != 0)
     {
         CSpinLock oLock(m_dwSync);
         -- m_dwCloseRef;

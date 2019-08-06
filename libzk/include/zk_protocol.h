@@ -564,6 +564,7 @@ struct zk_multi_header
 };
 
 ///********************************************************
+#pragma pack(4)
 struct zk_reply_header
 {
     int32_t xid;
@@ -578,6 +579,7 @@ struct zk_reply_header
         err = ntohl(err);
     }
 };
+#pragma pack()
 ///********************************************************
 struct zk_request_header : public zk_len
 {
@@ -661,12 +663,13 @@ struct zk_watcher_event
 {
     int type;
     int state;
-    char path[0];
+    std::string path;
 
-    void Ntoh()
+    void Ntoh(char* msg, int len)
     {
-        type = ntohl(type);
-        state = ntohl(state);
+        msg = get_int(msg, len, type);
+        msg = get_int(msg, len, state);
+        get_string(path, msg, len);
     }
 };
 
