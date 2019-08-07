@@ -282,7 +282,7 @@ struct zk_delete_request
     std::string path;
     int version;
 
-    void Hton(std::string d)
+    void Hton(std::string& d)
     {
         set_string(d, path);
         set_int(d, version);

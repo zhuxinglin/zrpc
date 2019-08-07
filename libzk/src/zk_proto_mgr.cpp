@@ -364,6 +364,7 @@ int ZkProtoMgr::sendData(std::string& data, int32_t xid, int type, uint32_t dwTi
     hdr.len = data.size() - sizeof(hdr.len);
     hdr.Hton();
     data.replace(0, sizeof(hdr), reinterpret_cast<char *>(&hdr), sizeof(hdr));
+    printf("========= %u\n", data.size());
     int iRet = m_oCli.Write(data.c_str(), data.size(), dwTimeout);
     if (iRet < 0)
     {
@@ -569,6 +570,7 @@ int ZkProtoMgr::Delete(const char *pszPath, int version)
     de->Hton(data);
     delete de;
     int xid = getXid();
+    printf("%d\n", data.size());
     if (sendData(data, xid, ZOO_DELETE_OP) < 0)
         return 0;
 
