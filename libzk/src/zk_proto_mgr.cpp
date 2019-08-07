@@ -48,7 +48,7 @@ const char* ZkProtoMgr::GetErr()
     return m_sErr.c_str();
 }
 
-int ZkProtoMgr::Init(const char *pszHost, IWatcher *pWatcher, uint32_t dwTimeout, const clientid_t *pClientId)
+int ZkProtoMgr::Init(const char *pszHost, IWatcher *pWatcher, uint32_t dwTimeout, int flags, const clientid_t *pClientId)
 {
     if (!pszHost)
     {
@@ -86,6 +86,7 @@ int ZkProtoMgr::Init(const char *pszHost, IWatcher *pWatcher, uint32_t dwTimeout
         return -1;
     }
 
+    m_iFlags = flags;
     active_node_watchers = ZkHashTable::create_zk_hashtable();
     active_exist_watchers = ZkHashTable::create_zk_hashtable();
     active_child_watchers = ZkHashTable::create_zk_hashtable();
@@ -279,6 +280,7 @@ int ZkProtoMgr::connectResp()
         pReq->session_id = this->m_oClientId.client_id;
         pReq->passwd_len = sizeof(pReq->passwd);
         memcpy(pReq->passwd, this->m_oClientId.password, sizeof(pReq->passwd));
+        pReq->read_only = m_iFlags & 1;
         pReq->Hton();
 
         int iRet = m_oCli.Write(reinterpret_cast<char*>(pReq), sizeof(zk_connect_request), 3000);
@@ -361,7 +363,7 @@ int ZkProtoMgr::sendData(std::string& data, int32_t xid, int type, uint32_t dwTi
     zk_request_header hdr(xid, type);
     hdr.len = data.size() - sizeof(hdr.len);
     hdr.Hton();
-    data.insert(0, reinterpret_cast<char *>(&hdr), sizeof(hdr));
+    data.replace(0, sizeof(hdr), reinterpret_cast<char *>(&hdr), sizeof(hdr));
     int iRet = m_oCli.Write(data.c_str(), data.size(), dwTimeout);
     if (iRet < 0)
     {

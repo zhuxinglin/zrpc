@@ -33,7 +33,7 @@ public:
 
 private:
     virtual const char* GetErr();
-    virtual int Init(const char *pszHost, IWatcher *pWatcher, uint32_t dwTimeout, const clientid_t *pClientId);
+    virtual int Init(const char *pszHost, IWatcher *pWatcher, uint32_t dwTimeout, int flags, const clientid_t *pClientId);
     virtual void Close();
     virtual int AddAuth(const char *pszScheme, const std::string sCert);
     virtual int Create(const char *pszPath, const std::string &sValue,
@@ -90,6 +90,7 @@ private:
     std::string m_sChroot;
     std::atomic_int m_iXid;
     bool m_bIsConnect = true;
+    int m_iFlags;
 
     struct address_info
     {

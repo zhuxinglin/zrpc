@@ -96,15 +96,16 @@ static inline char* get_string(std::string& d, char* m, int& lm)
 {
     zk_response_info* re = reinterpret_cast<zk_response_info*>(m);
     re->len = ntohl(re->len);
+    lm -= sizeof(re->len);
 
     if (re->len > lm)
         return nullptr;
 
-    if (re->len < 0)
+    if (re->len <= 0)
         return re->data;
 
     d.append(re->data, re->len);
-    lm -= (re->len + sizeof(re->len));
+    lm -= re->len;
     return (re->data + re->len);
 }
 
@@ -157,7 +158,7 @@ struct zk_check_version_request
 };
 
 ///********************************************************
-#pragma pack(4)
+#pragma pack(1)
 struct zk_connect_request : public zk_len
 {
     int protocol_version;
@@ -166,6 +167,7 @@ struct zk_connect_request : public zk_len
     int64_t session_id;
     int32_t passwd_len;
     char passwd[16];
+    char read_only;
 
     void Hton()
     {
@@ -185,6 +187,7 @@ struct zk_connect_response
     int64_t session_id;
     int32_t passwd_len;
     char passwd[16];
+    char read_only;
 
     void Ntoh()
     {
@@ -311,6 +314,7 @@ struct zk_exists_request
     }
 };
 
+#pragma pack(4)
 struct zk_stat
 {
     int64_t czxid;
@@ -345,7 +349,6 @@ struct zk_stat
     }
 };
 
-#pragma pack(4)
 struct zk_exists_response
 {
     zk_stat stat;
@@ -477,12 +480,12 @@ struct zk_get_children2_response
 struct zk_get_data_request
 {
     std::string path;
-    int32_t watch;
+    char watch;
 
     void Hton(std::string& d)
     {
         set_string(d, path);
-        set_int(d, watch);
+        d.append(&watch, 1);
     }
 };
 
