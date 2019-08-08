@@ -564,6 +564,12 @@ struct zk_multi_header
     int32_t err;
     char data[0];
 
+    void Hton()
+    {
+        type = htonl(type);
+        err = htonl(err);
+    }
+
     void Ntoh()
     {
         type = ntohl(type);

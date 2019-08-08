@@ -41,14 +41,18 @@ private:
         // iRet = pzk->Sync("/config");
         std::vector<zkapi::zoo_op_t> ops;
         zkapi::zoo_op_t op;
-        zkapi::IZkApi::CreateOpInit(&op, "/testop", v, acl, 1);
+        zkapi::IZkApi::CreateOpInit(&op, "/testop", v, acl, 0);
+        //zkapi::IZkApi::DeleteOpInit(&op, "/testop", -1);
+        // zkapi::IZkApi::SetOpInit(&op, );
+        // zkapi::IZkApi::CheckOpInit(&op, );
         ops.push_back(op);
-        // zkapi::IZkApi::DeleteOpInit(op, );
-        // zkapi::IZkApi::SetOpInit(op, );
-        // zkapi::IZkApi::CheckOpInit(op, );
         std::vector<zkapi::zoo_op_result_t> result;
         iRet = pzk->Multi(ops, &result);
         printf("%d  %s %s\n", iRet, v.c_str(), pzk->GetErr());
+        for (auto it : result)
+        {
+            printf("%s\n", it.value.begin()->c_str());
+        }
 //        exit(0);
     }
 };

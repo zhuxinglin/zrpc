@@ -570,7 +570,6 @@ int ZkProtoMgr::Delete(const char *pszPath, int version)
     de->Hton(data);
     delete de;
     int xid = getXid();
-    printf("%d\n", data.size());
     if (sendData(data, xid, ZOO_DELETE_OP) < 0)
         return 0;
 
@@ -828,7 +827,8 @@ int ZkProtoMgr::sendMultiPackage(const std::vector<zoo_op_t> &ops)
         mh->type = it->type;
         mh->done = 0;
         mh->err = -1;
-        data.append(reinterpret_cast<char*>(&mh), sizeof(zk_multi_header));
+        mh->Hton();
+        data.append(reinterpret_cast<char*>(mh), sizeof(zk_multi_header));
         switch(it->type)
         {
         case ZOO_CREATE_OP:
@@ -907,7 +907,7 @@ int ZkProtoMgr::sendMultiPackage(const std::vector<zoo_op_t> &ops)
     mh->type = -1;
     mh->done = 1;
     mh->err = -1;
-    data.append(reinterpret_cast<char*>(&mh), sizeof(zk_multi_header));
+    data.append(reinterpret_cast<char*>(mh), sizeof(zk_multi_header));
     delete mh;
 
     {
@@ -932,7 +932,7 @@ void ZkProtoMgr::getMulti(const std::vector<zoo_op_t> &ops, std::vector<zoo_op_r
         {
             zk_multi_header* muhdr = reinterpret_cast<zk_multi_header*>(data);
             muhdr->Ntoh();
-            if (!muhdr->done)
+            if (muhdr->done)
                 break;
 
             len -= sizeof(zk_multi_header);
