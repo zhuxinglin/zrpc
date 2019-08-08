@@ -58,38 +58,42 @@ struct clientid_t
     char password[16];
 };
 
-typedef struct zoo_op {
-    int type;
-    union {
-        // CREATE
-        struct {
-            std::string path;
-            std::string data;
-            std::vector<zkproto::zk_acl> acl;
-            int flags;
-        } create_op;
+#define ZOO_PERM_READ           (1 << 0)
+#define ZOO_PERM_WRITE          (1 << 1)
+#define ZOO_PERM_CREATE         (1 << 2)
+#define ZOO_PERM_DELETE         (1 << 3)
+#define ZOO_PERM_ADMIN          (1 << 4)
+#define ZOO_PERM_ALL            (0x1f)
 
-        // DELETE 
-        struct {
-            std::string path;
-            int version;
-        } delete_op;
-        
-        // SET
-        struct {
-            std::string path;
-            std::string data;
-            int version;
-            struct zkproto::zk_stat *stat;
-        } set_op;
-        
-        // CHECK
-        struct {
-            std::string path;
-            int version;
-        } check_op;
-    };
-} zoo_op_t;
+#define ZK_ACL_WORLD(a, p) a.set(p, "world", "anyone")
+#define ZK_ACL_AUTH(a, p)  a.set(p, "auth", "")
+#define ZK_ACL_IP(a, i, p) a.set(p, "ip", i)
+#define ZK_ACL_DIGEST(a, i, p) a.set(p, "digest", i)
+#define ZK_ACL_SUPER(a) a.set(0x1f, "super", "cdrwa")
+
+#define ZK_ACL_OPEN(a)    ZK_ACL_WORLD(a, ZOO_PERM_ALL)
+#define ZK_ACL_READ(a)    ZK_ACL_WORLD(a, ZOO_PERM_READ)
+
+// flags
+#define ZOO_EPHEMERAL   (1 << 0)
+#define ZOO_SEQUENCE    (1 << 1)
+#define ZOO_CONTAINER   (1 << 2)
+
+struct zoo_op_t {
+    int type;
+    // CREATE
+    std::string path;
+    std::string data;
+    std::vector<zkproto::zk_acl> acl;
+    int flags;
+
+    // DELETE
+    // CHECK
+    int version;
+
+    // SET
+    zkproto::zk_stat stat;
+};
 
 struct zoo_op_result_t
 {

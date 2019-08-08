@@ -470,7 +470,7 @@ int ZkProtoMgr::AddAuth(const char *pszScheme, const std::string sCert)
     if (readResult(oRes) < 0)
         return -1;
 
-    if (oRes->err == -1)
+    if (oRes->err != 0)
     {
         m_sErr = "auth failed";
         return -1;
@@ -598,7 +598,7 @@ int ZkProtoMgr::Exists(const char *pszPath, int watch, zkproto::zk_stat *stat)
     ex->Hton(data);
     delete ex;
     int xid = getXid();
-    if (sendData(data, xid, ZOO_DELETE_OP) < 0)
+    if (sendData(data, xid, ZOO_EXISTS_OP) < 0)
         return -1;
 
     std::shared_ptr<return_result> oRes;
@@ -834,16 +834,16 @@ int ZkProtoMgr::sendMultiPackage(const std::vector<zoo_op_t> &ops)
         case ZOO_CREATE_OP:
         {
             zk_create_request* cr = new zk_create_request;
-            cr->path = prependString(it->create_op.path.c_str(), it->create_op.flags);
+            cr->path = prependString(it->path.c_str(), it->flags);
             if (cr->path.empty())
             {
                 delete cr;
                 goto Exit0;
             }
-            cr->flags = it->create_op.flags;
-            cr->data = it->create_op.data;
-            if (!it->create_op.acl.empty())
-                cr->acl = it->create_op.acl;
+            cr->flags = it->flags;
+            cr->data = it->data;
+            if (!it->acl.empty())
+                cr->acl = it->acl;
             cr->Hton(data);
             delete cr;
         }
@@ -852,13 +852,13 @@ int ZkProtoMgr::sendMultiPackage(const std::vector<zoo_op_t> &ops)
         case ZOO_DELETE_OP:
         {
             zk_delete_request* de = new zk_delete_request;
-            de->path = prependString(it->delete_op.path.c_str(), 0);
+            de->path = prependString(it->path.c_str(), 0);
             if (de->path.empty())
             {
                 delete de;
                 goto Exit0;
             }
-            de->version = it->delete_op.version;
+            de->version = it->version;
             de->Hton(data);
             delete de;
         }
@@ -867,14 +867,14 @@ int ZkProtoMgr::sendMultiPackage(const std::vector<zoo_op_t> &ops)
         case ZOO_SETDATA_OP:
         {
             zk_set_data_request *sd = new zk_set_data_request;
-            sd->path = prependString(it->set_op.path.c_str(), 0);
+            sd->path = prependString(it->path.c_str(), 0);
             if (sd->path.empty())
             {
                 delete sd;
                 goto Exit0;
             }
-            sd->data = it->set_op.data;
-            sd->version = it->set_op.version;
+            sd->data = it->data;
+            sd->version = it->version;
             sd->Hton(data);
             delete sd;
         }
@@ -883,13 +883,13 @@ int ZkProtoMgr::sendMultiPackage(const std::vector<zoo_op_t> &ops)
         case ZOO_CHECK_OP:
         {
             zk_check_version_request* cv = new zk_check_version_request;
-            cv->path = prependString(it->check_op.path.c_str(), 0);
+            cv->path = prependString(it->path.c_str(), 0);
             if (cv->path.empty())
             {
                 delete cv;
                 goto Exit0;
             }
-            cv->version = it->check_op.version;
+            cv->version = it->version;
             cv->Hton(data);
             delete cv;
         }
@@ -922,33 +922,38 @@ Exit0:
     return -1;
 }
 
-char* ZkProtoMgr::getMulti(const std::vector<zoo_op_t> &ops, std::vector<zoo_op_result_t>& result, char* data, int& len)
+void ZkProtoMgr::getMulti(const std::vector<zoo_op_t> &ops, std::vector<zoo_op_result_t>& result, char* data, int& len)
 {
-    for (auto it = ops.begin(); it != ops.end(); ++ it)
+    bool bIsDone;
+    do
     {
-        zk_multi_header* muhdr = reinterpret_cast<zk_multi_header*>(data);
-        muhdr->Ntoh();
-        if (!muhdr->done)
-            break;
-
-        len -= sizeof(zk_multi_header);
-        if (muhdr->type == -1)
+        bIsDone = false;
+        for (auto it = ops.begin(); it != ops.end(); ++ it)
         {
-            zk_error_response* er = reinterpret_cast<zk_error_response*>(muhdr);
-            er->Ntoh();
+            zk_multi_header* muhdr = reinterpret_cast<zk_multi_header*>(data);
+            muhdr->Ntoh();
+            if (!muhdr->done)
+                break;
 
-            len -= sizeof(zk_error_response);
-            data = getMultiPackage(it->type, er->err, ops, result, er->data, len);
-            continue;
+            len -= sizeof(zk_multi_header);
+            if (muhdr->type == -1)
+            {
+                zk_error_response* er = reinterpret_cast<zk_error_response*>(muhdr);
+                er->Ntoh();
+
+                len -= sizeof(zk_error_response);
+                data = getMultiPackage(it->type, er->err, result, er->data, len, bIsDone);
+                continue;
+            }
+
+            data = getMultiPackage(it->type, 0, result, muhdr->data, len, bIsDone);
+            if (bIsDone)
+                break;
         }
-
-        data = getMultiPackage(it->type, 0, ops, result, muhdr->data, len);
-    }
-    return data;
+    } while (bIsDone);
 }
 
-char* ZkProtoMgr::getMultiPackage(int type, int err, const std::vector<zoo_op_t> &ops, 
-                        std::vector<zoo_op_result_t>& result, char* data, int& len)
+char* ZkProtoMgr::getMultiPackage(int type, int err, std::vector<zoo_op_result_t>& result, char* data, int& len, bool& bIsDone)
 {
     zoo_op_result_t oRes;
     oRes.err = err;
@@ -1008,8 +1013,8 @@ char* ZkProtoMgr::getMultiPackage(int type, int err, const std::vector<zoo_op_t>
     break;
 
     case COMPLETION_MULTI:
-        data = getMulti(ops, result, data, len);
-    break;
+        bIsDone = true;
+    return data;
     }
     result.push_back(oRes);
     return data;
@@ -1027,11 +1032,14 @@ int ZkProtoMgr::Sync(const char* pszPath)
     int xid = getXid();
     if (sendData(data, xid, ZOO_SYNC_OP) < 0)
         return 0;
-/*
+
     std::shared_ptr<return_result> oRes;
     if (readResult(oRes) < 0)
         return -1;
-*/
+
+    if (oRes->err != 0)
+        return -2;
+
     return 0;
 }
 

@@ -228,6 +228,13 @@ struct zk_acl
     int perms;
     zk_id id;
 
+    inline void set(int p, const char* sch, const char* i)
+    {
+        perms = p;
+        id.id = i;
+        id.scheme = sch;
+    }
+
     void Hton(std::string& s)
     {
         set_int(s, perms);
@@ -236,7 +243,8 @@ struct zk_acl
 
     char* Ntoh(char* m, int& len)
     {
-        if (!get_int(m, len, perms))
+        m = get_int(m, len, perms);
+        if (!m)
             return nullptr;
 
         if (id.Ntoh(m, len) < 0)
@@ -305,12 +313,12 @@ struct zk_error_response
 struct zk_exists_request
 {
     std::string path;
-    int32_t watch;
+    char watch;
 
-    void Hton(std::string d)
+    void Hton(std::string& d)
     {
         set_string(d, path);
-        set_int(d, watch);
+        d.append(&watch, 1);
     }
 };
 
@@ -352,6 +360,10 @@ struct zk_stat
 struct zk_exists_response
 {
     zk_stat stat;
+    char* Ntoh(char* msg, int& len)
+    {
+        return stat.Ntoh(reinterpret_cast<zk_stat*>(msg), len);
+    }
 };
 #pragma pack()
 ///********************************************************
@@ -373,7 +385,8 @@ struct zk_get_acl_response
     char* Ntoh(char* msg, int& len)
     {
         int count;
-        if (!get_int(msg, len, count))
+        msg = get_int(msg, len, count);
+        if (msg)
         {
             for (int i = 0; i < count; ++ i)
             {
@@ -417,12 +430,12 @@ struct zk_set_acl_response
 struct zk_get_children_request
 {
     std::string path;
-    int32_t watch;
+    char watch;
 
     void Hton(std::string& d)
     {
         set_string(d, path);
-        set_int(d, watch);
+        d.append(&watch, 1);
     }
 };
 
@@ -434,7 +447,8 @@ struct zk_get_children_response
     char* Ntoh(char* msg, int& len)
     {
         int count;
-        if (!get_int(msg, len, count))
+        msg = get_int(msg, len, count);
+        if (msg)
         {
             for (int i = 0; i < count; ++ i)
             {
@@ -458,7 +472,8 @@ struct zk_get_children2_response
     char* Ntoh(char* msg, int& len)
     {
         int count;
-        if (!get_int(msg, len, count))
+        msg = get_int(msg, len, count);
+        if (msg)
         {
             for (int i = 0; i < count; ++ i)
             {
@@ -535,36 +550,27 @@ struct zk_set_data_response
 };
 
 ///********************************************************
-struct zk_get_max_children_request : public zk_len
-{
-    std::string path;
-};
-
-struct zk_get_max_children_response : public zk_len
-{
-    int max;
-};
-///********************************************************
 struct zk_get_sasl_request : public zk_len
 {
     std::string token;
 };
 
 ///********************************************************
+#pragma pack(1)
 struct zk_multi_header
 {
     int32_t type;
-    int32_t done;
+    char done;
     int32_t err;
     char data[0];
 
     void Ntoh()
     {
         type = ntohl(type);
-        done = ntohl(done);
         err = ntohl(err);
     }
 };
+#pragma pack()
 
 ///********************************************************
 #pragma pack(4)
@@ -656,9 +662,14 @@ struct zk_sync_request
     }
 };
 
-struct zk_sync_response : public zk_len
+struct zk_sync_response
 {
     std::string path;
+    char* Ntoh(char* msg, int& len)
+    {
+        msg = get_string(path, msg, len);
+        return msg;
+    }
 };
 
 ///********************************************************
