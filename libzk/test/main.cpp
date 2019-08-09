@@ -26,7 +26,8 @@ private:
         // iRet = pzk->Create("/config/sa", v, &acl, 0, r);
         // iRet = pzk->Delete("/config/cs", -1);
         // iRet = pzk->AddAuth("auth", "123456");
-        //iRet = pzk->Exists("/config/sa", 1, &s);
+        iRet = pzk->Exists("/config/sa", 1, &s);
+        iRet = pzk->Exists("/config/cs", 1, &s);
         // iRet = pzk->GetData("/config/cs", 1, r, &s);
         // iRet = pzk->SetData("/config/cs", r, -1, &s);
         // std::vector<std::string> ret;
@@ -39,20 +40,23 @@ private:
         // iRet = pzk->GetAcl("/config", acl, &s);
         // iRet = pzk->SetAcl("/config", -1, acl);
         // iRet = pzk->Sync("/config");
-        std::vector<zkapi::zoo_op_t> ops;
-        zkapi::zoo_op_t op;
-        zkapi::IZkApi::CreateOpInit(&op, "/testop", v, acl, 0);
+        // std::vector<zkapi::zoo_op_t> ops;
+        // zkapi::zoo_op_t op;
+        //zkapi::IZkApi::CreateOpInit(&op, "/testop", v, acl, 0);
         //zkapi::IZkApi::DeleteOpInit(&op, "/testop", -1);
-        // zkapi::IZkApi::SetOpInit(&op, );
-        // zkapi::IZkApi::CheckOpInit(&op, );
-        ops.push_back(op);
-        std::vector<zkapi::zoo_op_result_t> result;
-        iRet = pzk->Multi(ops, &result);
+        //zkapi::IZkApi::SetOpInit(&op, "/testop", r, -1, &s);
+        // zkapi::IZkApi::CheckOpInit(&op, "/testop", -1);
+        // ops.push_back(op);
+        // std::vector<zkapi::zoo_op_result_t> result;
+        // iRet = pzk->Multi(ops, &result);
         printf("%d  %s %s\n", iRet, v.c_str(), pzk->GetErr());
-        for (auto it : result)
-        {
-            printf("%s\n", it.value.begin()->c_str());
-        }
+        // for (auto it : result)
+        // {
+        //     printf("%d\n", it.value.size());
+        //     for (auto iter : it.value)
+        //         printf("+++++++++++ %s\n", iter.c_str());
+            
+        // }
 //        exit(0);
     }
 };
@@ -64,6 +68,10 @@ private:
     virtual void OnWatcher(int type, int state, const char* path)
     {
         printf("path: %s\n", path);
+        std::string r;
+        zkproto::zk_stat s;
+        int iRet = pzk->GetData(path, 1, r, &s);
+        printf("value : %s\n", r.c_str());
     }
 };
 

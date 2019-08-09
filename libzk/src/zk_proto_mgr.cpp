@@ -364,7 +364,6 @@ int ZkProtoMgr::sendData(std::string& data, int32_t xid, int type, uint32_t dwTi
     hdr.len = data.size() - sizeof(hdr.len);
     hdr.Hton();
     data.replace(0, sizeof(hdr), reinterpret_cast<char *>(&hdr), sizeof(hdr));
-    printf("========= %u\n", data.size());
     int iRet = m_oCli.Write(data.c_str(), data.size(), dwTimeout);
     if (iRet < 0)
     {
@@ -965,7 +964,7 @@ char* ZkProtoMgr::getMultiPackage(int type, int err, std::vector<zoo_op_result_t
 
     switch(type)
     {
-    case COMPLETION_DATA:
+    case ZOO_GETDATA_OP:
     {
         std::string sData;
         zk_get_data_response resp(sData, oRes.stat);
@@ -974,45 +973,47 @@ char* ZkProtoMgr::getMultiPackage(int type, int err, std::vector<zoo_op_result_t
     }
     break;
 
-    case COMPLETION_STAT:
+    case ZOO_SETDATA_OP:
     {
         zk_set_data_response resp(oRes.stat);
         data = resp.Ntoh(data, len);
     }
     break;
 
-    case COMPLETION_STRINGLIST:
+    case ZOO_GETCHILDREN_OP:
     {
         zk_get_children_response resp(oRes.value);
         data = resp.Ntoh(data, len);
     }
     break;
 
-    case COMPLETION_STRINGLIST_STAT:
+    case ZOO_GETCHILDREN2_OP:
     {
         zk_get_children2_response resp(oRes.value, oRes.stat);
         data = resp.Ntoh(data, len);
     }
     break;
 
-    case COMPLETION_STRING:
+    case ZOO_CREATE_OP:
     {
         zk_create_response resp;
         data = resp.Ntoh(data, len);
+        oRes.value.push_back(resp.path);
     }
     break;
 
-    case COMPLETION_ACLLIST:
+    case ZOO_GETACL_OP:
     {
         zk_get_acl_response resp(oRes.acl, oRes.stat);
         data = resp.Ntoh(data, len);
     }
     break;
 
-    case COMPLETION_VOID:
+    case ZOO_CHECK_OP:
+    case ZOO_DELETE_OP:
     break;
 
-    case COMPLETION_MULTI:
+    case ZOO_MULTI_OP:
         bIsDone = true;
     return data;
     }

@@ -16,6 +16,8 @@
 
 using namespace zkapi;
 
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wdelete-non-virtual-dtor"
 
 WatcherEvent::WatcherEvent()
 {
@@ -58,3 +60,5 @@ void WatcherEvent::Run()
             m_pWatcher->OnWatcher(oEv.type, oEv.state, oEv.oMsg.c_str());
     }
 }
+
+#pragma GCC diagnostic pop

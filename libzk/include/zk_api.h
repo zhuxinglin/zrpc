@@ -98,9 +98,13 @@ struct zoo_op_t {
 struct zoo_op_result_t
 {
     zoo_op_result_t() = default;
+    // CHECK DELETE
     int err;
+    // CREATE GET_CHILDREN GET_DATA GET_CHILDREN2
     std::vector<std::string> value;
+    // GET_DATA SET_DATA GET_CHILDREN2 GET_ACL
     struct zkproto::zk_stat stat;
+    // GET_ACL
     std::vector<zkproto::zk_acl> acl;
 };
 

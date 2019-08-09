@@ -178,33 +178,34 @@ CSoFunAddr *CSoPlugin::GetLoadSo(const char *pszSoName, set_key **psetKey, std::
         pAddr->pSo = pSo;
     }
 
-    if (!pAddr->pPlugin)
+    do
     {
-        LOGE << "create '" << pszSoName << "',fun 'SoPlugin' fail";
-        delete pAddr;
-        dlclose(pHandle);
-        return 0;
-    }
+        if (!pAddr->pPlugin)
+        {
+            LOGE << "create '" << pszSoName << "',fun 'SoPlugin' fail";
+            break;
+        }
 
-    if (pAddr->pPlugin->Initialize(znet::CLog::GetObj(), znet::CCoroutine::GetObj(), znet::CNet::GetObj(), m_pProc, pSo.get()) < 0)
-    {
-        LOGE << "create '" << pszSoName << "',fun 'Initialize' fail";
-        delete pAddr;
-        dlclose(pHandle);
-        return 0;
-    }
+        if (pAddr->pPlugin->Initialize(znet::CLog::GetObj(), znet::CCoroutine::GetObj(), znet::CNet::GetObj(), m_pProc, pSo.get()) < 0)
+        {
+            LOGE << "create '" << pszSoName << "',fun 'Initialize' fail";
+            break;
+        }
 
-    *psetKey = new set_key;
-    if (!*psetKey)
-    {
-        LOGE << "new key '" << pszSoName << "',fun 'SoPlugin' fail";
-        delete pAddr;
-        dlclose(pHandle);
-        return 0;
-    }
+        *psetKey = new set_key;
+        if (!*psetKey)
+        {
+            LOGE << "new key '" << pszSoName << "',fun 'SoPlugin' fail";
+            break;
+        }
 
-    pAddr->pPlugin->GetRouteTable(**psetKey);
-    return pAddr;
+        pAddr->pPlugin->GetRouteTable(**psetKey);
+        return pAddr;
+    }while(0);
+
+    delete pAddr;
+    dlclose(pHandle);
+    return 0;
 }
 
 int CSoPlugin::Swap(map_so_info **pmapRoute)
