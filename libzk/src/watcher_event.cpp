@@ -57,7 +57,7 @@ void WatcherEvent::Run()
         m_oChan >> oEv;
 
         if (m_pWatcher)
-            m_pWatcher->OnWatcher(oEv.type, oEv.state, oEv.oMsg.c_str());
+            m_pWatcher->OnWatcher(oEv.type, oEv.state, oEv.oMsg);
     }
 }
 

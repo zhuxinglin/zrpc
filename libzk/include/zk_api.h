@@ -49,7 +49,7 @@ namespace zkapi
 
 struct IWatcher
 {
-    virtual void OnWatcher(int type, int state, const char* path) = 0;
+    virtual void OnWatcher(int type, int state, const std::string& path) = 0;
 };
 
 struct clientid_t

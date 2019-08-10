@@ -22,16 +22,19 @@ private:
         std::vector<zkproto::zk_acl> acl;
         acl.push_back(ac);
         std::string r = "{\"***\":\"**\"}";
-        // iRet = pzk->Create("/config/cs", v, &acl, 0, r);
+        //iRet = pzk->AddAuth("ip", "127.0.0.1");
+        iRet = pzk->Create("/config/csee", v, &acl, 0, r);
         // iRet = pzk->Create("/config/sa", v, &acl, 0, r);
-        // iRet = pzk->Delete("/config/cs", -1);
-        // iRet = pzk->AddAuth("auth", "123456");
-        iRet = pzk->Exists("/config/sa", 1, &s);
-        iRet = pzk->Exists("/config/cs", 1, &s);
+        //iRet = pzk->Delete("/config/cs", -1);
+        // iRet = pzk->Exists("/config", 1, &s);
+        // iRet = pzk->Exists("/config/sa", 1, &s);
+        // iRet = pzk->Exists("/config/cs", 1, &s);
         // iRet = pzk->GetData("/config/cs", 1, r, &s);
+        // iRet = pzk->GetData("/config/cs", 1, r, &s);
+        // iRet = pzk->GetData("/config", 1, r, &s);
         // iRet = pzk->SetData("/config/cs", r, -1, &s);
-        // std::vector<std::string> ret;
-        // iRet = pzk->GetChildern("/config", 1, ret);
+        std::vector<std::string> ret;
+        iRet = pzk->GetChildern("/config", 1, ret);
         // iRet = pzk->GetChildern("/config", 1, ret, &s);
         // for (auto it : ret)
         // {
@@ -65,12 +68,12 @@ class Watch : public zkapi::IWatcher
 {
 public:
 private:
-    virtual void OnWatcher(int type, int state, const char* path)
+    virtual void OnWatcher(int type, int state, const std::string& path)
     {
-        printf("path: %s\n", path);
+        printf("path: %s\n", path.c_str());
         std::string r;
         zkproto::zk_stat s;
-        int iRet = pzk->GetData(path, 1, r, &s);
+        int iRet = pzk->GetData(path.c_str(), 1, r, &s);
         printf("value : %s\n", r.c_str());
     }
 };

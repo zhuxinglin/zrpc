@@ -130,7 +130,8 @@ int CNet::Init(uint32_t dwWorkThread, uint32_t dwSp)
     if (!g_pContext)
         return -1;
 
-    CContext* pCx = g_pContext;
+    m_pContext = g_pContext;
+    CContext *pCx = g_pContext;
     if (pCx->Init(dwWorkThread) < 0)
         return -1;
 
