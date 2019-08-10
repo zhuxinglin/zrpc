@@ -169,7 +169,6 @@ public:
 			}
 			else
 			{
-				printf("**************\n");
 				return 0;
 			}
 		}

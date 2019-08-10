@@ -27,14 +27,11 @@ namespace znet
 
 class CCoroutine
 {
-private:
+public:
     CCoroutine();
     ~CCoroutine();
 
 public:
-    static CCoroutine* GetObj();
-    static void SetObj(CCoroutine* pCo);
-    static void Release();
     inline void GetContext(ucontext_t *uCon) { getcontext(uCon); }
     void SetRspSize(uint32_t dwRspSize);
     int Create(ITaskBase *pBase);
@@ -45,13 +42,12 @@ public:
     ITaskBase* GetTaskBase();
 
 private:
-    static void Run(void* p);
+    static void Run(void* p, void* t);
 
 private:
     CMemoryPool m_oRsp;
     CMemoryPool m_oContext;
     uint32_t m_dwRspSize;
-    static CCoroutine* m_pSelf;
     const char* m_pszErr;
     pthread_key_t m_KeyContext;
 };

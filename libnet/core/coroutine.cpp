@@ -22,8 +22,6 @@
 
 using namespace znet;
 
-CCoroutine *CCoroutine::m_pSelf = 0;
-
 CCoroutine::CCoroutine() : m_oRsp(1024 * 1024, 1000),
                            m_oContext(sizeof(ucontext_t), 1000),
                            m_dwRspSize(1024 * 1024),
@@ -35,26 +33,6 @@ CCoroutine::CCoroutine() : m_oRsp(1024 * 1024, 1000),
 CCoroutine::~CCoroutine()
 {
     pthread_key_delete(m_KeyContext);
-}
-
-CCoroutine *CCoroutine::GetObj()
-{
-    if (!m_pSelf)
-        m_pSelf = new CCoroutine();
-    return m_pSelf;
-}
-
-void CCoroutine::Release()
-{
-    if (m_pSelf)
-        delete m_pSelf;
-    m_pSelf = 0;
-}
-
-void CCoroutine::SetObj(CCoroutine* pCo)
-{
-    if (!m_pSelf)
-        m_pSelf = pCo;
 }
 
 void CCoroutine::SetRspSize(uint32_t dwRspSize)
@@ -92,7 +70,7 @@ int CCoroutine::Create(ITaskBase *pBase)
     pContext->uc_link = 0;
     pContext->uc_stack.ss_sp = pSp;
     pContext->uc_stack.ss_size = m_dwRspSize;
-    makecontext(pContext, (void(*)())CCoroutine::Run, 1, pBase);
+    makecontext(pContext, (void(*)())CCoroutine::Run, 2, pBase, this);
     return 0;
 }
 
@@ -134,10 +112,11 @@ void CCoroutine::Del(ITaskBase *pBase)
     m_oContext.Free(pBase->m_pContext);
 }
 
-void CCoroutine::Run(void *p)
+void CCoroutine::Run(void *p, void* t)
 {
     ITaskBase *pBase = (ITaskBase *)p;
+    CCoroutine* pCorou = (CCoroutine*)t;
     pBase->Run();
     pBase->m_wRunStatus = ITaskBase::RUN_EXIT;
-    m_pSelf->Swap(pBase, false);
+    pCorou->Swap(pBase, false);
 }

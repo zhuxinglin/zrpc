@@ -21,8 +21,11 @@
 #include "uconfig.h"
 #include "task_queue.h"
 #include "go_post.h"
+#include "context.h"
 
 using namespace znet;
+
+extern CContext* g_pContext;
 
 CCoLock::CCoLock() : m_dwLock(0)
 {
@@ -40,23 +43,22 @@ void CCoLock::Lock()
 
 void CCoLock::Unlock()
 {
-    CTaskQueue *pTaskQueue = CTaskQueue::GetObj();
-
+    CContext* pCx = g_pContext;
     uint64_t qwCoId = Pop();
     __sync_lock_release(&m_dwLock);
 
-    ITaskBase* pTask = CCoroutine::GetObj()->GetTaskBase();
+    ITaskBase* pTask = pCx->m_pCo->GetTaskBase();
 
     if (qwCoId != 0 && qwCoId != pTask->m_qwCid)
     {
-        pTaskQueue->SwapWaitToExec(qwCoId);
+        pCx->m_pTaskQueue->SwapWaitToExec(qwCoId);
         CGoPost::Post();
     }
 }
 
 void CCoLock::Push()
 {
-    ITaskBase* pTask = CCoroutine::GetObj()->GetTaskBase();
+    ITaskBase* pTask = g_pContext->m_pCo->GetTaskBase();
     m_oLock.push(pTask->m_qwCid);
 
     pTask->Yield(-1, ITaskBase::RUN_LOCK);

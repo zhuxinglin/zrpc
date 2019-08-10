@@ -24,11 +24,11 @@
 #include <atomic>
 #include <sys/types.h>
 #include <sys/syscall.h>
+#include "context.h"
 
 using namespace znet;
 
-std::atomic_uint g_dwExecTheadCount(0);
-CSem g_oSem;
+extern CContext* g_pContext;
 
 CGo::CGo()
 {
@@ -50,15 +50,16 @@ int CGo::PushMsg(uint32_t dwId, uint32_t dwMsgType, int iMsgLen, void *pMsg)
 
 void CGo::Run(uint32_t dwId)
 {
-    CTaskQueue *pTaskQueue = CTaskQueue::GetObj();
-    CCoroutine *pCor = CCoroutine::GetObj();
+    CContext* pCx = g_pContext;
+    CTaskQueue *pTaskQueue = pCx->m_pTaskQueue;
+    CCoroutine *pCor = pCx->m_pCo;
     ucontext_t uCon;
     pCor->GetContext(&uCon);
     while (m_bExit)
     {
-        g_oSem.Wait();
+        pCx->m_oSem.Wait();
 
-        ++g_dwExecTheadCount;
+        ++pCx->m_dwExecTheadCount;
 
         CTaskNode* pTaskNode;
         while ((pTaskNode = pTaskQueue->GetFirstExecTask()))
@@ -113,7 +114,7 @@ void CGo::Run(uint32_t dwId)
             }
         }
 
-        --g_dwExecTheadCount;
+        --pCx->m_dwExecTheadCount;
     }
 }
 

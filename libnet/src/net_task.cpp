@@ -23,8 +23,11 @@
 #include "schedule.h"
 #include "event_epoll.h"
 #include "thread.h"
+#include "context.h"
 
 using namespace znet;
+
+extern CContext* g_pContext;
 
 CNetTask::CNetTask() : m_pFd(0), m_wUdpAddLen(0)
 {
@@ -233,8 +236,7 @@ void CNetTask::Close()
 {
     if (m_pFd)
     {
-        CThread *pSch = CSchedule::GetObj();
-        pSch->PushMsg(m_pFd->GetFd(), 2, 0, 0);
+        g_pContext->m_pSchedule->PushMsg(m_pFd->GetFd(), 2, 0, 0);
         delete m_pFd;
         m_pFd = 0;
     }

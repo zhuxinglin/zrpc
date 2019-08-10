@@ -18,8 +18,11 @@
 #include "coroutine.h"
 #include "go_post.h"
 #include "task_queue.h"
+#include "context.h"
 
 using namespace znet;
+
+extern CContext* g_pContext;
 
 CCoSem::CCoSem()
 {
@@ -31,7 +34,6 @@ CCoSem::~CCoSem()
 
 void CCoSem::Post()
 {
-    CTaskQueue *pTaskQueue = CTaskQueue::GetObj();
     uint64_t qwCid;
     {
         CSpinLock oLock(m_dwLock);
@@ -43,13 +45,13 @@ void CCoSem::Post()
         qwCid = *it;
         m_oQueue.erase(it);
     }
-    pTaskQueue->SwapWaitToExec(qwCid);
+    g_pContext->m_pTaskQueue->SwapWaitToExec(qwCid);
     CGoPost::Post();
 }
 
 bool CCoSem::Wait(uint32_t dwTimeout)
 {
-    ITaskBase *pTask = CCoroutine::GetObj()->GetTaskBase();
+    ITaskBase *pTask = g_pContext->m_pCo->GetTaskBase();
     {
         CSpinLock oLock(m_dwLock);
         if (m_dwCount != 0)

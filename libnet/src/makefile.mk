@@ -9,4 +9,6 @@ build/log.o \
 build/co_cond.o \
 build/co_sem.o \
 build/co_lock.o \
-build/go_post.o
+build/go_post.o \
+build/task_queue.o \
+build/context.o

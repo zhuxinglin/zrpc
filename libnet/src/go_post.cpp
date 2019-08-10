@@ -18,15 +18,14 @@
 #include "go.h"
 #include <stdint.h>
 #include <atomic>
+#include "context.h"
 
 using namespace znet;
-
-extern std::atomic_uint g_dwExecTheadCount;
-extern uint32_t g_dwWorkThreadCount;
-extern CSem g_oSem;
+extern CContext* g_pContext;
 
 void CGoPost::Post()
 {
-    if (g_dwExecTheadCount != g_dwWorkThreadCount)
-        g_oSem.Post();
+    CContext* pCx = g_pContext;
+    if (pCx->m_dwExecTheadCount != pCx->m_dwWorkThreadCount)
+        pCx->m_oSem.Post();
 }

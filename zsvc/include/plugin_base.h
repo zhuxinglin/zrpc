@@ -86,7 +86,7 @@ struct CSharedData
 
 struct CPluginBase
 {
-    virtual int Initialize(znet::CLog *pLog, znet::CCoroutine *pCo, znet::CNet *pN, CSharedData *pProc, CSharedData* pSo) = 0;
+    virtual int Initialize(znet::CLog *pLog, znet::CNet *pN, CSharedData *pProc, CSharedData* pSo) = 0;
     virtual int GetRouteTable(std::set<uint64_t>& setKey) = 0;
     virtual int Process(znet::SharedTask& oCo, CControllerBase* pController, uint64_t dwKey, std::string *pMessage) = 0;
     virtual int Process(znet::SharedTask& oCo, CControllerBase* pController, uint64_t dwKey, std::string *pReq, std::string *pResp) = 0;

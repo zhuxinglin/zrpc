@@ -21,8 +21,11 @@
 #include <stdio.h>
 #include "timer_fd.h"
 #include "event_epoll.h"
+#include "context.h"
 
 using namespace znet;
+
+extern CContext* g_pContext;
 
 typedef union _Cid
 {
@@ -53,19 +56,16 @@ ITaskBase::ITaskBase() : m_oPtr(this),
 
 ITaskBase::~ITaskBase()
 {
-    CTaskQueue *pTaskQueue = CTaskQueue::GetObj();
-    CCoroutine *pCor = CCoroutine::GetObj();
-
     if (m_pSp && m_pContext)
     {
-        pCor->Del(this);
+        g_pContext->m_pCo->Del(this);
         m_pSp = 0;
         m_pContext = 0;
     }
 
     if (m_pTaskQueue)
     {
-        pTaskQueue->DelWaitTask((CTaskNode*)m_pTaskQueue);
+        g_pContext->m_pTaskQueue->DelWaitTask((CTaskNode*)m_pTaskQueue);
         m_pTaskQueue = 0;
     }
 }
@@ -92,8 +92,6 @@ int ITaskBase::Sleep(uint32_t dwTimeoutMs)
 
 int ITaskBase::Yield(uint32_t dwTimeoutMs, int iFd, int iSetOpt, int iRestoreOpt, int iSetEvent, int iRestoreEvent, uint8_t wRunStatus)
 {
-    CCoroutine *pCor = CCoroutine::GetObj();
-
     uint32_t dwTimeout = m_dwTimeout;
     if (dwTimeoutMs != 0xFFFFFFFF)
         m_dwTimeout = dwTimeoutMs * 1e3;
@@ -108,26 +106,24 @@ int ITaskBase::Yield(uint32_t dwTimeoutMs, int iFd, int iSetOpt, int iRestoreOpt
     if (m_dwTimeout != dwTimeout)
     {
         // 重新设置超时
-        CTaskQueue::GetObj()->UpdateTimeout(m_qwCid);
+        g_pContext->m_pTaskQueue->UpdateTimeout(m_qwCid);
     }
 
-    CThread *pSch = CSchedule::GetObj();
-
     if (iSetEvent != -1 && iFd != -1)
-        pSch->PushMsg(iFd, iSetOpt, iSetEvent, (void *)m_qwCid);
+        g_pContext->m_pSchedule->PushMsg(iFd, iSetOpt, iSetEvent, (void *)m_qwCid);
 
     m_wStatus = STATUS_TIME;
 
-    pCor->Swap(this, false);
+    g_pContext->m_pCo->Swap(this, false);
 
     if (iRestoreEvent != -1 && iFd != -1)
-        pSch->PushMsg(iFd, iRestoreOpt, iRestoreEvent, (void *)m_qwCid);
+        g_pContext->m_pSchedule->PushMsg(iFd, iRestoreOpt, iRestoreEvent, (void *)m_qwCid);
 
     if (m_dwTimeout != dwTimeout)
     {
         m_dwTimeout = dwTimeout;
         // 重新设置超时
-        CTaskQueue::GetObj()->UpdateTimeout(m_qwCid);
+        g_pContext->m_pTaskQueue->UpdateTimeout(m_qwCid);
     }
 
     if (m_wStatus == STATUS_TIMEOUT)
@@ -138,8 +134,7 @@ int ITaskBase::Yield(uint32_t dwTimeoutMs, int iFd, int iSetOpt, int iRestoreOpt
 
 uint64_t ITaskBase::GenCid(int iFd)
 {
-    static volatile uint32_t dwCidInc = 0;
-    uint32_t dwCid = __sync_fetch_and_add(&dwCidInc, 1);
+    uint32_t dwCid = __sync_fetch_and_add(&g_pContext->m_dwCidInc, 1);
 
     CCid oCid;
     oCid.U_s.dwCid = dwCid;

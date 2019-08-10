@@ -20,8 +20,10 @@
 #include "task_queue.h"
 #include "schedule.h"
 #include "thread.h"
+#include "context.h"
 
 using namespace znet;
+extern CContext* g_pContext;
 
 CNetClient::CNetClient() : m_dwConnTimeout(3000),
                            m_wAddrLen(0),
@@ -105,8 +107,7 @@ int CNetClient::TcpConnect(const char *pszAddr, uint16_t wPort)
         return -1;
     }
     m_pFd = pCli;
-    CCoroutine *pCor = CCoroutine::GetObj();
-    return pCli->Create(pszAddr, wPort, m_dwConnTimeout, pCor->GetTaskBase(), m_wVer);
+    return pCli->Create(pszAddr, wPort, m_dwConnTimeout, g_pContext->m_pCo->GetTaskBase(), m_wVer);
 }
 
 int CNetClient::UdpConnect(const char *pszAddr, uint16_t wPort)
@@ -130,8 +131,7 @@ int CNetClient::UnixConnect(const char *pszAddr)
         return -1;
     }
     m_pFd = pCli;
-    CCoroutine *pCor = CCoroutine::GetObj();
-    return pCli->Create(pszAddr, m_dwConnTimeout, pCor->GetTaskBase());
+    return pCli->Create(pszAddr, m_dwConnTimeout, g_pContext->m_pCo->GetTaskBase());
 }
 
 int CNetClient::ReadReliable(char *pszBuf, int iLen, uint32_t dwTimeoutMs)
@@ -206,8 +206,7 @@ int CNetClient::WriteUnreliable(const char *pszBuf, int iLen, uint32_t dwTimeout
 
 int CNetClient::Wait(int iEvent, uint32_t dwTimeoutMs)
 {
-    CCoroutine *pCor = CCoroutine::GetObj();
-    CNetTask *pNetTask = (CNetTask *)pCor->GetTaskBase();
+    CNetTask *pNetTask = (CNetTask *)g_pContext->m_pCo->GetTaskBase();
     if (!pNetTask)
     {
         m_pFd->SetErr("get net task object context fail");
@@ -233,8 +232,7 @@ int CNetClient::Connect(const char *pszAddr, uint16_t wPort, const char *pszCace
         return -1;
     }
     m_pFd = pCli;
-    CCoroutine *pCor = CCoroutine::GetObj();
-    return pCli->Create(pszAddr, wPort, pszCacert, pszPass, pszCert, pszKey, m_dwConnTimeout, pCor->GetTaskBase(), wVer);
+    return pCli->Create(pszAddr, wPort, pszCacert, pszPass, pszCert, pszKey, m_dwConnTimeout, g_pContext->m_pCo->GetTaskBase(), wVer);
 }
 
 int CNetClient::TcpsRead(char *pszBuf, int iLen, uint32_t dwTimeoutMs)

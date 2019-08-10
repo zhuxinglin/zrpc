@@ -19,8 +19,11 @@
 #include "go_post.h"
 #include "task_queue.h"
 #include "thread.h"
+#include "context.h"
 
 using namespace znet;
+
+extern CContext* g_pContext;
 
 CCoCond::CCoCond()
 {
@@ -41,14 +44,13 @@ void CCoCond::Signal()
         qwCoId = m_oCond.front();
         m_oCond.pop();
     }
-    CTaskQueue *pTaskQueue = CTaskQueue::GetObj();
-    pTaskQueue->SwapWaitToExec(qwCoId);
+
+    g_pContext->m_pTaskQueue->SwapWaitToExec(qwCoId);
     CGoPost::Post();
 }
 
 void CCoCond::Broadcast()
 {
-    CTaskQueue *pTaskQueue = CTaskQueue::GetObj();
     while (m_oCond.empty())
     {
         uint64_t qwCoId;
@@ -58,7 +60,7 @@ void CCoCond::Broadcast()
             m_oCond.pop();
         }
 
-        pTaskQueue->SwapWaitToExec(qwCoId);
+        g_pContext->m_pTaskQueue->SwapWaitToExec(qwCoId);
         CGoPost::Post();
     }
 }
@@ -68,7 +70,7 @@ bool CCoCond::Wait(CCoLock *pLock, uint32_t dwTimeout)
     if (!pLock)
         return false;
 
-    ITaskBase *pTask = CCoroutine::GetObj()->GetTaskBase();
+    ITaskBase *pTask = g_pContext->m_pCo->GetTaskBase();
     m_oCond.push(pTask->m_qwCid);
     pLock->Unlock();
 

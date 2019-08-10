@@ -26,23 +26,20 @@ namespace znet
 
 class CSchedule : public CThread
 {
-private:
+public:
     CSchedule();
     ~CSchedule();
 
 public:
     std::string GetErr();
-    static CSchedule* GetObj();
+    virtual int PushMsg(uint32_t dwId, uint32_t dwMsgType, int iMsgLen, void *pMsg);
 
 private:
     virtual int Initialize(void* pUserData);
     virtual void Run(uint32_t dwId);
-    virtual int PushMsg(uint32_t dwId, uint32_t dwMsgType, int iMsgLen, void *pMsg);
-    virtual void Release();
 
 private:
     CEventEpoll m_oEvent;
-    static CSchedule* m_pSelf;
 };
 
 }

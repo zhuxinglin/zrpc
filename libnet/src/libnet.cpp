@@ -26,6 +26,7 @@
 #include <time.h>
 #include "timer_fd.h"
 #include "go_post.h"
+#include "context.h"
 
 using namespace znet;
 
@@ -36,17 +37,16 @@ struct CRemoveServer
 };
 
 CNet *CNet::m_pSelf = 0;
-uint32_t g_dwWorkThreadCount = 2;
-CGo *g_pGo = 0;
-uint32_t g_dwMaxTaskCount = 100000;
+CContext* g_pContext = 0;
 
 //
-CNet::CNet() : m_oNetPool(sizeof(CNetEvent), 8)
+CNet::CNet()
 {
     m_bIsMainExit = true;
     SSL_library_init();
     SSL_load_error_strings();
     OpenSSL_add_all_algorithms();
+    m_pContext = nullptr;
 }
 
 CNet::~CNet()
@@ -54,37 +54,38 @@ CNet::~CNet()
     if (!m_bIsMainExit)
         return;
 
+    if (!g_pContext)
+        return;
+
+    CContext* pCx = g_pContext;
     m_bIsMainExit = false;
-    CThread *pSch = CSchedule::GetObj();
-    if (pSch)
+    if (pCx->m_pSchedule)
     {
+        CThread *pSch = dynamic_cast<CThread *>(pCx->m_pSchedule);
         pSch->Exit();
         pSch->Release();
     }
 
-    if (g_pGo)
+    if (pCx->m_pGo)
     {
-        for (uint32_t i = 0; i < g_dwWorkThreadCount; ++i)
-            g_pGo[i].Exit([](void* p){
-                for (uint32_t i = 0; i < g_dwWorkThreadCount; ++i)
+        for (uint32_t i = 0; i < pCx->m_dwWorkThreadCount; ++i)
+            pCx->m_pGo[i].Exit([](void* p){
+                for (uint32_t i = 0; i < g_pContext->m_dwWorkThreadCount; ++i)
                     CGoPost::Post();
                 }
             );
-
-        delete[] g_pGo;
     }
-    g_pGo = 0;
 
-    CTaskQueue::Release();
-    CCoroutine::Release();
-
-    m_oNetPool.GetUse(this, &CNet::FreeListenFd);
+    pCx->m_oNetPool.GetUse(this, &CNet::FreeListenFd);
 
     ERR_free_strings();
     EVP_cleanup();
     CRYPTO_cleanup_all_ex_data();
-    CFileFd& oFd(m_oEvent);
+    CFileFd& oFd(pCx->m_oEvent);
     oFd.Close();
+
+    delete pCx;
+    g_pContext = nullptr;
 }
 
 CNet *CNet::GetObj()
@@ -97,7 +98,10 @@ CNet *CNet::GetObj()
 void CNet::Set(CNet* pN)
 {
     if (!m_pSelf)
+    {
         m_pSelf = pN;
+        g_pContext = reinterpret_cast<CContext*>(m_pSelf->m_pContext);
+    }
 }
 
 void CNet::Release()
@@ -107,45 +111,44 @@ void CNet::Release()
     m_pSelf = 0;
 }
 
+const char* CNet::GetErr()
+{
+    if (g_pContext)
+        return g_pContext->m_sErr.c_str();
+    return "create context object failed!";
+}
 
 int CNet::Init(uint32_t dwWorkThread, uint32_t dwSp)
 {
     if (dwWorkThread == 0)
-        g_dwWorkThreadCount = sysconf(_SC_NPROCESSORS_CONF);
-    else
-        g_dwWorkThreadCount = dwWorkThread;
+        dwWorkThread = sysconf(_SC_NPROCESSORS_CONF);
 
-    if (g_dwWorkThreadCount == 1)
-        g_dwWorkThreadCount = 2;
+    if (dwWorkThread == 1)
+        dwWorkThread = 2;
 
-    if (!CCoroutine::GetObj())
-    {
-        m_sErr = "get coroutine object fail";
+    g_pContext = new (std::nothrow) CContext;
+    if (!g_pContext)
         return -1;
-    }
+
+    CContext* pCx = g_pContext;
+    if (pCx->Init(dwWorkThread) < 0)
+        return -1;
 
     if (dwSp != 0)
-        CCoroutine::GetObj()->SetRspSize(dwSp);
-
-    if (!CTaskQueue::GetObj())
-    {
-        m_sErr = "get task queue object fail";
-        return -1;
-    }
+        pCx->m_pCo->SetRspSize(dwSp);
 
     if (Go() < 0)
         return -1;
 
-    if (m_oEvent.Create() < 0)
+    if (pCx->m_oEvent.Create() < 0)
     {
-        m_sErr = m_oEvent.GetErr();
+        pCx->m_sErr = pCx->m_oEvent.GetErr();
         return -1;
     }
 
-    CSchedule *pSch = CSchedule::GetObj();
-    if (pSch->Start("schedule_thread") < 0)
+    if (pCx->m_pSchedule->Start("schedule_thread") < 0)
     {
-        m_sErr = pSch->GetErr();
+        pCx->m_sErr = pCx->m_pSchedule->GetErr();
         return -1;
     }
     return 0;
@@ -153,20 +156,13 @@ int CNet::Init(uint32_t dwWorkThread, uint32_t dwSp)
 
 int CNet::Go()
 {
-    g_pGo = new (std::nothrow) CGo[g_dwWorkThreadCount];
-    if (!g_pGo)
-    {
-        m_sErr = "create go thread object failed";
-        return -1;
-    }
-
-    for (uint32_t i = 0; i < g_dwWorkThreadCount; ++i)
+    for (uint32_t i = 0; i < g_pContext->m_dwWorkThreadCount; ++i)
     {
         char buf[64];
         snprintf(buf, sizeof(buf), "go_thread_%d", i);
-        if (g_pGo[i].Start(buf, false, 0, i) < 0)
+        if (g_pContext->m_pGo[i].Start(buf, false, 0, i) < 0)
         {
-            m_sErr = g_pGo[i].GetErr();
+            g_pContext->m_sErr = g_pContext->m_pGo[i].GetErr();
             return -1;
         }
     }
@@ -175,31 +171,40 @@ int CNet::Go()
 
 void CNet::SetMaxTaskCount(uint32_t dwMaxTaskCount)
 {
-    g_dwMaxTaskCount = dwMaxTaskCount;
+    g_pContext->m_dwMaxTaskCount = dwMaxTaskCount;
 }
 
 uint32_t CNet::GetCurTaskCount() const
 {
-    return CTaskQueue::GetObj()->GetCurTaskCount();
+    return g_pContext->m_pTaskQueue->GetCurTaskCount();
 }
 
 uint32_t CNet::GetTaskThreadCount() const
 {
-    return g_dwWorkThreadCount;
+    return g_pContext->m_dwWorkThreadCount;
+}
+
+uint64_t CNet::GetCurCid() const
+{
+    CContext* pCx = g_pContext;
+    if (!pCx || !pCx->m_pCo || !pCx->m_pCo->GetTaskBase())
+        return 0;
+    return pCx->m_pCo->GetTaskBase()->m_qwCid;
 }
 
 int CNet::Register(NEWOBJ(ITaskBase, pCb), void *pData, uint16_t wProtocol, uint16_t wPort, const char *pszIP,
                    uint16_t wVer, uint32_t dwTimeoutMs, const char *pszServerName, const char *pszSslCert, const char *pszSslKey)
 {
+    CContext* pCx = g_pContext;
     if (!pCb)
     {
-        m_sErr = "ITaskBase *(*pCb)() is null";
+        pCx->m_sErr = "ITaskBase *(*pCb)() is null";
         return -1;
     }
 
     if (wProtocol > ITaskBase::PROTOCOL_UDPG)
     {
-        m_sErr = "not net register";
+        pCx->m_sErr = "not net register";
         return -1;
     }
 
@@ -211,10 +216,10 @@ int CNet::Register(NEWOBJ(ITaskBase, pCb), void *pData, uint16_t wProtocol, uint
     if (wProtocol > ITaskBase::PROTOCOL_TCPS)
         return SetUdpTask(pCb, pFd, pData, wProtocol, pszIP);
 
-    CNetEvent *pEvent = (CNetEvent *)m_oNetPool.Malloc();
+    CNetEvent *pEvent = (CNetEvent *)pCx->m_oNetPool.Malloc();
     if (!pEvent)
     {
-        m_sErr = "new event node object fail";
+        pCx->m_sErr = "new event node object fail";
         delete pFd;
         return -1;
     }
@@ -232,12 +237,12 @@ int CNet::Register(NEWOBJ(ITaskBase, pCb), void *pData, uint16_t wProtocol, uint
     memset(pEvent->szServerName, 0, sizeof(pEvent->szServerName));
     memcpy(pEvent->szServerName, pszServerName, iSvcNameLen);
 
-    iRet = m_oEvent.SetCtl(pFd->GetFd(), 0, CEventEpoll::EPOLL_IN, pEvent);
+    iRet = pCx->m_oEvent.SetCtl(pFd->GetFd(), 0, CEventEpoll::EPOLL_IN, pEvent);
     if (iRet < 0)
     {
-        m_sErr = m_oEvent.GetErr();
+        pCx->m_sErr = pCx->m_oEvent.GetErr();
         delete pFd;
-        m_oNetPool.Free(pEvent);
+        pCx->m_oNetPool.Free(pEvent);
     }
 
     return iRet;
@@ -245,9 +250,10 @@ int CNet::Register(NEWOBJ(ITaskBase, pCb), void *pData, uint16_t wProtocol, uint
 
 int CNet::Register(NEWOBJ(ITaskBase, pCb), void *pData, uint16_t wProtocol, uint32_t dwTimeoutUs)
 {
+    CContext* pCx = g_pContext;
     if (wProtocol < ITaskBase::PROTOCOL_TIMER_FD || wProtocol > ITaskBase::PROTOCOL_EVENT_FD)
     {
-        m_sErr = "error protocol";
+        pCx->m_sErr = "error protocol";
         return -1;
     }
 
@@ -263,14 +269,14 @@ int CNet::Register(NEWOBJ(ITaskBase, pCb), void *pData, uint16_t wProtocol, uint
         CTimerFd *pTimer = new (std::nothrow) CTimerFd();
         if (!pTimer)
         {
-            m_sErr = "new timer fd object fail";
+            pCx->m_sErr = "new timer fd object fail";
             return -1;
         }
         pNet = (CNetTask *)pTask;
         pNet->m_pFd = pTimer;
         if (pTimer->Create(dwTimeoutUs) < 0)
         {
-            m_sErr = pTimer->GetErr();
+            pCx->m_sErr = pTimer->GetErr();
             DeleteTask(pTask);
             return -1;
         }
@@ -284,14 +290,14 @@ int CNet::Register(NEWOBJ(ITaskBase, pCb), void *pData, uint16_t wProtocol, uint
         CEventFd *pEvent = new (std::nothrow) CEventFd();
         if (!pEvent)
         {
-            m_sErr = "new event fd object fail";
+            pCx->m_sErr = "new event fd object fail";
             return -1;
         }
         pNet = (CNetTask *)pTask;
         pNet->m_pFd = pEvent;
         if (pEvent->Create() < 0)
         {
-            m_sErr = pEvent->GetErr();
+            pCx->m_sErr = pEvent->GetErr();
             DeleteTask(pTask);
             return -1;
         }
@@ -312,7 +318,7 @@ int CNet::Register(ITaskBase *pBase, void *pData, uint16_t wProtocol, int iFd, u
 {
     if (wProtocol != ITaskBase::PROTOCOL_TIMER)
     {
-        m_sErr = "error protocol";
+        g_pContext->m_sErr = "error protocol";
         delete pBase;
         return -1;
     }
@@ -333,14 +339,14 @@ int CNet::Register(NEWOBJ(ITaskBase, pCb), void* pData, uint16_t wProtocol, int 
 {
     if (wProtocol != ITaskBase::PROTOCOL_TIMER)
     {
-        m_sErr = "error protocol";
+        g_pContext->m_sErr = "error protocol";
         return -1;
     }
 
     ITaskBase* pTask = pCb();
     if (!pTask)
     {
-        m_sErr = "new task base object fail";
+        g_pContext->m_sErr = "new task base object fail";
         return -1;
     }
 
@@ -349,7 +355,7 @@ int CNet::Register(NEWOBJ(ITaskBase, pCb), void* pData, uint16_t wProtocol, int 
 
 int CNet::AddTimerTask(ITaskBase *pTask, uint32_t dwTimeout)
 {
-    CTaskQueue *pTaskQueue = CTaskQueue::GetObj();
+    CTaskQueue *pTaskQueue = g_pContext->m_pTaskQueue;
     int iRet = -1;
     do
     {
@@ -367,25 +373,25 @@ int CNet::AddTimerTask(ITaskBase *pTask, uint32_t dwTimeout)
     if (iRet < 0)
     {
         DeleteTask(pTask);
-        m_sErr = "add message list fail";
+        g_pContext->m_sErr = "add message list fail";
     }
     return iRet;
 }
 
 int CNet::AddFdTask(ITaskBase *pTask, int iFd)
 {
-    CTaskQueue *pTaskQueue = CTaskQueue::GetObj();
+    CTaskQueue *pTaskQueue = g_pContext->m_pTaskQueue;
     if (!pTaskQueue->AddWaitTask((CTaskNode *)pTask->m_pTaskQueue))
     {
         DeleteTask(pTask);
-        m_sErr = "add message list fail";
+        g_pContext->m_sErr = "add message list fail";
         return -1;
     }
 
-    CThread *pSchedule = CSchedule::GetObj();
+    CThread *pSchedule = g_pContext->m_pSchedule;
     if (pSchedule->PushMsg(iFd, 0, 0, (void *)pTask->m_qwCid) < 0)
     {
-        m_sErr = pSchedule->GetErr();
+        g_pContext->m_sErr = pSchedule->GetErr();
         DeleteObj(pTask);
         return -1;
     }
@@ -403,13 +409,13 @@ CFileFd *CNet::GetFd(uint16_t wProtocol, uint16_t wPort, const char *pszIP, uint
         CTcpSvc *pTcp = new (std::nothrow) CTcpSvc();
         if (!pTcp)
         {
-            m_sErr = "Create tcp object failed";
+            g_pContext->m_sErr = "Create tcp object failed";
             break;
         }
         int iRet = pTcp->Create(pszIP, wPort, 10240, wVer);
         if (iRet < 0)
         {
-            m_sErr = pTcp->GetErr();
+            g_pContext->m_sErr = pTcp->GetErr();
             delete pTcp;
             break;
         }
@@ -422,14 +428,14 @@ CFileFd *CNet::GetFd(uint16_t wProtocol, uint16_t wPort, const char *pszIP, uint
         CTcpsSvc* pTcps = new (std::nothrow) CTcpsSvc();
         if (!pTcps)
         {
-            m_sErr = "Create tcp ssl object failed";
+            g_pContext->m_sErr = "Create tcp ssl object failed";
             break;
         }
 
         int iRet = pTcps->Create(pszIP, wPort, 10240, pszSslCert, pszSslKey, wVer);
         if (iRet < 0)
         {
-            m_sErr = pTcps->GetErr();
+            g_pContext->m_sErr = pTcps->GetErr();
             delete pTcps;
             break;
         }
@@ -443,13 +449,13 @@ CFileFd *CNet::GetFd(uint16_t wProtocol, uint16_t wPort, const char *pszIP, uint
         pUnix = new (std::nothrow) CUnixSvc();
         if (!pUnix)
         {
-            m_sErr = "Create unix object failed";
+            g_pContext->m_sErr = "Create unix object failed";
             break;
         }
         int iRet = pUnix->Create(pszIP, 1024);
         if (iRet < 0)
         {
-            m_sErr = pUnix->GetErr();
+            g_pContext->m_sErr = pUnix->GetErr();
             delete pUnix;
             break;
         }
@@ -462,13 +468,13 @@ CFileFd *CNet::GetFd(uint16_t wProtocol, uint16_t wPort, const char *pszIP, uint
         CUdpSvc* pUdp = new (std::nothrow) CUdpSvc();
         if (!pUdp)
         {
-            m_sErr = "Create unix object failed";
+            g_pContext->m_sErr = "Create unix object failed";
             break;
         }
         int iRet = pUdp->Create(pszIP, wPort, 0, wVer);
         if (iRet < 0)
         {
-            m_sErr = pUdp->GetErr();
+            g_pContext->m_sErr = pUdp->GetErr();
             delete pUdp;
             break;
         }
@@ -477,11 +483,11 @@ CFileFd *CNet::GetFd(uint16_t wProtocol, uint16_t wPort, const char *pszIP, uint
     break;
 
     case ITaskBase::PROTOCOL_UDPG:
-        m_sErr = "not udp group";
+        g_pContext->m_sErr = "not udp group";
         break;
 
     default:
-        m_sErr = "error protocol";
+        g_pContext->m_sErr = "error protocol";
         break;
     }
     return pFd;
@@ -492,7 +498,7 @@ int CNet::SetUdpTask(NEWOBJ(ITaskBase, pCb), CFileFd* pFd, void *pData, uint16_t
     CNetTask *pTask = (CNetTask *)NewTask(pCb, pData, wProtocol);
     if (!pTask)
     {
-        m_sErr = "new task base object fail";
+        g_pContext->m_sErr = "new task base object fail";
         delete pFd;
         return -1;
     }
@@ -517,7 +523,7 @@ ITaskBase *CNet::NewTask(NEWOBJ(ITaskBase, pCb), void *pData, uint16_t wProtocol
     ITaskBase *pBase = pCb();
     if (!pBase)
     {
-        m_sErr = "new task base object fail";
+        g_pContext->m_sErr = "new task base object fail";
         return 0;
     }
 
@@ -527,10 +533,10 @@ ITaskBase *CNet::NewTask(NEWOBJ(ITaskBase, pCb), void *pData, uint16_t wProtocol
 
 ITaskBase *CNet::NewTask(ITaskBase *pBase, void *pData, uint16_t wProtocol, uint32_t dwTimeoutUs)
 {
-    pBase->m_pTaskQueue = CTaskQueue::GetObj()->Create(pBase);
+    pBase->m_pTaskQueue = g_pContext->m_pTaskQueue->Create(pBase);
     if (__builtin_expect(pBase->m_pTaskQueue == 0, 0))
     {
-        m_sErr = "new task queue object fail";
+        g_pContext->m_sErr = "new task queue object fail";
         DeleteObj(pBase);
         return 0;
     }
@@ -575,11 +581,10 @@ int CNet::Start()
 {
     struct epoll_event ev[512];
     CReliableFd oFd;
-    CThread *pSchedule = CSchedule::GetObj();
-    CTaskQueue *pTaskQueue = CTaskQueue::GetObj();
+    CContext* pCx = g_pContext;
     while(m_bIsMainExit)
     {
-        int iCount = m_oEvent.Wait(ev, 512, -1);
+        int iCount = pCx->m_oEvent.Wait(ev, 512, -1);
         if (iCount < 0)
         {
             break;
@@ -605,7 +610,7 @@ int CNet::Start()
             else
                 iFd = oFd.Accept(pTask->m_szAddr, sizeof(pTask->m_szAddr) - 1);
 
-            if (pTaskQueue->GetCurTaskCount() > g_dwMaxTaskCount)
+            if (pCx->m_pTaskQueue->GetCurTaskCount() > pCx->m_dwMaxTaskCount)
             {
                 CFileFd oClose(iFd);
                 iFd = -1;
@@ -640,10 +645,10 @@ int CNet::Start()
                 // 添加到执行队列
                 if (pTask->m_wRunStatus == ITaskBase::RUN_NOW)
                 {
-                    if (!pTaskQueue->AddExecTask((CTaskNode *)pTask->m_pTaskQueue))
+                    if (!pCx->m_pTaskQueue->AddExecTask((CTaskNode *)pTask->m_pTaskQueue))
                         break;
                 }
-                else if (!pTaskQueue->AddWaitTask((CTaskNode *)pTask->m_pTaskQueue)) // 添加到等待队列
+                else if (!pCx->m_pTaskQueue->AddWaitTask((CTaskNode *)pTask->m_pTaskQueue)) // 添加到等待队列
                     break;
                 iRet = 0;
             }while(0);
@@ -656,10 +661,10 @@ int CNet::Start()
             }
 
             uint32_t dwRunstatus = pTask->m_wRunStatus;
-            iRet = pSchedule->PushMsg(iFd, CEventEpoll::EPOLL_ADD, CEventEpoll::EPOLL_ET_IN, (void *)pTask->m_qwCid);
+            iRet = pCx->m_pSchedule->PushMsg(iFd, CEventEpoll::EPOLL_ADD, CEventEpoll::EPOLL_ET_IN, (void *)pTask->m_qwCid);
             if (iRet < 0)
             {
-                pTask->Error(pSchedule->GetErr().c_str());
+                pTask->Error(pCx->m_pSchedule->GetErr().c_str());
                 if (pTask->m_wRunStatus == ITaskBase::RUN_NOW)
                 {
                     pTask->m_wRunStatus = ITaskBase::RUN_EXIT;
@@ -693,7 +698,7 @@ int CNet::Unregister(const char *pszServerName)
     oRemove.pszName = pszServerName;
     oRemove.iRet = -1;
 
-    m_oNetPool.GetUse(this, &CNet::RemoveServer, &oRemove);
+    g_pContext->m_oNetPool.GetUse(this, &CNet::RemoveServer, &oRemove);
     return oRemove.iRet;
 }
 
@@ -711,11 +716,10 @@ int CNet::RemoveServer(void *pEvent, void *pData)
     if (strcmp(pNet->szServerName, pRemove->pszName) == 0)
     {
         pRemove->iRet = 0;
-        m_oEvent.SetCtl(pNet->pFd->GetFd(), CEventEpoll::EPOLL_DEL, 0, 0);
+        g_pContext->m_oEvent.SetCtl(pNet->pFd->GetFd(), CEventEpoll::EPOLL_DEL, 0, 0);
         pNet->pFd->Close();
 
-        CCoroutine *pCor = CCoroutine::GetObj();
-        CNetTask *pNetTask = (CNetTask *)pCor->GetTaskBase();
+        CNetTask *pNetTask = (CNetTask *)g_pContext->m_pCo->GetTaskBase();
         pNetTask->Yield(3e3);
         delete pNet->pFd;
         pNet->pFd = 0;
@@ -727,8 +731,7 @@ int CNet::RemoveServer(void *pEvent, void *pData)
 
 void CNet::DeleteTask(ITaskBase* pTask)
 {
-    CTaskQueue *pTaskQueue = CTaskQueue::GetObj();
-    pTaskQueue->DelTask((CTaskNode *)pTask->m_pTaskQueue);
+    g_pContext->m_pTaskQueue->DelTask((CTaskNode *)pTask->m_pTaskQueue);
     pTask->m_pTaskQueue = 0;
     DeleteObj(pTask);
 }

@@ -20,7 +20,7 @@
 #include <time.h>
 #include <queue>
 #include <unistd.h>
-#include "coroutine.h"
+#include "libnet.h"
 #include <sys/syscall.h>
 
 namespace znet
@@ -137,8 +137,8 @@ public:
 		snprintf(szBuf, sizeof(szBuf), "[%04d-%02d-%02d %02d:%02d:%02d.%09lu] [",
 				 t.tm_year + 1900, t.tm_mon + 1, t.tm_mday, t.tm_hour, t.tm_min, t.tm_sec, ts.tv_nsec);
 		uint64_t qwCid = 0;
-		if (CCoroutine::GetObj()->GetTaskBase())
-			qwCid = CCoroutine::GetObj()->GetTaskBase()->m_qwCid;
+		if (CNet::GetObj())
+			qwCid = CNet::GetObj()->GetCurCid();
 		oStream << szBuf << pszFile << " " << pszFunciont << ":" << iLine;
 		oStream << "] [pid:" << getpid() << " " << "tid:" << syscall(SYS_gettid) << " cid:" << qwCid << "] ";
 		oStream << pszLevel << " ";

@@ -6,6 +6,5 @@ build/event_epoll.o \
 build/memory_pool.o \
 build/socket_fd.o \
 build/thread.o \
-build/task_queue.o \
 build/event_fd.o \
 build/timer_fd.o 

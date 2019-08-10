@@ -29,10 +29,9 @@ CTestAd::~CTestAd()
 {
 }
 
-int CTestAd::Initialize(znet::CLog *pLog, znet::CCoroutine* pCo, znet::CNet* pN, CSharedData *pProc, CSharedData* pSo)
+int CTestAd::Initialize(znet::CLog *pLog, znet::CNet* pN, CSharedData *pProc, CSharedData* pSo)
 {
 	znet::CNet::Set(pN);
-    znet::CCoroutine::SetObj(pCo);
     znet::CLog::SetObj(pLog);
     return 0;
 }

@@ -21,10 +21,10 @@
 #include "coroutine.h"
 #include "timer_fd.h"
 #include "go_post.h"
+#include "context.h"
 
 using namespace znet;
-
-CSchedule* CSchedule::m_pSelf = 0;
+extern CContext* g_pContext;
 
 CSchedule::CSchedule()
 {
@@ -55,24 +55,10 @@ std::string CSchedule::GetErr()
     return m_oEvent.GetErr();
 }
 
-CSchedule *CSchedule::GetObj()
-{
-    if (!m_pSelf)
-        m_pSelf = new CSchedule();
-    return m_pSelf;
-}
-
-void CSchedule::Release()
-{
-    if (m_pSelf)
-        delete m_pSelf;
-    m_pSelf = 0;
-}
-
 void CSchedule::Run(uint32_t dwId)
 {
     struct epoll_event ev[256];
-    CTaskQueue *pTaskQueue = CTaskQueue::GetObj();
+    CTaskQueue *pTaskQueue = g_pContext->m_pTaskQueue;
     uint64_t qwLastTime = CTimerFd::GetNs();
     while (m_bExit)
     {

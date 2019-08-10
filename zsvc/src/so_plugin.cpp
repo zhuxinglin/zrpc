@@ -186,7 +186,7 @@ CSoFunAddr *CSoPlugin::GetLoadSo(const char *pszSoName, set_key **psetKey, std::
             break;
         }
 
-        if (pAddr->pPlugin->Initialize(znet::CLog::GetObj(), znet::CCoroutine::GetObj(), znet::CNet::GetObj(), m_pProc, pSo.get()) < 0)
+        if (pAddr->pPlugin->Initialize(znet::CLog::GetObj(), znet::CNet::GetObj(), m_pProc, pSo.get()) < 0)
         {
             LOGE << "create '" << pszSoName << "',fun 'Initialize' fail";
             break;
