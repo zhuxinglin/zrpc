@@ -128,9 +128,10 @@ void CHttpSvc::SetUri()
         ++ c;
 
     if (m_oHttpReq.sMethod.compare("GET") == 0)
+    {
         m_oHttpReq.szBody = ++ c;
-
-    m_oHttpReq.sUri.resize(c - s - 1);
+        m_oHttpReq.sUri.resize(c - s - 1);
+    }
 }
 
 int CHttpSvc::OnUri(http_parser *pParser, const char *at, size_t length)

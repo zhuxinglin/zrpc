@@ -26,7 +26,8 @@ WatcherEvent::WatcherEvent()
 
 WatcherEvent::~WatcherEvent()
 {
-    delete m_pWatcher;
+    if (m_pWatcher)
+        delete m_pWatcher;
 }
 
 int WatcherEvent::Init(IWatcher* pWatcher)
@@ -46,7 +47,8 @@ void WatcherEvent::Exit()
     m_bIsExit = false;
     ZkEvent oEv;
     oEv.type = -1;
-    Push(oEv);
+    m_oChan << oEv;
+    m_oChan >> oEv;
 }
 
 void WatcherEvent::Run()
@@ -59,6 +61,9 @@ void WatcherEvent::Run()
         if (m_pWatcher)
             m_pWatcher->OnWatcher(oEv.type, oEv.state, oEv.oMsg);
     }
+
+    ZkEvent oEv;
+    m_oChan << oEv;
 }
 
 #pragma GCC diagnostic pop

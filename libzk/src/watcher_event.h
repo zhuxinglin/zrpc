@@ -52,7 +52,7 @@ private:
     virtual void Run();
 
 private:
-    bool m_bIsExit = true;
+    volatile bool m_bIsExit = true;
     IWatcher* m_pWatcher;
     znet::CCoChan<ZkEvent> m_oChan;
 };
