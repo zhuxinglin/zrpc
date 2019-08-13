@@ -404,16 +404,18 @@ int CTcpSvc::Create(const char *pszAddr, uint16_t wPort, uint32_t dwListen, uint
 
         GetSockAddr(&addr4, &addr6, &pAddr, pszAddr, wPort, &iAddrLen);
         if (SetFdOpt(SOL_SOCKET, SO_REUSEADDR, &iReuse, sizeof(iReuse)) < 0)
-        {
             break;
-        }
 
         iReuse = 1;
         if (SetFdOpt(SOL_SOCKET, SO_KEEPALIVE, &iReuse, sizeof(iReuse)) < 0)
-        {
             break;
-        }
 
+        if (SetFdOpt(SOL_TCP, TCP_NODELAY, &iReuse, sizeof(iReuse)) < 0)
+            break;
+/*
+        if (SetFdOpt(SOL_TCP, , &iReuse, sizeof(iReuse)) < 0)
+            break;
+*/
         if (::bind(m_iFd, pAddr, iAddrLen) < 0)
         {
             SetFdErr("bind socket fail!", &addr4, &addr6, pszAddr, wPort, 0);
@@ -469,14 +471,10 @@ int CTcpCli::Create(const char *pszAddr, uint16_t wPort, uint32_t dwTimeout, ITa
         tv.tv_usec = 0;
 
         if (SetFdOpt(SOL_SOCKET, SO_SNDTIMEO, &tv, sizeof(tv)) < 0)
-        {
             break;
-        }
 
         if (SetFdOpt(SOL_SOCKET, SO_RCVTIMEO, &tv, sizeof(tv)) < 0)
-        {
             break;
-        }
 
         if (m_bAsync && Async() < 0)
             break;
@@ -494,9 +492,11 @@ int CTcpCli::Create(const char *pszAddr, uint16_t wPort, uint32_t dwTimeout, ITa
         int iKeepAlive = 1;
         // 开启keepalive
         if (SetFdOpt(SOL_SOCKET, SO_KEEPALIVE, &iKeepAlive, sizeof(iKeepAlive)) < 0)
-        {
             break;
-        }
+
+        if (SetFdOpt(SOL_TCP, TCP_NODELAY, &iKeepAlive, sizeof(iKeepAlive)) < 0)
+            break;
+
 /*
         int iKeepIdle = 30; //默认如该连接在5秒内没有任何数据往来，则进行探测
         if (SetFdOpt(SOL_TCP, TCP_KEEPIDLE, &iKeepIdle, sizeof(iKeepIdle)) < 0)
