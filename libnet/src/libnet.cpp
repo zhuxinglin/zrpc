@@ -54,37 +54,19 @@ CNet::~CNet()
     if (!m_bIsMainExit)
         return;
 
-    if (!g_pContext)
-        return;
-
-    CContext* pCx = g_pContext;
     m_bIsMainExit = false;
-    if (pCx->m_pSchedule)
-    {
-        CThread *pSch = dynamic_cast<CThread *>(pCx->m_pSchedule);
-        pSch->Exit();
-        pSch->Release();
-    }
 
-    if (pCx->m_pGo)
-    {
-        for (uint32_t i = 0; i < pCx->m_dwWorkThreadCount; ++i)
-            pCx->m_pGo[i].Exit([](void* p){
-                for (uint32_t i = 0; i < g_pContext->m_dwWorkThreadCount; ++i)
-                    CGoPost::Post();
-                }
-            );
-    }
-
-    pCx->m_oNetPool.GetUse(this, &CNet::FreeListenFd);
+    if (g_pContext)
+        g_pContext->m_oNetPool.GetUse(this, &CNet::FreeListenFd);
 
     ERR_free_strings();
     EVP_cleanup();
     CRYPTO_cleanup_all_ex_data();
-    CFileFd& oFd(pCx->m_oEvent);
-    oFd.Close();
 
-    delete pCx;
+    if (!g_pContext)
+        return;
+
+    delete g_pContext;
     g_pContext = nullptr;
 }
 

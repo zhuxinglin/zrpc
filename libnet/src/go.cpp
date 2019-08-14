@@ -108,7 +108,6 @@ void CGo::Run(uint32_t dwId)
             }
 
             {
-                //printf("__________________ %p\n", pTask->m_oPtr.get());
                 std::shared_ptr<ITaskBase> optr(pTask->m_oPtr);
                 pTask->m_oPtr = nullptr;
             }
@@ -116,5 +115,19 @@ void CGo::Run(uint32_t dwId)
 
         --pCx->m_dwExecTheadCount;
     }
+    ExitAllCoroutine();
 }
 
+void CGo::ExitAllCoroutine()
+{
+    g_pContext->m_pTaskQueue->AddAllToExec();
+    CTaskNode *pTaskNode;
+    while ((pTaskNode = g_pContext->m_pTaskQueue->GetFirstExecTask()))
+    {
+        ITaskBase *pTask = pTaskNode->pTask;
+        {
+            std::shared_ptr<ITaskBase> optr(pTask->m_oPtr);
+            pTask->m_oPtr = nullptr;
+        }
+    }
+}

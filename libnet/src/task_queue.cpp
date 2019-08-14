@@ -306,3 +306,18 @@ void CTaskQueue::UpdateTaskTime(CTaskWaitRb *pRb, CTaskNode *pTaskNode, const CT
     CTaskKey oNewKey(pBase->m_qwBeginTime, pBase->m_dwTimeout);
     pRb->oTaskRb.insert(CTaskWaitRb::TaskRb::value_type(oNewKey, pTaskNode));
 }
+
+void CTaskQueue::AddAllToExec()
+{
+    for (int i = 0; i < (int)m_dwSumCpu; ++i)
+    {
+        CTaskWaitRb *pRb = &m_pWait[i];
+        CSpinLock oLock(pRb->dwSync);
+        CTaskWaitRb::TaskIt it = pRb->oTaskRb.begin();
+        for (; it != pRb->oTaskRb.end(); ++it)
+        {
+            CTaskNode *pTaskNode = it->second;
+            AddTask(pTaskNode, ITaskBase::RUN_EXEC);
+        }
+    }
+}

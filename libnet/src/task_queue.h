@@ -49,6 +49,8 @@ public:
 
     uint32_t GetCurTaskCount() const{return m_dwCurTaskCount;};
 
+    void AddAllToExec();
+
 private:
     CTaskNode* AddTask(CTaskNode* pNode, int iRunStatus);
     int DelRbTask(CTaskWaitRb *pRb, CTaskNode *pNode);

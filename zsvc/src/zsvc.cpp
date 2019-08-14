@@ -57,9 +57,11 @@ int CJSvc::Init(CConfig *pCfg)
             return -1;
     }
 
+    m_pMonitorSo = new CMonitorSo;
     // 初始化插件监控
-    if (m_oMonitorSo.InitMonitorDir(g_oPluginPath.c_str()) < 0)
+    if (m_pMonitorSo->InitMonitorDir(g_oPluginPath.c_str()) < 0)
     {
+        delete m_pMonitorSo;
         LOGE << "initialize plugin monitor fail";
         return -1;
     }
@@ -75,7 +77,7 @@ int CJSvc::Init(CConfig *pCfg)
 
 int CJSvc::Start()
 {
-    if (m_oMonitorSo.Start(&m_oPlugin) < 0)
+    if (m_pMonitorSo->Start(&m_oPlugin) < 0)
     {
         LOGE << "start plugin monitor fail";
         return -1;

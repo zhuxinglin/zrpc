@@ -42,7 +42,7 @@ private:
     int LogInit(CConfig::config_info* pCfg);
 
 private:
-    CMonitorSo m_oMonitorSo;
+    CMonitorSo* m_pMonitorSo;
     CSoPlugin m_oPlugin;
 };
 

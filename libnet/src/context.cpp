@@ -15,6 +15,7 @@
 */
 
 #include "context.h"
+#include "go_post.h"
 
 using namespace znet;
 
@@ -24,6 +25,25 @@ CContext::CContext() : m_pCo(0), m_pGo(0), m_pTaskQueue(0), m_pSchedule(0), m_oN
 
 CContext::~CContext()
 {
+    CFileFd &oFd(m_oEvent);
+    oFd.Close();
+
+    if (m_pSchedule)
+    {
+        CThread *pSch = dynamic_cast<CThread *>(m_pSchedule);
+        pSch->Exit();
+    }
+
+    if (m_pGo)
+    {
+        for (uint32_t i = 0; i < m_dwWorkThreadCount; ++i)
+            m_pGo[i].Exit([](void *p) {
+                CContext* th = reinterpret_cast<CContext*>(p);
+                for (uint32_t i = 0; i < th->m_dwWorkThreadCount; ++i)
+                    CGoPost::Post();
+            }, this);
+    }
+
     if (m_pCo)
         delete m_pCo;
     m_pCo = nullptr;
