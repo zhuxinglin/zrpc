@@ -19,6 +19,7 @@
 #include <vector>
 #include <string>
 #include "zk_protocol.h"
+#include <libnet.h>
 
 namespace zkapi
 {
@@ -47,9 +48,14 @@ namespace zkapi
 #define ZOO_SETAUTH_OP 100
 #define ZOO_SETWATCHES_OP 101
 
+enum class WatcherType : int
+{
+    TYPE_CONNECT_SUCCESS = -1,
+};
+
 struct IWatcher
 {
-    virtual void OnWatcher(int type, int state, const std::string& path) = 0;
+    virtual void OnWatcher(int type, conet::ITaskBase* pTask, const std::string& path) = 0;
 };
 
 struct clientid_t

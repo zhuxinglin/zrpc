@@ -27,13 +27,12 @@ namespace zkapi
 struct ZkEvent
 {
     ZkEvent() = default;
-    ZkEvent(int& t, int& s, std::string& o):type(t), state(s), oMsg(o)
+    ZkEvent(int t, std::string& o):type(t), oMsg(o)
     {}
     ~ZkEvent() = default;
     ZkEvent(const ZkEvent&) = default;
 
     int type;
-    int state;
     std::string oMsg;
 };
 

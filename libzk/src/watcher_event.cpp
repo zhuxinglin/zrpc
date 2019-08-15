@@ -59,7 +59,7 @@ void WatcherEvent::Run()
         m_oChan >> oEv;
 
         if (m_pWatcher)
-            m_pWatcher->OnWatcher(oEv.type, oEv.state, oEv.oMsg);
+            m_pWatcher->OnWatcher(oEv.type, this, oEv.oMsg);
     }
 
     ZkEvent oEv;

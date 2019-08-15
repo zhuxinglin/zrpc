@@ -263,6 +263,10 @@ int ZkProtoMgr::connectZkSvr()
 
         if (sendAuthInfo() < 0)
             continue;
+
+        std::string sRoot = "/";
+        ZkEvent oEv(-1, sRoot);
+        m_pEvent->Push(oEv);
         break;
     }
 
@@ -404,7 +408,7 @@ int ZkProtoMgr::dispatchMsg(std::shared_ptr<char> &oMsg, int iSumLen)
         zk_watcher_event evt;
         evt.Ntoh(hdr->data, iSumLen);
         evt.path = subString(evt.path);
-        ZkEvent oEv(evt.type, evt.state, evt.path);
+        ZkEvent oEv(evt.type, evt.path);
         m_pEvent->Push(oEv);
     }
     else if (hdr->xid == SET_WATCHES_XID)

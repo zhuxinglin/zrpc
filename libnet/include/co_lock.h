@@ -43,5 +43,22 @@ private:
     volatile uint32_t m_dwLock;
 };
 
+class CCoLocalLock
+{
+public:
+    CCoLocalLock(CCoLock& oLock) : m_oLock(oLock)
+    {
+        m_oLock.Lock();
+    }
+
+    ~CCoLocalLock()
+    {
+        m_oLock.Unlock();
+    }
+
+private:
+    CCoLock& m_oLock;
+};
+
 }
 #endif
