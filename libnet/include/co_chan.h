@@ -135,7 +135,7 @@ private:
     volatile uint32_t m_dwSync = 0;
     uint32_t m_dwQueueLimit = -1;
     bool m_bIsClose = false;
-    std::atomic_uint m_dwEnterLimit;
+    std::atomic_uint m_dwEnterLimit{0};
 };
 
 }

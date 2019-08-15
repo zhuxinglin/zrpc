@@ -40,7 +40,7 @@ public:
 private:
     typedef std::queue<uint64_t> CondQueue;
     CondQueue m_oCond;
-    volatile uint32_t m_dwLock;
+    volatile uint32_t m_dwLock{0};
 };
 
 }

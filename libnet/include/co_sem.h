@@ -39,7 +39,7 @@ public:
 private:
     typedef std::set<uint64_t> SemQueue;
     SemQueue m_oQueue;
-    volatile uint32_t m_dwLock;
+    volatile uint32_t m_dwLock{0};
     volatile uint32_t m_dwCount{0};
 };
 
