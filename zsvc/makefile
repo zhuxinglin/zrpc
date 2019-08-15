@@ -2,7 +2,7 @@ CXX=g++
 CC=gcc
 LIBS= ../libnet/libnet.a -lpthread -lrt -ldl -L/usr/local/lib -lssl -lcrypto
 INCLUDES= -I../libnet/include -I./src -I./include -I/usr/local/include
-CFLAGS=-O2 -Wall -D_REENTRANT -Wl,--as-needed -Wno-invalid- -std=c++11
+CFLAGS=-g2 -Wall -D_REENTRANT -Wl,--as-needed -Wno-invalid- -std=c++11
 SRC=src
 BUILD_DIR=build
 
