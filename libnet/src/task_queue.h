@@ -67,8 +67,6 @@ private:
     CTaskWaitRb *m_pWait;
     uint32_t m_dwSumCpu;
     volatile uint32_t m_dwCurTaskCount;
-
-    static CTaskQueue* m_pSelf;
 };
 
 }
