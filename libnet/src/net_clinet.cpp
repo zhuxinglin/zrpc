@@ -287,7 +287,8 @@ void CNetClient::IsClose()
             return;
     }
 
-    if (m_pFd)
-        delete m_pFd;
+    CFileFd *pFd = m_pFd;
     m_pFd = 0;
+    if (pFd)
+        delete pFd;
 }

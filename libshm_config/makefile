@@ -3,7 +3,7 @@ CC := gcc
 CXX := g++
 AR := ar
 BUILD_DIR = build
-INCLUDES=-I../config_agent/include -I/usr/local/include -I../libconet/include
+INCLUDES=-I../libconfig_agent/include -I/usr/local/include -I../libconet/include
 
 LIBS=
 CFLAGS	= -g2 -Wall -D_REENTRANT -Wno-invalid-offsetof -static -fPIC -std=c++11

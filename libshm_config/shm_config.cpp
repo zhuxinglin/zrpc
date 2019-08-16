@@ -173,7 +173,9 @@ int ShmConfig::searchKey(const char* pszKey, std::string& sValue)
                 while (__sync_lock_test_and_set(&pData->wLock, 1));
                 __sync_lock_release(&pData->wLock);
             }
+            __sync_fetch_and_add(&pData->wReference, 1);
             sValue.append(pData->szData + pData->wKeyLen, pData->wValueLen);
+            __sync_fetch_and_sub(&pData->wReference, 1);
             break;
         }
 
