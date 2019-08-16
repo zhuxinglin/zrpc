@@ -153,17 +153,6 @@ int ConfigShm::WriteShmMemory()
 
 int ConfigShm::writeShmData()
 {
-    if (m_iShmDataId >= 0 && m_pBlockPtr)
-    {
-        // 断开连接
-        shmdt(m_pBlockPtr);
-        m_pBlockPtr = nullptr;
-        // 删除共享内存
-        // 删除后还存在连接的KEY，将变为0
-        shmctl(m_iShmDataId, IPC_RMID, nullptr);
-        m_iShmDataId = -1;
-    }
-
     // 计算需要的内存大小
     uint32_t dwShmMemorySize = 0;
     // 数据大小
@@ -177,7 +166,34 @@ int ConfigShm::writeShmData()
     // 计算hash部分大小
     dwShmMemorySize = sizeof(ShmDataHeader) + dwDataSize + dwHashTable;
 
-    if (CreateShmMem(dwShmMemorySize, IPC_CREAT) < 0)
+    // 存在当上一次更改了内存，客户端此时检查到dwChange已经变更, 现在马上又要更改，
+    // 此时应该保证客户端成功，不应该去删除共享内存，让客户端去连接上一次
+    while(__sync_lock_test_and_set(&m_pShmAddrHeader->wSycLock, 1));
+    m_pShmAddrHeader->dwBlockSize = dwShmMemorySize;
+    if (m_iShmDataId >= 0 && m_pBlockPtr)
+    {
+        // 断开连接
+        shmdt(m_pBlockPtr);
+        m_pBlockPtr = nullptr;
+        // 删除共享内存
+        // 删除后还存在连接的KEY，将变为0
+        shmctl(m_iShmDataId, IPC_RMID, nullptr);
+        m_iShmDataId = -1;
+    }
+
+    // 失败尝试10次
+    int iCount = 10;
+    while (iCount > 0)
+    {
+        if (CreateShmMem(dwShmMemorySize, IPC_CREAT) < 0)
+        {
+            -- iCount;
+            continue;
+        }
+        break;
+    }
+    // 如果失败了，同步锁wSycLock不能清0，客户端仍然使用上一次的变更
+    if (iCount < 0)
         return -1;
 
     uint32_t dwChange = m_pShmAddrHeader->dwChange;
@@ -190,8 +206,8 @@ int ConfigShm::writeShmData()
         insertData(it->first, it->second, dwHashTable, m_mapConfigInfo.size());
 
     // 通知更新成功
-    m_pShmAddrHeader->dwBlockSize = dwShmMemorySize;
     m_pShmAddrHeader->dwChange = dwChange;
+    __sync_lock_release(&m_pShmAddrHeader->wSycLock);
     return 0;
 }
 
@@ -297,8 +313,42 @@ int ConfigShm::AddData(const std::string& sKey, const std::string& sValue)
 
     while (__sync_lock_test_and_set(&pData->wLock, 1));
     pData->wValueLen = sValue.length();
-    memcpy(pData->szData, sValue.c_str(), sValue.length());
+    memcpy(pData->szData + pData->wKeyLen, sValue.c_str(), sValue.length());
     __sync_lock_release(&pData->wLock);
 
     return 0;
+}
+
+void ConfigShm::AddShmKey(std::vector<std::string>& vKey)
+{
+    for (auto iter = vKey.begin(); iter != vKey.end();)
+    {
+        auto it = m_mapConfigInfo.find(*iter);
+        if (it != m_mapConfigInfo.end())
+        {
+            iter = vKey.erase(iter);
+            continue;
+        }
+        ++ iter;
+    }
+}
+
+void ConfigShm::UpdateMap(std::map<std::string, std::string>& mapConfig)
+{
+    for (auto it = mapConfig.begin(); it != mapConfig.end(); ++ it)
+    {
+        auto iter = m_mapConfigInfo.find(it->first);
+        if (iter != m_mapConfigInfo.end())
+        {
+            it->second = iter->second;
+            continue;
+        }
+
+        m_mapConfigInfo.insert(std::map<std::string, std::string>::value_type(it->first, it->second));
+    }
+}
+
+void ConfigShm::DeleteKey(const std::string& path)
+{
+    m_mapConfigInfo.erase(path);
 }

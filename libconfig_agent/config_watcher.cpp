@@ -34,28 +34,39 @@ int ConfigWatcher::Init()
 void ConfigWatcher::OnWatcher(int type, znet::ITaskBase* pTask, const std::string& path)
 {
     LOGI_BIZ(WATCHER) << "type : " << type << ", path: " << path;
-    if (path.compare(SHM_CONFIG_ROOT) == 0 || type == -1)
+    if (type == static_cast<int>(zkapi::WatcherType::TYPE_ADD_DIR) || type == static_cast<int>(zkapi::WatcherType::TYPE_CONNECT_SUCCESS))
     {
-        SetAllData();
+        SetAllData(type == -1);
         return ;
+    }
+    else if (type == static_cast<int>(zkapi::WatcherType::TYPE_DELETE_DIR))
+    {
+        DeleteKey(path);
+        return;
     }
     OnNotification(path);
 }
 
-void ConfigWatcher::SetAllData()
+void ConfigWatcher::SetAllData(bool bIsConnect)
 {
     std::map<std::string, std::string> mapConfig;
-    if (GetAllDirData(mapConfig) < 0)
+    if (GetAllDirData(mapConfig, bIsConnect) < 0)
         return;
 
-    SetShmData(mapConfig);
+    SetShmData(mapConfig, bIsConnect);
 }
 
-int ConfigWatcher::GetAllDirData(std::map<std::string, std::string>& mapConfig)
+int ConfigWatcher::GetAllDirData(std::map<std::string, std::string>& mapConfig, bool bIsConnect)
 {
     std::vector<std::string> str;
     if (GetChildDir(str) < 0)
         return -1;
+
+    if (!bIsConnect)
+        m_oShm.AddShmKey(str);
+
+    if (str.empty())
+        return -1;      // 没有更改
 
     for (auto it : str)
     {
@@ -94,11 +105,16 @@ int ConfigWatcher::GetChildDirData(const std::string& sChildPath, std::string& s
     return 0;
 }
 
-void ConfigWatcher::SetShmData(std::map<std::string, std::string>& mapConfig)
+void ConfigWatcher::SetShmData(std::map<std::string, std::string>& mapConfig, bool bIsConnect)
 {
-    int iRet = m_oShm.CompareShmKey(mapConfig);
-    if (iRet == 0 && mapConfig.empty())
-        return;
+    if (bIsConnect)
+    {
+        int iRet = m_oShm.CompareShmKey(mapConfig);
+        if (iRet == 0 && mapConfig.empty())
+            return;
+    }
+    else
+        m_oShm.UpdateMap(mapConfig);
 
     // 更新共享内存
     m_oShm.WriteShmMemory();
@@ -120,5 +136,14 @@ std::string ConfigWatcher::GetKey(const std::string& path)
     const char* e = path.c_str() + path.length();
     while(*e != '/' && s != e)
         -- e;
+    ++ e;
     return std::move(std::string(e));
+}
+
+void ConfigWatcher::DeleteKey(const std::string& path)
+{
+    std::string sKey = GetKey(path);
+    LOGI_BIZ(WATCHER) << "delete key: " << sKey;
+    m_oShm.DeleteKey(sKey);
+    m_oShm.WriteShmMemory();
 }

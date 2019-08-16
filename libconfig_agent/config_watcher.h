@@ -35,13 +35,14 @@ public:
 
 private:
     virtual void OnWatcher(int type, znet::ITaskBase* pTask, const std::string& path);
-    void SetAllData();
-    int GetAllDirData(std::map<std::string, std::string>& mapConfig);
+    void SetAllData(bool bIsConnect);
+    int GetAllDirData(std::map<std::string, std::string>& mapConfig, bool bIsConnect);
     int GetChildDir(std::vector<std::string>& str);
     int GetChildDirData(const std::string& sChildPath, std::string& sValue);
-    void SetShmData(std::map<std::string, std::string>& mapConfig);
+    void SetShmData(std::map<std::string, std::string>& mapConfig, bool bIsConnect);
     void OnNotification(const std::string& path);
     std::string GetKey(const std::string& path);
+    void DeleteKey(const std::string& path);
 
 private:
     zkapi::IZkApi* m_pZkApi;

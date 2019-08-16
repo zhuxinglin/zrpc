@@ -48,6 +48,14 @@ namespace zkapi
 #define ZOO_SETAUTH_OP 100
 #define ZOO_SETWATCHES_OP 101
 
+enum class WatcherType : int
+{
+    TYPE_CONNECT_SUCCESS = -1,
+    TYPE_DELETE_DIR      = 2,
+    TYPE_UPDATE_VALUE    = 3,
+    TYPE_ADD_DIR         = 4,
+};
+
 struct IWatcher
 {
     virtual void OnWatcher(int type, znet::ITaskBase* pTask, const std::string& path) = 0;

@@ -20,6 +20,7 @@
 #include <set>
 #include <map>
 #include <string>
+#include <vector>
 #include "./include/shm_struct.h"
 #include "co_lock.h"
 
@@ -37,6 +38,9 @@ public:
     int CompareShmKey(std::map<std::string, std::string>& mapConfig);
     int WriteShmMemory();
     int WriteShmData(const std::string& sKey, const std::string& sValue);
+    void AddShmKey(std::vector<std::string>& vKey);
+    void UpdateMap(std::map<std::string, std::string>& mapConfig);
+    void DeleteKey(const std::string& path);
 
 private:
     int CreateShmMem(uint32_t dwBlockSize, uint32_t dwFlags = 0);
