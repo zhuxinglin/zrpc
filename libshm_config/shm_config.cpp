@@ -168,9 +168,12 @@ int ShmConfig::searchKey(const char* pszKey, std::string& sValue)
         if (iKeyLen == pData->wKeyLen && strncmp(pszKey, pData->szData, pData->wKeyLen) == 0)
         {
             iRet = 0;
-            while (__sync_lock_test_and_set(&pData->wLock, 1));
+            if (!__sync_bool_compare_and_swap(&pData->wLock, 0, 0));
+            {
+                while (__sync_lock_test_and_set(&pData->wLock, 1));
+                __sync_lock_release(&pData->wLock);
+            }
             sValue.append(pData->szData + pData->wKeyLen, pData->wValueLen);
-            __sync_lock_release(&pData->wLock);
             break;
         }
 
@@ -212,6 +215,7 @@ int ShmConfig::checkParam(const char* pszKey)
                 return -1;
 
             m_pShmAddr = createShmData(pShmAddrHeader->dwBlockSize);
+            __sync_lock_release(&pShmAddrHeader->wSycLock);
             if (!m_pShmAddr)
                 return -1;
         } while (0);
