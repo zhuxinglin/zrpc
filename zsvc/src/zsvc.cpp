@@ -27,8 +27,8 @@
 using namespace zrpc;
 using namespace znet;
 
-std::string g_oPluginPath("./plugin/");
-uint32_t g_dwSoUninstallInterval = 10;
+std::string g_oPluginPath("./plugin");
+uint32_t g_dwSoUninstallInterval = 0;
 
 CJSvc::CJSvc()
 {
@@ -134,8 +134,6 @@ int CJSvc::InitGlobal(CConfig::config_info *pCfg)
     if (it != pCfg->end())
     {
         g_dwSoUninstallInterval = atoi(it->second.c_str());
-        if (g_dwSoUninstallInterval == 0)
-            g_dwSoUninstallInterval = 10;
     }
 
     it = pCfg->find("plugin_dir");

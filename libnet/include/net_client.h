@@ -52,8 +52,8 @@ private:
     int TcpsRead(char *pszBuf, int iLen, uint32_t dwTimeoutMs);
     int TcpsWrite(const char *pszBuf, int iLen, uint32_t dwTimeoutMs);
 
-    void IsOpen();
-    void IsClose();
+    bool IsOpen();
+    bool IsClose();
 
 private:
     uint16_t m_wProtocol;
@@ -69,17 +69,19 @@ private:
     public:
         Reference(CNetClient* p)
         {
-            p->IsOpen();
+            m_bIsRet = p->IsOpen();
             m_pNetClient = p;
         }
         ~Reference()
-        {
-            m_pNetClient->IsClose();
-        }
+        {m_pNetClient->IsClose();}
+
+        operator bool() const
+        {return m_bIsRet;}
 
     private:
         friend CNetClient;
         CNetClient* m_pNetClient;
+        bool m_bIsRet;
     };
     volatile uint32_t m_dwSync{0};
     std::atomic_uint m_dwCloseRef;

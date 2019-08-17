@@ -18,7 +18,6 @@
 #include "../include/zk_api.h"
 #include <net_client.h>
 #include "watcher_event.h"
-#include "hashtable/hashtable_itr.h"
 #include <co_chan.h>
 #include <atomic>
 
@@ -59,7 +58,6 @@ private:
     int connectResp();
     int dispatchMsg(std::shared_ptr<char>& oMsg, int iSumLen);
     int ping();
-    int sendSetWatcher();
     int sendAuthInfo();
     template<class T>
     int sendAuthPackage(const T& it);
@@ -118,9 +116,6 @@ private:
     };
 
     std::vector<address_info> m_vAddr;
-    hashtable *active_node_watchers;
-    hashtable *active_exist_watchers;
-    hashtable *active_child_watchers;
     std::vector<auth_info> m_vAuth;
 
     struct return_result

@@ -99,7 +99,7 @@ void CMonitorSo::Run()
 
             if (pIe->mask & (IN_MOVED_TO | IN_CLOSE_WRITE))
             {
-                if (0 == strstr(pIe->name, ".so.V"))
+                if (0 == strstr(pIe->name, SO_VERSION))
                     continue;
 
                 if (!pSoInfo)
@@ -121,7 +121,7 @@ void CMonitorSo::Run()
             }
             else if (IN_DELETE & pIe->mask)
             {
-                if (!strstr(pIe->name, ".so.V"))
+                if (!strstr(pIe->name, SO_VERSION))
                     continue;
 
                 if (!pSoInfo)

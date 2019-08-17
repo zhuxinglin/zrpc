@@ -69,7 +69,7 @@ void CNetClient::Close()
 int CNetClient::Read(char *pszBuf, int iLen, uint32_t dwTimeoutMs)
 {
     Reference oRef(this);
-    if (!m_pFd || m_pFd->GetFd() < 0)
+    if (oRef || !m_pFd || m_pFd->GetFd() < 0)
         return -1;
 
     int iRet = -1;
@@ -85,7 +85,7 @@ int CNetClient::Read(char *pszBuf, int iLen, uint32_t dwTimeoutMs)
 int CNetClient::Write(const char *pszBuf, int iLen, uint32_t dwTimeoutMs)
 {
     Reference oRef(this);
-    if (!m_pFd || m_pFd->GetFd() < 0)
+    if (oRef || !m_pFd || m_pFd->GetFd() < 0)
         return -1;
 
     int iRet = -1;
@@ -269,26 +269,28 @@ int CNetClient::TcpsWrite(const char *pszBuf, int iLen, uint32_t dwTimeoutMs)
     return iOffset;
 }
 
-void CNetClient::IsOpen()
+bool CNetClient::IsOpen()
 {
     CSpinLock oLock(m_dwSync);
     if (m_dwCloseRef == 0)
-        return;
+        return true;
     ++ m_dwCloseRef;
+    return false;
 }
 
-void CNetClient::IsClose()
+bool CNetClient::IsClose()
 {
     if (m_dwCloseRef != 0)
     {
         CSpinLock oLock(m_dwSync);
         -- m_dwCloseRef;
         if (m_dwCloseRef != 0)
-            return;
+            return true;
     }
 
     CFileFd *pFd = m_pFd;
     m_pFd = 0;
     if (pFd)
         delete pFd;
+    return false;
 }

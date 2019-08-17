@@ -22,8 +22,6 @@
 #include <unistd.h>
 #include "log.h"
 
-#define SO_VERSION      ".so.V"
-
 using namespace zrpc;
 using namespace zplugin;
 
@@ -79,7 +77,10 @@ int CSoPlugin::UpdateSo(const char *pszSoName, map_so_info *pmapRoute)
 {
     // 是否为新增so
     //TODO:
-    std::shared_ptr<zplugin::CSharedData> pSo = GetSoShareData(pszSoName);
+    bool bIsUpdate = false;
+    std::shared_ptr<zplugin::CSharedData> pSo = GetSoShareData(pszSoName, bIsUpdate);
+    if (bIsUpdate)
+        return -1;
 
     set_key *pkey;
     CSoFunAddr *pAddr;
@@ -133,7 +134,7 @@ int CSoPlugin::InnerSo(znet::SharedTask& oCo, CControllerBase* pController, uint
 int CSoPlugin::LoadCallSo(const char *pszSoName)
 {
     set_key* pkey;
-    std::shared_ptr<zplugin::CSharedData> pSo(nullptr);
+    std::shared_ptr<zplugin::CSharedData> pSo;
     CSoFunAddr *pAddr = GetLoadSo(pszSoName, &pkey, pSo);
     if (!pAddr)
     {
@@ -168,7 +169,7 @@ CSoFunAddr *CSoPlugin::GetLoadSo(const char *pszSoName, set_key **psetKey, std::
     pAddr->iDelFlag = 0;
     pAddr->sSoName = pszSoName;
     pAddr->dwCount = 0;
-    if (pSo)
+    if (!pSo)
     {
         pAddr->pSo.reset(new zplugin::CSharedData);
         memset(pAddr->pSo.get(), 0, sizeof(zplugin::CSharedData));
@@ -213,12 +214,7 @@ int CSoPlugin::Swap(map_so_info **pmapRoute)
     map_so_info *pTemp = *pmapRoute;
     for (map_so_info_it it = m_mapRoute->begin(); it != m_mapRoute->end(); ++it)
     {
-        GetSoName(it->first->sSoName.c_str());
-        const char *s = strstr(it->first->sSoName.c_str(), SO_VERSION);
-        s += sizeof(SO_VERSION);
-        while(*s != 0 && *s != '_') ++s;
-        std::string sTmp = it->first->sSoName;
-        sTmp.resize(s - it->first->sSoName.c_str());
+        std::string sTmp = GetSoName(it->first->sSoName.c_str());
         for (map_so_info_it iter = pTemp->begin(); iter != pTemp->end(); ++iter)
         {
             if (iter->first->sSoName.find(sTmp.c_str()) != std::string::npos)
@@ -239,6 +235,7 @@ int CSoPlugin::Swap(map_so_info **pmapRoute)
 
 int CSoPlugin::Del(map_so_info *pmapRoute, bool bIsAll)
 {
+    LOGI << "delete so .... ";
     for (map_so_info_it it = pmapRoute->begin(); it != pmapRoute->end(); ++it)
     {
         if (it->first->iDelFlag == 0 && bIsAll)
@@ -260,6 +257,7 @@ int CSoPlugin::Del(map_so_info *pmapRoute, bool bIsAll)
 
 int CSoPlugin::Repeat(std::string& sSoName)
 {
+    LOGI << "load => " << sSoName;
     std::string sTmp = GetSoName(sSoName.c_str());
     for (map_so_info_it it = m_mapRoute->begin(); it != m_mapRoute->end();)
     {
@@ -310,15 +308,24 @@ int CSoPlugin::Uninstall(map_so_info *pmapRoute, const char *pszSoName)
     return iRet;
 }
 
-std::shared_ptr<zplugin::CSharedData> CSoPlugin::GetSoShareData(const char *pszSoName)
+std::shared_ptr<zplugin::CSharedData> CSoPlugin::GetSoShareData(const char *pszSoName, bool &bIsUpdate)
 {
     std::string sTmp = GetSoName(pszSoName);
+    LOGI << "load => " << pszSoName;
     std::shared_ptr<zplugin::CSharedData> pSo(nullptr);
     for (map_so_info_it it = m_mapRoute->begin(); it != m_mapRoute->end(); ++it)
     {
         if (it->first->sSoName.find(sTmp) == std::string::npos)
             continue;
+
+        if (it->first->sSoName.compare(pszSoName) == 0)
+        {
+            LOGW << "old so name : " << it->first->sSoName << " == " << "new so name : " << pszSoName;
+            bIsUpdate = true;
+            break;
+        }
         pSo = it->first->pSo;
+        break;
     }
     return pSo;
 }
@@ -327,8 +334,8 @@ std::string CSoPlugin::GetSoName(const char* pszSoName)
 {
     std::string sTmp = pszSoName;
     const char *s = pszSoName;
-    const char *c = strstr(s, SO_VERSION) + sizeof(SO_VERSION);
-    while (*c != 0 && *c != '_')
+    const char *c = strstr(s, SO_VERSION) + sizeof(SO_VERSION) - 1;
+    while (*c != 0 && *c != '.')
         ++c;
     sTmp.resize(c - s);
     return std::move(sTmp);

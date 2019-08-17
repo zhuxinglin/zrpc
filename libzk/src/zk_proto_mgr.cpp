@@ -16,7 +16,6 @@
 #include "zk_proto_mgr.h"
 #include "zk_protocol.h"
 #include <string.h>
-#include "zk_hashtable.h"
 
 using namespace zkapi;
 using namespace zkproto;
@@ -87,10 +86,6 @@ int ZkProtoMgr::Init(const char *pszHost, IWatcher *pWatcher, uint32_t dwTimeout
     }
 
     m_iFlags = flags;
-    active_node_watchers = ZkHashTable::create_zk_hashtable();
-    active_exist_watchers = ZkHashTable::create_zk_hashtable();
-    active_child_watchers = ZkHashTable::create_zk_hashtable();
-
     m_pEvent->Init(pWatcher);
 
     znet::CNet::GetObj()->Register(this, 0, znet::ITaskBase::PROTOCOL_TIMER, -1, 0);
@@ -108,17 +103,6 @@ void ZkProtoMgr::Close()
     }
     m_bIsExit = false;
     m_oCli.Close();
-    if (active_node_watchers)
-        ZkHashTable::destroy_zk_hashtable(active_node_watchers);
-    active_node_watchers = nullptr;
-
-    if (active_exist_watchers)
-        ZkHashTable::destroy_zk_hashtable(active_exist_watchers);
-    active_exist_watchers = nullptr;
-
-    if (active_child_watchers)
-        ZkHashTable::destroy_zk_hashtable(active_child_watchers);
-    active_child_watchers = nullptr;
 }
 
 int ZkProtoMgr::setConnectAddr(const char *pszHost)
@@ -258,9 +242,6 @@ int ZkProtoMgr::connectZkSvr()
         if (connectResp() < 0)
             continue;
 
-        if (sendSetWatcher() < 0)
-            continue;
-
         if (sendAuthInfo() < 0)
             continue;
 
@@ -319,27 +300,6 @@ int ZkProtoMgr::ping()
     zk_request_header hdr(PING_XID, ZOO_PING_OP);
     hdr.Hton();
     return m_oCli.Write(reinterpret_cast<char*>(&hdr), sizeof(hdr));
-}
-
-int ZkProtoMgr::sendSetWatcher()
-{
-    zk_set_watches* wa = new zk_set_watches;
-    ZkHashTable::collect_keys(active_node_watchers, wa->data_watches);
-    ZkHashTable::collect_keys(active_exist_watchers, wa->exist_watches);
-    ZkHashTable::collect_keys(active_child_watchers, wa->child_watches);
-    if (wa->data_watches.empty() && wa->exist_watches.empty() && wa->child_watches.empty())
-    {
-        delete wa;
-        return 0;
-    }
-
-    wa->relative_zxid = m_iLastZxid;
-
-    std::string data = getData();
-    wa->Hton(data);
-    delete wa;
-
-    return sendData(data, SET_WATCHES_XID, ZOO_SETWATCHES_OP);
 }
 
 int ZkProtoMgr::sendAuthInfo()
