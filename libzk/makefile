@@ -8,7 +8,7 @@ BUILD_DIR = build
 INCLUDES=-I./include -I./src -I/usr/local/include -I../libnet/include
 
 LIBS=
-CFLAGS	= -g2 -Wall -D_REENTRANT -Wno-invalid-offsetof -static -fPIC -std=c++11
+CFLAGS	= -O2 -Wall -D_REENTRANT -Wno-invalid-offsetof -static -fPIC -std=c++11
 CFLAGS_C	= -g2 -Wall -D_REENTRANT -static -fPIC
 
 -include $(SRC)/makefile.mk

@@ -33,13 +33,10 @@ using namespace zkproto;
 ZkProtoMgr::ZkProtoMgr() : m_iCurrHostIndex(0)
 {
     m_iXid = time(0);
-    m_pEvent = new WatcherEvent;
 }
 
 ZkProtoMgr::~ZkProtoMgr()
 {
-    m_pEvent->Exit();
-    Close();
 }
 
 const char* ZkProtoMgr::GetErr()
@@ -86,6 +83,7 @@ int ZkProtoMgr::Init(const char *pszHost, IWatcher *pWatcher, uint32_t dwTimeout
     }
 
     m_iFlags = flags;
+    m_pEvent = new WatcherEvent;
     m_pEvent->Init(pWatcher);
 
     znet::CNet::GetObj()->Register(this, 0, znet::ITaskBase::PROTOCOL_TIMER, -1, 0);
@@ -95,14 +93,19 @@ int ZkProtoMgr::Init(const char *pszHost, IWatcher *pWatcher, uint32_t dwTimeout
 
 void ZkProtoMgr::Close()
 {
+    m_bIsExit = false;
     if (!m_bIsConnect)
     {
         zk_request_header hdr(getXid(), ZOO_CLOSE_OP);
         hdr.Hton();
         m_oCli.Write(reinterpret_cast<char*>(&hdr), sizeof(hdr), 3000);
     }
-    m_bIsExit = false;
     m_oCli.Close();
+    std::shared_ptr<return_result> oRes;
+    // 等待退出
+    m_oChan >> oRes;
+    if (m_pEvent)
+        m_pEvent->Exit();
 }
 
 int ZkProtoMgr::setConnectAddr(const char *pszHost)
@@ -161,6 +164,9 @@ void ZkProtoMgr::Run()
             m_bIsConnect = false;
         }
 
+        if (!m_bIsExit)
+            break;
+
         {
             std::shared_ptr<char> oMsg;
             int iSumLen = Read(oMsg);
@@ -174,6 +180,14 @@ void ZkProtoMgr::Run()
                 m_bIsConnect = true;
         }
     }
+    exitCo();
+}
+
+void ZkProtoMgr::exitCo()
+{
+    std::shared_ptr<return_result> oRes;
+    // 等待退出
+    m_oChan << oRes;
 }
 
 int ZkProtoMgr::Read(std::shared_ptr<char>& oMsg)

@@ -74,6 +74,7 @@ private:
     int getXid();
     struct return_result;
     int readResult(std::shared_ptr<return_result>& oRes);
+    void exitCo();
 
 private:
     clientid_t m_oClientId;

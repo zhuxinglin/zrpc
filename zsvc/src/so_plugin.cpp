@@ -249,6 +249,8 @@ int CSoPlugin::Del(map_so_info *pmapRoute, bool bIsAll)
         dlclose(it->first->pSoHandle);
         if (bIsAll)
             remove(it->first->sSoName.c_str());
+
+        LOGI << "Uninstall : " << it->first->sSoName;
         delete it->first;
         delete it->second;
     }

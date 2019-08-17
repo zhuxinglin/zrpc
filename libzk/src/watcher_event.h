@@ -20,6 +20,7 @@
 #include <libnet.h>
 #include <memory>
 #include <co_chan.h>
+#include <co_sem.h>
 
 namespace zkapi
 {
@@ -46,6 +47,7 @@ public:
     int Init(IWatcher* pWatcher);
     void Push(ZkEvent& oEv);
     void Exit();
+    bool IsInit()const {return m_bIsInit;}
 
 private:
     virtual void Run();
@@ -54,6 +56,8 @@ private:
     volatile bool m_bIsExit = true;
     IWatcher* m_pWatcher;
     znet::CCoChan<ZkEvent> m_oChan;
+    bool m_bIsInit = false;
+    znet::CCoSem m_oSem;
 };
 
 }

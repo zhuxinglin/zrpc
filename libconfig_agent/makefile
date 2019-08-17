@@ -1,8 +1,8 @@
 CXX=g++
 CC=gcc
 INCLUDES= -I../libnet/include -I./ -I../zsvc/include -I/usr/local/include -I../libzk/include
-VERSION=.1.2.0
-CFLAGS=-g2 -Wall -D_REENTRANT -Wno-invalid-offsetof -fvisibility=hidden -shared -fPIC -DVERSION -Wl,--as-needed -std=c++11
+VERSION=.1.2.1
+CFLAGS=-O2 -Wall -D_REENTRANT -Wno-invalid-offsetof -fvisibility=hidden -shared -fPIC -DVERSION -Wl,--as-needed -std=c++11
 LIBS= ../libzk/libzk.a ../libnet/libnet.a -lpthread -lrt -ldl -L/usr/local/lib -lssl -lcrypto
 BUILD_DIR= build
 

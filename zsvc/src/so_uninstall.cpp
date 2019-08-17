@@ -26,6 +26,8 @@ CSoUninstall::CSoUninstall() : m_pPlugin(0), m_pmapSo(0)
 
 CSoUninstall::~CSoUninstall()
 {
+    if (m_pmapSo)
+        delete m_pmapSo;
 }
 
 void CSoUninstall::SetPluginObj(CSoPlugin *pPlugin)
@@ -44,9 +46,12 @@ void CSoUninstall::Run()
     do
     {
         if (m_pPlugin->Del(m_pmapSo, true) < 0)
+        {
             Yield();
+            continue;
+        }
+        break;
     } while (1);
-    delete m_pmapSo;
 }
 
 void CSoUninstall::Release()

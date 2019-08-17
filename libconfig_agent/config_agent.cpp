@@ -55,7 +55,7 @@ int ConfigAgent::Process(znet::SharedTask& oCo, CControllerBase* pController, ui
 
 void ConfigAgent::Release()
 {
-    LOGI_BIZ(CLOSE) << "libconfig_agent exit .....";
+    LOGI_BIZ(CLOSE) << "libconfig_agent exit ..... " << g_pZkApi;
     if (g_pZkApi)
         g_pZkApi->Close();
     g_pZkApi = nullptr;

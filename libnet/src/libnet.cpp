@@ -724,4 +724,3 @@ void CNet::DeleteObj(ITaskBase* pTask)
     std::shared_ptr<ITaskBase> optr(pTask->m_oPtr);
     pTask->m_oPtr = nullptr;
 }
-

@@ -34,6 +34,7 @@ int WatcherEvent::Init(IWatcher* pWatcher)
 {
     m_pWatcher = pWatcher;
     znet::CNet::GetObj()->Register(this, 0, znet::ITaskBase::PROTOCOL_TIMER, -1, 0);
+    m_bIsInit = true;
     return 0;
 }
 
@@ -44,11 +45,14 @@ void WatcherEvent::Push(ZkEvent& oEv)
 
 void WatcherEvent::Exit()
 {
+    if (!m_bIsInit)
+        return;
+
     m_bIsExit = false;
     ZkEvent oEv;
     oEv.type = -1;
     m_oChan << oEv;
-    m_oChan >> oEv;
+    m_oSem.Wait();
 }
 
 void WatcherEvent::Run()
@@ -58,12 +62,10 @@ void WatcherEvent::Run()
         ZkEvent oEv;
         m_oChan >> oEv;
 
-        if (m_pWatcher)
+        if (m_bIsExit && m_pWatcher)
             m_pWatcher->OnWatcher(oEv.type, this, oEv.oMsg);
     }
-
-    ZkEvent oEv;
-    m_oChan << oEv;
+    m_oSem.Post();
 }
 
 #pragma GCC diagnostic pop
