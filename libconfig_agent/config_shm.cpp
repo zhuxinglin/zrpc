@@ -311,7 +311,9 @@ int ConfigShm::AddData(const std::string& sKey, const std::string& sValue)
     else
         pData->wBackLen -= (sValue.length() - pData->wValueLen);
 
-    while (__sync_lock_test_and_set(&pData->wLock, 1));
+    // 加锁
+    while(__sync_lock_test_and_set(&pData->wLock, 1));
+    // 等待所有操作结束
     while (!__sync_bool_compare_and_swap(&pData->wReference, 0, 0));
     pData->wValueLen = sValue.length();
     memcpy(pData->szData + pData->wKeyLen, sValue.c_str(), sValue.length());

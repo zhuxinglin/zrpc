@@ -139,6 +139,7 @@ int ShmConfig::searchKey(const char* pszKey, std::string& sValue)
                 break;
 
             AutoLock oLock(m_oCreateLock);
+            // 等待其它线程操作结束
             while (m_oReadLock != 1);
             shmdt(m_pShmAddr);
 
@@ -168,6 +169,7 @@ int ShmConfig::searchKey(const char* pszKey, std::string& sValue)
         if (iKeyLen == pData->wKeyLen && strncmp(pszKey, pData->szData, pData->wKeyLen) == 0)
         {
             iRet = 0;
+            // 检测服务器端是否在更新
             if (!__sync_bool_compare_and_swap(&pData->wLock, 0, 0));
             {
                 while (__sync_lock_test_and_set(&pData->wLock, 1));
