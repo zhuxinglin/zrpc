@@ -98,10 +98,11 @@ int ITaskBase::Yield(uint32_t dwTimeoutMs, int iFd, int iSetOpt, int iRestoreOpt
     else
         m_dwTimeout = dwTimeoutMs;
 
+    m_wRunStatus = (RUN_EXIT & m_wRunStatus);
     if (wRunStatus != RUN_WAIT)
-        m_wRunStatus = wRunStatus;
+        m_wRunStatus |= wRunStatus;
     else
-        m_wRunStatus = RUN_WAIT;
+        m_wRunStatus |= RUN_WAIT;
 
     if (m_dwTimeout != dwTimeout)
     {

@@ -724,3 +724,9 @@ void CNet::DeleteObj(ITaskBase* pTask)
     std::shared_ptr<ITaskBase> optr(pTask->m_oPtr);
     pTask->m_oPtr = nullptr;
 }
+
+void CNet::ExitCo(uint64_t qwCid)
+{
+    g_pContext->m_pTaskQueue->ExitTask(qwCid);
+    CGoPost::Post();
+}

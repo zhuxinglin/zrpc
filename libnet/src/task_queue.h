@@ -51,6 +51,8 @@ public:
 
     void AddAllToExec();
 
+    void ExitTask(uint64_t qwCid);
+
 private:
     CTaskNode* AddTask(CTaskNode* pNode, int iRunStatus);
     int DelRbTask(CTaskWaitRb *pRb, CTaskNode *pNode);

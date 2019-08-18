@@ -154,6 +154,26 @@ void CTaskQueue::UpdateTimeout(uint64_t qwCid)
     UpdateTask(pRb, qwCid, false);
 }
 
+void CTaskQueue::ExitTask(uint64_t qwCid)
+{
+    CTaskWaitRb *pRb = GetWaitRb(qwCid);
+    CSpinLock oLock(&pRb->dwSync);
+    CTaskWaitRb::FdIt *it = pRb->oFdRb.find(qwCid);
+    if (!it)
+        return;
+
+    CTaskWaitRb::TaskIt itNode = pRb->oTaskRb.find(it->second);
+    if (itNode == pRb->oTaskRb.end())
+    {
+        pRb->oFdRb.erase(qwCid);
+        return;
+    }
+
+    CTaskNode *pNode = itNode->second;
+    pNode->pTask->m_wRunStatus |= ITaskBase::RUN_EXIT;
+    AddTask(pNode, ITaskBase::RUN_EXEC);
+}
+
 CTaskNode *CTaskQueue::AddTask(CTaskNode *pNode, int iRunStatus)
 {
     CSpinLock oLock(m_oExec.dwSync);
@@ -204,9 +224,9 @@ CTaskNode* CTaskQueue::UpdateTask(CTaskWaitRb *pRb, uint64_t qwCid, bool bIsLock
 
     CTaskNode* pNode = itNode->second;
     UpdateTaskTime(pRb, pNode, it->second);
-    
-    if (bIsLock && pNode->pTask->m_wRunStatus == ITaskBase::RUN_LOCK)
-        pNode->pTask->m_wRunStatus = ITaskBase::RUN_WAIT;
+
+    if (bIsLock && pNode->pTask->m_wRunStatus & ITaskBase::RUN_LOCK)
+        pNode->pTask->m_wRunStatus = (pNode->pTask->m_wRunStatus & ITaskBase::RUN_EXIT) | ITaskBase::RUN_WAIT;
 
     return pNode;
 }
@@ -274,15 +294,15 @@ void CTaskQueue::SwapTimerToExec(uint64_t qwCurTime, int iIndex, int& iSu)
 #define TIMEOUT_CHECK (ITaskBase::RUN_INIT | ITaskBase::RUN_WAIT | ITaskBase::RUN_LOCK | ITaskBase::RUN_SLEEP)
         if (pBase->m_wStatus != ITaskBase::STATUS_TIMEOUT && pBase->m_wRunStatus & TIMEOUT_CHECK)
         {
-            if (pBase->m_wRunStatus == ITaskBase::RUN_INIT)
+            if (pBase->m_wRunStatus & ITaskBase::RUN_INIT)
             {
                 if (qwEndTime > 100 * 1e3)
-                    pBase->m_wRunStatus = ITaskBase::RUN_READY;
+                    pBase->m_wRunStatus = (ITaskBase::RUN_EXIT & pBase->m_wRunStatus) | ITaskBase::RUN_READY;
                 continue;
             }
 
             pBase->m_wStatus = ITaskBase::STATUS_TIMEOUT;
-            pBase->m_wRunStatus = ITaskBase::RUN_READY;
+            pBase->m_wRunStatus = (ITaskBase::RUN_EXIT & pBase->m_wRunStatus) | ITaskBase::RUN_READY;
 
             UpdateTaskTime(pRb, pTaskNode, oKey);
 

@@ -48,6 +48,8 @@ public:
     uint32_t GetCurTaskCount() const;
     uint32_t GetTaskThreadCount() const;
     uint64_t GetCurCid() const;
+    // 本函数不会清理保存栈中的堆内存，这样会发生内存泄漏
+    void ExitCo(uint64_t qwCid);
 
 private:
     CFileFd* GetFd(uint16_t wProtocol, uint16_t wPort, const char *pszIP, uint16_t wVer, const char *pszSslCert, const char *pszSslKey);

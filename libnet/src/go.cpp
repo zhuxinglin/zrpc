@@ -66,17 +66,17 @@ void CGo::Run(uint32_t dwId)
         {
             ITaskBase *pTask = pTaskNode->pTask;
 
-            if (pTask->m_wRunStatus == ITaskBase::RUN_NOW)
+            if (pTask->m_wRunStatus & ITaskBase::RUN_NOW)
             {
                 pTaskQueue->AddExecTask(pTaskNode, false);
                 continue;
             }
-            else if (pTask->m_wRunStatus == ITaskBase::RUN_LOCK || pTask->m_wRunStatus == ITaskBase::RUN_SLEEP)
+            else if (pTask->m_wRunStatus & ITaskBase::RUN_LOCK || pTask->m_wRunStatus & ITaskBase::RUN_SLEEP)
             {
                 pTaskQueue->AddWaitExecTask(pTaskNode);
                 continue;
             }
-            else if ((pTask->m_wRunStatus == ITaskBase::RUN_EXIT) && pTask->m_wIsRuning)
+            else if ((pTask->m_wRunStatus & ITaskBase::RUN_EXIT) && pTask->m_wIsRuning)
             {
                 // 这里只实用于注册epoll失败时有效，如正在执行的协程不能做本操作，否则栈中保存堆的地址将不能释放
                 pTask->Error("wait execute timeout");
@@ -93,7 +93,7 @@ void CGo::Run(uint32_t dwId)
 
             pTask->m_wIsRuning = false;
             pTask->m_pMainCo = &uCon;
-            pTask->m_wRunStatus = ITaskBase::RUN_EXEC;
+            pTask->m_wRunStatus = (ITaskBase::RUN_EXIT & pTask->m_wRunStatus) | ITaskBase::RUN_EXEC;
             //printf("call start 2222222222222222222222222 %li  %lu    %p   %u\n", syscall(SYS_gettid), pTask->m_qwCid, pTask, pTask->m_wRunStatus);
             pCor->Swap(pTask);
             /*int iType = uCon.uc_mcontext.gregs[1];
@@ -101,7 +101,7 @@ void CGo::Run(uint32_t dwId)
             int iMod = uCon.uc_mcontext.gregs[3];
             int iEvent = uCon.uc_mcontext.gregs[4];*/
             //printf("call end 00000000000000000000000000 %li  %lu    %p   %d\n", syscall(SYS_gettid), pTask->m_qwCid, pTask, pTask->m_wRunStatus);
-            if (pTask->m_wRunStatus != ITaskBase::RUN_EXIT)
+            if (!(pTask->m_wRunStatus & ITaskBase::RUN_EXIT))
             {
                 pTaskQueue->AddWaitExecTask(pTaskNode);
                 continue;
