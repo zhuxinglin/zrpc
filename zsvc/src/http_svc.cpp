@@ -77,7 +77,7 @@ void CHttpSvc::Go()
 
         int iCode;
         LOGD_BIZ(HTTP_START) << "URL: " << m_oHttpReq.sUri << ", len: " << m_oHttpReq.szBody.length();
-        int iRet = pPlugin->ExecSo(m_oPtr, this, coplugin::CUtilHash::UriHash(m_oHttpReq.sUri.c_str(), m_oHttpReq.sUri.size()), &m_oHttpReq.szBody, iCode);
+        int iRet = pPlugin->ExecSo(m_oPtr, this, zplugin::CUtilHash::UriHash(m_oHttpReq.sUri.c_str(), m_oHttpReq.sUri.size()), &m_oHttpReq.szBody, iCode);
         LOGD_BIZ(HTTP_END) << "URL: " << m_oHttpReq.sUri << ", Code : " << iCode << ", ret: " << iRet;
         if (iCode != 200)
             WriteHttp(0, 0, iCode, iRet, 3e3);

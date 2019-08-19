@@ -156,3 +156,8 @@ uint32_t ITaskBase::GetSubCId(uint64_t qwCid)
     oCid.qwCid = qwCid;
     return oCid.U_s.dwCid;
 }
+
+bool ITaskBase::IsExitCo() const
+{
+    return m_wRunStatus & RUN_EXIT;
+}
