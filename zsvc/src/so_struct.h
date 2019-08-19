@@ -40,6 +40,13 @@ typedef set_key::iterator set_key_it;
 typedef std::map<CSoFunAddr *, set_key *> map_so_info;
 typedef map_so_info::iterator map_so_info_it;
 
+typedef struct _RpcConfig
+{
+    uint32_t dwRecvMaxLength;
+}RpcConfig;
+
+typedef std::map<std::string, RpcConfig> map_confog;
+
 }
 
 #endif

@@ -158,20 +158,23 @@ void CTaskQueue::ExitTask(uint64_t qwCid)
 {
     CTaskWaitRb *pRb = GetWaitRb(qwCid);
     CSpinLock oLock(&pRb->dwSync);
-    CTaskWaitRb::FdIt *it = pRb->oFdRb.find(qwCid);
-    if (!it)
+
+    CTaskNode *pNode = GetTaskNode(qwCid, pRb);
+    if (!pNode)
         return;
 
-    CTaskWaitRb::TaskIt itNode = pRb->oTaskRb.find(it->second);
-    if (itNode == pRb->oTaskRb.end())
-    {
-        pRb->oFdRb.erase(qwCid);
-        return;
-    }
-
-    CTaskNode *pNode = itNode->second;
     pNode->pTask->m_wRunStatus |= ITaskBase::RUN_EXIT;
     AddTask(pNode, ITaskBase::RUN_EXEC);
+}
+
+bool CTaskQueue::IsExitTask(uint64_t qwCid)
+{
+    CTaskWaitRb *pRb = GetWaitRb(qwCid);
+    CSpinLock oLock(&pRb->dwSync);
+    CTaskNode *pNode = GetTaskNode(qwCid, pRb);
+    if (!pNode)
+        return true;
+    return pNode->pTask->IsExitCo();
 }
 
 CTaskNode *CTaskQueue::AddTask(CTaskNode *pNode, int iRunStatus)
@@ -340,4 +343,19 @@ void CTaskQueue::AddAllToExec()
             AddTask(pTaskNode, ITaskBase::RUN_EXEC);
         }
     }
+}
+
+CTaskNode* CTaskQueue::GetTaskNode(uint64_t qwCid, CTaskWaitRb *pRb)
+{
+    CTaskWaitRb::FdIt *it = pRb->oFdRb.find(qwCid);
+    if (!it)
+        return nullptr;
+
+    CTaskWaitRb::TaskIt itNode = pRb->oTaskRb.find(it->second);
+    if (itNode == pRb->oTaskRb.end())
+    {
+        pRb->oFdRb.erase(qwCid);
+        return nullptr;
+    }
+    return itNode->second;
 }

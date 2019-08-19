@@ -24,6 +24,7 @@
 using namespace zrpc;
 
 #define BIN_BUFF    4096
+extern map_confog g_mapConfig;
 
 CBinarySvc::CBinarySvc()
 {

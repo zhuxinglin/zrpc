@@ -30,6 +30,8 @@ using namespace znet;
 std::string g_oPluginPath("./plugin");
 uint32_t g_dwSoUninstallInterval = 0;
 
+map_confog g_mapConfig;
+
 CJSvc::CJSvc()
 {
     CNet::GetObj();
@@ -202,8 +204,20 @@ int CJSvc::Register(CConfig::config_info *pCfg)
 
     const char* pszServerName = "";
     it = pCfg->find("server_name");
-    if (it != pCfg->end())
-        pszServerName = it->second.c_str();
+    if (it == pCfg->end())
+    {
+        LOGE << "server name not empty";
+        return -1;
+    }
+    pszServerName = it->second.c_str();
+
+    RpcConfig oRpcConfig;
+    it = pCfg->find("recv_max_length");
+    if (it == pCfg->end())
+        oRpcConfig.dwRecvMaxLength = 1024;
+    else
+        oRpcConfig.dwRecvMaxLength = atoi(it->second.c_str());
+    g_mapConfig.insert(map_confog::value_type(pszServerName, oRpcConfig));
 
     uint32_t dwTimeout = 30e3;
     it = pCfg->find("connect_timeout");

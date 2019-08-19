@@ -202,7 +202,7 @@ CSoFunAddr *CSoPlugin::GetLoadSo(const char *pszSoName, set_key **psetKey, std::
 
         pAddr->pPlugin->GetRouteTable(**psetKey);
         return pAddr;
-    }while(0);
+    }while (0);
 
     delete pAddr;
     dlclose(pHandle);

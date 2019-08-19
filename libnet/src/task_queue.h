@@ -52,6 +52,7 @@ public:
     void AddAllToExec();
 
     void ExitTask(uint64_t qwCid);
+    bool IsExitTask(uint64_t qwCid);
 
 private:
     CTaskNode* AddTask(CTaskNode* pNode, int iRunStatus);
@@ -61,6 +62,7 @@ private:
     CTaskWaitRb* GetWaitRb(uint64_t qwCid);
     void UpdateTaskTime(CTaskWaitRb *pRb, CTaskNode *pTaskNode, const CTaskKey& oKey);
     int DelMultiMap(CTaskWaitRb *&pRb, const CTaskKey& oKey, uint64_t qwCId);
+    CTaskNode* GetTaskNode(uint64_t qwCid, CTaskWaitRb *pRb);
 
 private:
     CMemoryPool m_oPool;

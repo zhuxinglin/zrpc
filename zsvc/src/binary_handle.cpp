@@ -19,6 +19,7 @@
 #include <net_task.h>
 #include "plugin_base.h"
 #include "binary_svc.h"
+#include "log.h"
 
 using namespace zrpc;
 
@@ -39,7 +40,9 @@ void CBinaryHandle::Run()
     CSoPlugin* pPlugin = (CSoPlugin*)m_pData;
     int iCode;
     CBinarySvc* pBin = (CBinarySvc*)m_oMsgPtr.get();
+    LOGI_BIZ(BIN_START) << "cmd: " << m_wCmd << ", len: " << m_oData->length();
     int iRet = pPlugin->ExecSo(m_oMsgPtr, pBin, (uint64_t)m_wCmd, m_oData.get(), iCode);
+    LOGI_BIZ(BIN_END) << "cmd: " << m_wCmd;
     if (iCode != 200)
     {
         CBinarySvc* pSvc = (CBinarySvc*)m_oMsgPtr.get();

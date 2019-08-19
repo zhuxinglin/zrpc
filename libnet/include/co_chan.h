@@ -79,6 +79,8 @@ public:
             if (m_oChan.empty())
             {
                 unlock();
+                if (CNet::GetObj()->IsExitCo())
+                    break;
                 continue;
             }
 

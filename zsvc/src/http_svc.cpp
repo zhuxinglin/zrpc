@@ -25,6 +25,7 @@
 using namespace zrpc;
 
 const int g_iReadLen = 8192;
+extern map_confog g_mapConfig;
 
 CHttpSvc::CHttpSvc()
 {
@@ -74,11 +75,10 @@ void CHttpSvc::Go()
 
         SetUri();
 
-//        LOGI << m_oHttpReq.sUri << "[" << zplugin::CUtilHash::UriHash(m_oHttpReq.sUri.c_str(), m_oHttpReq.sUri.size()) << "] " << m_iKeepAlive;
-
         int iCode;
-        int iRet = pPlugin->ExecSo(m_oPtr, this, zplugin::CUtilHash::UriHash(m_oHttpReq.sUri.c_str(), m_oHttpReq.sUri.size()), &m_oHttpReq.szBody, iCode);
-//        LOGI << "http code : " << iCode << " tet : " << iRet;
+        LOGD_BIZ(HTTP_START) << "URL: " << m_oHttpReq.sUri << ", len: " << m_oHttpReq.szBody.length();
+        int iRet = pPlugin->ExecSo(m_oPtr, this, coplugin::CUtilHash::UriHash(m_oHttpReq.sUri.c_str(), m_oHttpReq.sUri.size()), &m_oHttpReq.szBody, iCode);
+        LOGD_BIZ(HTTP_END) << "URL: " << m_oHttpReq.sUri << ", Code : " << iCode << ", ret: " << iRet;
         if (iCode != 200)
             WriteHttp(0, 0, iCode, iRet, 3e3);
     } while (m_iKeepAlive);

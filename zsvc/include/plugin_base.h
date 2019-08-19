@@ -26,6 +26,7 @@
 #include <task_base.h>
 #include <coroutine.h>
 #include <libnet.h>
+#include <atomic>
 
 namespace zplugin
 {
@@ -49,24 +50,21 @@ struct CHttpController : public CControllerBase
 // 二进制协议头
 struct CBinaryProtocolHeader
 {
-    CBinaryProtocolHeader(int32_t len, uint16_t cmd, uint8_t ret, uint8_t ver = 0) : dwHeader(HEADER_FLAGE),
-                                                                                     iLen(len),
-                                                                                     wCmd(cmd),
-                                                                                     szVersion(ver),
-                                                                                     iRet(ret)
+    CBinaryProtocolHeader(int32_t len, uint16_t cmd, int16_t ret) : dwHeader(HEADER_FLAGE),
+                                                                    iLen(len),
+                                                                    wCmd(cmd),
+                                                                    iRet(ret)
     {}
     uint32_t dwHeader;  // aa55=0x61613535
     int32_t iLen;       // iLen = sizeof(CBinaryProtocolHeader) + data_len + 1
     uint16_t wCmd;
-    uint8_t szVersion;
-    uint8_t iRet;
+    int16_t iRet;
     char szBody[0];
 
-    void Set(int32_t len, uint16_t cmd, uint8_t ret, uint8_t ver = 0)
+    void Set(int32_t len, uint16_t cmd, int16_t ret)
     {
         dwHeader = HEADER_FLAGE;
         iLen = len;
-        szVersion = ver;
         wCmd = cmd;
         iRet = ret;
     }
@@ -75,13 +73,14 @@ struct CBinaryProtocolHeader
     {
         iLen = htonl(iLen);
         wCmd = htons(wCmd);
+        iRet = htons(iRet);
     }
 };
 
 struct CSharedData
 {
-    void* pPtr[2];
-    uint64_t qwPtr;
+    void* pPtr[2]{0, 0};
+    std::atomic_int iIndex{0};
 };
 
 struct CPluginBase

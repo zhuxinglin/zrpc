@@ -727,6 +727,30 @@ void CNet::DeleteObj(ITaskBase* pTask)
 
 void CNet::ExitCo(uint64_t qwCid)
 {
+    if (qwCid == 0)
+        qwCid = GetCurCid();
+
+    if (!g_pContext || !g_pContext->m_pTaskQueue)
+        return;
+
     g_pContext->m_pTaskQueue->ExitTask(qwCid);
     CGoPost::Post();
+}
+
+bool CNet::IsExitCo(uint64_t qwCid) const
+{
+    CContext* pCx = g_pContext;
+    if (!pCx)
+        return true;
+    if (qwCid == 0)
+    {
+        if (!pCx->m_pCo || !pCx->m_pCo->GetTaskBase())
+            return true;
+        return pCx->m_pCo->GetTaskBase()->IsExitCo();
+    }
+
+    if (!pCx->m_pTaskQueue)
+        return true;
+
+    return pCx->m_pTaskQueue->IsExitTask(qwCid);
 }
