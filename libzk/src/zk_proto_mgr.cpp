@@ -584,6 +584,10 @@ int ZkProtoMgr::Exists(const char *pszPath, int watch, zkproto::zk_stat *stat)
     if (oRes->err != 0)
         return -2;
 
+    zk_exists_response resp;
+    resp.Ntoh(oRes->msg.get(), oRes->msg_len);
+    *stat = resp.stat;
+
     return 0;
 }
 

@@ -78,65 +78,70 @@ int CMonitorSo::Start(CSoPlugin *pPlugin)
 
 void CMonitorSo::Run()
 {
-    struct inotify_event ie[50];
+    char *ie = new char[1024];
     CSoPlugin *pSoPlugin = (CSoPlugin*)m_pData;
     map_so_info* pSoInfo;
     while(true)
     {
         pSoInfo = 0;
-        int iLen = read(m_iFd, ie, sizeof(ie));
+        memset(ie, 0, 1024);
+        int iLen = read(m_iFd, ie, 1024);
         if (iLen == -1 && errno == EAGAIN)
         {
             Yield();
             continue;
         }
 
-        for (int i = 0; i < iLen / (int)sizeof(struct inotify_event); ++ i)
+        for (struct inotify_event *pIe = reinterpret_cast<struct inotify_event *>(ie);
+             reinterpret_cast<char*>(pIe) < (ie + iLen);)
         {
-            struct inotify_event *pIe = &ie[i];
-            if (pIe->len == 0)
-                continue;
-
-            if (pIe->mask & (IN_MOVED_TO | IN_CLOSE_WRITE))
+            do
             {
-                if (0 == strstr(pIe->name, SO_VERSION))
-                    continue;
+                if (pIe->len == 0)
+                    break;
 
-                if (!pSoInfo)
-                    pSoInfo = new map_so_info;
-
-                std::string sSoPath(m_sSoPath);
-                sSoPath.append(pIe->name);
-                if (pSoPlugin->UpdateSo(sSoPath.c_str(), pSoInfo) < 0)
+                if (pIe->mask & (IN_MOVED_TO | IN_CLOSE_WRITE))
                 {
-                    LOGE << "load '" << pIe->name << "' fail";
-                }
+                    if (0 == strstr(pIe->name, SO_VERSION))
+                        break;
 
-                if (pSoInfo->size() == 0)
+                    if (!pSoInfo)
+                        pSoInfo = new map_so_info;
+
+                    std::string sSoPath(m_sSoPath);
+                    sSoPath.append(pIe->name);
+                    if (pSoPlugin->UpdateSo(sSoPath.c_str(), pSoInfo) < 0)
+                    {
+                        LOGE << "load '" << pIe->name << "' fail";
+                    }
+
+                    if (pSoInfo->size() == 0)
+                    {
+                        delete pSoInfo;
+                        pSoInfo = 0;
+                        break;
+                    }
+                }
+                else if (IN_DELETE & pIe->mask)
                 {
-                    delete pSoInfo;
-                    pSoInfo = 0;
-                    continue;
+                    if (!strstr(pIe->name, SO_VERSION))
+                        break;
+
+                    if (!pSoInfo)
+                        pSoInfo = new map_so_info;
+
+                    std::string sSoPath(m_sSoPath);
+                    sSoPath.append(pIe->name);
+
+                    if (pSoPlugin->Uninstall(pSoInfo, sSoPath.c_str()) < 0)
+                    {
+                        delete pSoInfo;
+                        pSoInfo = 0;
+                        break;
+                    }
                 }
-            }
-            else if (IN_DELETE & pIe->mask)
-            {
-                if (!strstr(pIe->name, SO_VERSION))
-                    continue;
-
-                if (!pSoInfo)
-                    pSoInfo = new map_so_info;
-
-                std::string sSoPath(m_sSoPath);
-                sSoPath.append(pIe->name);
-
-                if (pSoPlugin->Uninstall(pSoInfo, sSoPath.c_str()) < 0)
-                {
-                    delete pSoInfo;
-                    pSoInfo = 0;
-                    continue;
-                }
-            }
+            } while (0);
+            pIe += pIe->len;
         }
 
         if (!pSoInfo)
@@ -148,4 +153,5 @@ void CMonitorSo::Run()
         pSoUninstall->SetPluginObj(pSoPlugin);
         CNet::GetObj()->Register(pSoUninstall, pSoPlugin, ITaskBase::PROTOCOL_TIMER, -1, g_dwSoUninstallInterval * 1e3);
     }
+    delete ie;
 }
