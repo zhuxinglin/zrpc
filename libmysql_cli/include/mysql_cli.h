@@ -16,7 +16,6 @@
 #define __MYSQL_CLI_H__
 
 #include "mysql/mysql.h"
-#include "zk_api.h"
 #include <string>
 
 namespace mysqlcli

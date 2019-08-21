@@ -98,7 +98,7 @@ void MySqlHelper::SetInt128(__int128_t& v)
     SetString(s);
 }
 
-void MySqlHelper::SetString(std::string& v)
+void MySqlHelper::SetString(const std::string& v)
 {
     if (!m_pCli)
         return;
@@ -142,7 +142,7 @@ int MySqlHelper::Rollback()
     return m_pCli->Rollback();
 }
 
-std::string& MySqlHelper::GetSql(std::string& sSql)
+std::string& MySqlHelper::GenerateSql(std::string& sSql)
 {
     if (m_vValue.empty())
     {

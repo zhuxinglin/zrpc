@@ -23,17 +23,12 @@
 #include <vector>
 #include <list>
 #include <set>
+#include "serializable.h"
 
 namespace mysqlcli
 {
 
-#define _SERIALIZE(o, m, f)    \
-    do                         \
-    {                          \
-        o |= f;                \
-    } while (0);
-
-class MySqlResult
+class MySqlResult : public serialize::ISerialize
 {
 public:
     MySqlResult():m_pRes(nullptr), m_qwRows(0), m_pRowRes(nullptr),m_dwIndex(0){}
@@ -149,12 +144,12 @@ public:
     }
 
     template <class T>
-    void SetValue(T v)
+    void SetValueI(T v)
     {m_vValue.push_back(std::to_string(v));}
 
     void SetUint128(__uint128_t& v);
     void SetInt128(__int128_t& v);
-    void SetString(std::string& v);
+    void SetString(const std::string& v);
     void SetString(const char* v);
     const char* GetErr()const {return m_pCli->GetErr();}
 
@@ -163,7 +158,7 @@ public:
     int Commit();
     int Rollback();
 
-    std::string& GetSql(std::string& sSql);
+    std::string& GenerateSql(std::string& sSql);
 
 private:
     void Clear();

@@ -30,7 +30,7 @@ MysqlCli::~MysqlCli()
 // pszConnectInfo = "用户名:密码@tcp(IP:端口)/数据库?charset=utf8"
 int MysqlCli::Connect(const char* pszConnectInfo)
 {
-    if (!m_pMySql || !pszConnectInfo)
+    if (m_pMySql || !pszConnectInfo)
     {
         m_sErr = "check param error";
         return -1;
