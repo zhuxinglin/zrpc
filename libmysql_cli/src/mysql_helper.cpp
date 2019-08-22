@@ -159,7 +159,8 @@ std::string& MySqlHelper::GenerateSql(std::string& sSql)
         {
             m_sSql.append(s, e - s);
             s = e + 1;
-            m_sSql.append(*it);
+            if (it != m_vValue.end())
+                m_sSql.append(*it);
             ++ it;
         }
         ++ e;

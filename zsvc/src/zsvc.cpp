@@ -67,13 +67,6 @@ int CJSvc::Init(CConfig *pCfg)
         LOGE << "initialize plugin monitor fail";
         return -1;
     }
-
-    // 加载插件
-    if (m_oPlugin.LoadSo(g_oPluginPath.c_str()) < 0)
-    {
-        LOGE << "load plugin fail";
-        return -1;
-    }
     return 0;
 }
 

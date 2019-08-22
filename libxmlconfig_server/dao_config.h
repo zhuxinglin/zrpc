@@ -23,10 +23,13 @@ constexpr int DB_CONNECT_COUNT    = 2;
 namespace dao
 {
 
-struct ShmConfigTable
+struct XmlConfigTable
 {
     uint64_t id;
-    std::string key;
+    std::string key1;
+    std::string key2;
+    std::string key3;
+    std::string key4;
     std::string value;
     uint32_t status{0};
     uint32_t del_flag{0};
@@ -39,7 +42,10 @@ struct ShmConfigTable
     void Serialize(AR& ar)
     {
         _SERIALIZE(ar, 0, id);
-        _SERIALIZE(ar, 0, key);
+        _SERIALIZE(ar, 0, key1);
+        _SERIALIZE(ar, 0, key2);
+        _SERIALIZE(ar, 0, key3);
+        _SERIALIZE(ar, 0, key4);
         _SERIALIZE(ar, 0, value);
         _SERIALIZE(ar, 0, status);
         _SERIALIZE(ar, 0, del_flag);
@@ -50,11 +56,43 @@ struct ShmConfigTable
     }
 };
 
+struct XmlConfigInitInfo
+{
+    std::string key1;
+    std::string key2;
+    std::string key3;
+    std::string key4;
+    std::string value;
+
+    template<typename AR>
+    void Serialize(AR& ar)
+    {
+        _SERIALIZE(ar, 0, key1);
+        _SERIALIZE(ar, 0, key2);
+        _SERIALIZE(ar, 0, key3);
+        _SERIALIZE(ar, 0, key4);
+        _SERIALIZE(ar, 0, value);
+    }
+};
+
+struct XmlConfigResp
+{
+    std::string key;
+    std::string value;
+    template<typename AR>
+    void Serialize(AR& ar)
+    {
+        _SERIALIZE(ar, 0, key);
+        _SERIALIZE(ar, 0, value);
+    }
+};
+
+template<typename T>
 struct ConfigResp
 {
     int code{0};
     std::string msg;
-    std::vector<ShmConfigTable> data;
+    std::vector<T> data;
     struct Page
     {
         uint32_t page_no{0};
@@ -92,16 +130,18 @@ public:
 public:
     int Init(const char* pszDbAddr);
 
-    int Add(const ShmConfigTable* pConf);
-    int Mod(ShmConfigTable* pConf);
-    int Del(const std::string& sKey, const std::string& sAuthor);
-    int Query(const std::string& sKey, uint32_t dwPageNo, uint32_t dwPageSize, std::vector<ShmConfigTable>& vConf);
-    int ConfigCount(uint32_t& dwSumCount);
+    int Add(const XmlConfigTable* pConf);
+    int Mod(XmlConfigTable* pConf);
+    int Del(const std::string& sKey1, const std::string& sKey2, const std::string& sKey3, const std::string& sKey4, const std::string& sAuthor);
+    int Query(const std::string& sKey1, const std::string& sKey2, const std::string& sKey3, const std::string& sKey4, uint32_t dwPageNo, uint32_t dwPageSize, std::vector<XmlConfigTable>& vConf);
+    int Query(const std::string& sKey1, const std::string& sKey2, const std::string& sKey3, const std::string& sKey4, std::vector<XmlConfigInitInfo>& vConf);
+    int ConfigCount(uint32_t& dwSumCount, const std::string& sKey1, const std::string& sKey2, const std::string& sKey3, const std::string& sKey4);
 
 private:
     struct ManageMysqlPool;
     ManageMysqlPool* getMysqlCliObj();
     uint64_t getTimeMs();
+    void setKey(std::string& sSql, const std::string& sKey1, const std::string& sKey2, const std::string& sKey3, const std::string& sKey4, mysqlcli::MySqlHelper& oHelper);
 
 private:
     struct ManageMysqlPool

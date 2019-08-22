@@ -364,19 +364,40 @@ int CNet::AddTimerTask(ITaskBase *pTask, uint32_t dwTimeout)
 int CNet::AddFdTask(ITaskBase *pTask, int iFd)
 {
     CTaskQueue *pTaskQueue = g_pContext->m_pTaskQueue;
-    if (!pTaskQueue->AddWaitTask((CTaskNode *)pTask->m_pTaskQueue))
+    if (pTask->m_wRunStatus == ITaskBase::RUN_NOW)
     {
-        DeleteTask(pTask);
-        g_pContext->m_sErr = "add message list fail";
-        return -1;
+        if (!pTaskQueue->AddExecTask((CTaskNode *)pTask->m_pTaskQueue))
+            return -1;
+    }
+    else
+    {
+        if (!pTaskQueue->AddWaitTask((CTaskNode *)pTask->m_pTaskQueue))
+        {
+            DeleteTask(pTask);
+            g_pContext->m_sErr = "add message list fail";
+            return -1;
+        }
     }
 
     CThread *pSchedule = g_pContext->m_pSchedule;
+    uint8_t wRunstatus = pTask->m_wRunStatus;
     if (pSchedule->PushMsg(iFd, 0, 0, (void *)pTask->m_qwCid) < 0)
     {
         g_pContext->m_sErr = pSchedule->GetErr();
-        DeleteObj(pTask);
+        if (pTask->m_wRunStatus == ITaskBase::RUN_NOW)
+        {
+            pTask->m_wRunStatus = ITaskBase::RUN_EXIT;
+            CGoPost::Post();
+        }
+        else
+            DeleteObj(pTask);
         return -1;
+    }
+
+    if (wRunstatus == ITaskBase::RUN_NOW)
+    {
+        pTask->m_wRunStatus = ITaskBase::RUN_EXEC;
+        CGoPost::Post();
     }
 
     return 0;

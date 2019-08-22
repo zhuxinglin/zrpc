@@ -471,14 +471,10 @@ int CTcpCli::Create(const char *pszAddr, uint16_t wPort, uint32_t dwTimeout, ITa
         tv.tv_usec = 0;
 
         if (SetFdOpt(SOL_SOCKET, SO_SNDTIMEO, &tv, sizeof(tv)) < 0)
-        {
             break;
-        }
 
         if (SetFdOpt(SOL_SOCKET, SO_RCVTIMEO, &tv, sizeof(tv)) < 0)
-        {
             break;
-        }
 
         if (m_bAsync && Async() < 0)
             break;
@@ -500,7 +496,8 @@ int CTcpCli::Create(const char *pszAddr, uint16_t wPort, uint32_t dwTimeout, ITa
 
         if (SetFdOpt(SOL_TCP, TCP_NODELAY, &iKeepAlive, sizeof(iKeepAlive)) < 0)
             break;
-            /*
+
+/*
         int iKeepIdle = 30; //默认如该连接在5秒内没有任何数据往来，则进行探测
         if (SetFdOpt(SOL_TCP, TCP_KEEPIDLE, &iKeepIdle, sizeof(iKeepIdle)) < 0)
         {
@@ -520,11 +517,11 @@ int CTcpCli::Create(const char *pszAddr, uint16_t wPort, uint32_t dwTimeout, ITa
         }
 */
 
-            if (m_bAsync && WaitConnect(dwTimeout, pTask) < 0)
-            {
-                SetFdErr("connect server timeout!", &addr4, &addr6, pszAddr, wPort, dwTimeout);
-                break;
-            }
+        if (m_bAsync && WaitConnect(dwTimeout, pTask) < 0)
+        {
+            SetFdErr("connect server timeout!", &addr4, &addr6, pszAddr, wPort, dwTimeout);
+            break;
+        }
 
         return m_iFd;
     } while (0);
@@ -1178,7 +1175,6 @@ int CTcpsCli::Create(const char *pszAddr, uint16_t wPort, const char *pszCacert,
 {
     m_dwVer = wVer;
     CTcpCli oCli;
-    oCli.SetSync();
     if (oCli.Create(pszAddr, wPort, dwTimeout, pTask, wVer) < 0)
     {
         return -1;

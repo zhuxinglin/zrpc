@@ -263,7 +263,7 @@ int CSoPlugin::Repeat(std::string& sSoName)
     std::string sTmp = GetSoName(sSoName.c_str());
     for (map_so_info_it it = m_mapRoute->begin(); it != m_mapRoute->end();)
     {
-        uint32_t dwPost;
+        std::size_t dwPost;
         dwPost = it->first->sSoName.find(sTmp);
         if (dwPost == std::string::npos)
         {
@@ -340,5 +340,5 @@ std::string CSoPlugin::GetSoName(const char* pszSoName)
     while (*c != 0 && *c != '.')
         ++c;
     sTmp.resize(c - s);
-    return std::move(sTmp);
+    return sTmp;
 }

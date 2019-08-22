@@ -66,9 +66,6 @@ int MysqlCli::Connect(const char* pszConnectInfo)
     s = getConnectInfo(s, 0, sCharset);
     m_pMySql = mysql_init(NULL);
 
-    if (!sCharset.empty())
-        mysql_options(m_pMySql, MYSQL_SET_CHARSET_NAME, sCharset.c_str());
-
     if (!mysql_real_connect(m_pMySql, sProto.compare("tcp") == 0 ? sAddr.c_str() : nullptr, sUser.c_str(), 
         sPasswrod.c_str(), sDb.c_str(), sPort.empty() ? 0 : atoi(sPort.c_str()), 
         sProto.compare("tcp") == 0 ? nullptr : sAddr.c_str(), 0))
@@ -77,8 +74,14 @@ int MysqlCli::Connect(const char* pszConnectInfo)
         return -1;
     }
 
-    // if (!sCharset.empty())
-    //     mysql_set_character_set(m_pMySql, sCharset.c_str());
+    std::size_t iPos = sCharset.find('=');
+    if (iPos == std::string::npos)
+        sCharset = "";
+
+    sCharset = sCharset.substr(++ iPos);
+
+    if (!sCharset.empty())
+        mysql_set_character_set(m_pMySql, sCharset.c_str());
 
     return 0;
 }

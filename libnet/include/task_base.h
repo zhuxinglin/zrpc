@@ -104,14 +104,14 @@ struct ITaskBase
     uint8_t m_wProtocol;
     enum
     {
-        RUN_NOW = 0x1,
-        RUN_INIT = 0x2,
-        RUN_WAIT = 0x4,
-        RUN_LOCK = 0x8,
-        RUN_SLEEP = 0x10,
-        RUN_READY = 0x20,
-        RUN_EXEC = 0x40,
-        RUN_EXIT = 0x80,
+        RUN_NOW = 0x1,  // 立急执行状态，仅在启动时有效，如需要产急执行可手动修改为此状态,对定时无效
+        RUN_INIT = 0x2, // 初始化状态，不立急执行，如果检查到超时，大于100ms会自动转RUN_READY，但也不执行
+        RUN_WAIT = 0x4, // 被阻塞状态
+        RUN_LOCK = 0x8, // 加锁状态
+        RUN_SLEEP = 0x10,   // 休眠状态
+        RUN_READY = 0x20,   // 就绪状态
+        RUN_EXEC = 0x40,    // 正在执行状态
+        RUN_EXIT = 0x80,    // 退出状态
     };
     uint8_t m_wIsRuning;
     uint8_t m_wRunStatus;

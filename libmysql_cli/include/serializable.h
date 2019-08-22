@@ -591,6 +591,8 @@ public:
 #define JSON_TO_FIELD_VALUE(type, expression1, expression2) \
     CJsonToObjet& operator|= (type& o)                      \
     {                                                       \
+        if (!m_pValue->HasMember(m_pszFieldName))           \
+            return *this;                                   \
         if (!(*m_pValue)[m_pszFieldName].expression1)       \
             return *this;                                   \
         o = (type)(*m_pValue)[m_pszFieldName].expression2;  \

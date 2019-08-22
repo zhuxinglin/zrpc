@@ -30,6 +30,7 @@ extern uint32_t g_dwSoUninstallInterval;
 CMonitorSo::CMonitorSo() : m_iFd(-1),
                            m_iIw(-1)
 {
+    m_wRunStatus = RUN_NOW;
 }
 
 CMonitorSo::~CMonitorSo()
@@ -77,6 +78,19 @@ int CMonitorSo::Start(CSoPlugin *pPlugin)
 }
 
 void CMonitorSo::Run()
+{
+    LoadSo();
+    MonitorLoadSo();
+}
+
+void CMonitorSo::LoadSo()
+{
+    CSoPlugin *pSoPlugin = (CSoPlugin*)m_pData;
+    // ¼ÓÔØ²å¼þ
+    pSoPlugin->LoadSo(m_sSoPath.c_str());
+}
+
+void CMonitorSo::MonitorLoadSo()
 {
     char *ie = new char[1024];
     CSoPlugin *pSoPlugin = (CSoPlugin*)m_pData;

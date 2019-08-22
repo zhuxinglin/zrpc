@@ -36,6 +36,8 @@ public:
 
 private:
     virtual void Run();
+    void LoadSo();
+    void MonitorLoadSo();
 
 private:
     int m_iFd;
