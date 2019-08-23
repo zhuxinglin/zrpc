@@ -132,11 +132,11 @@ int64_t MysqlCli::Query(const std::string& sSql, MySqlResult* pResult)
     }
 
     int iRet = mysql_real_query(m_pMySql, sSql.c_str(), sSql.length());
-    if (iRet < 0)
+    if (iRet != 0)
     {
         mysql_ping(m_pMySql);
         iRet = mysql_real_query(m_pMySql, sSql.c_str(), sSql.length());
-        if (iRet < 0)
+        if (iRet != 0)
         {
             m_sErr = mysql_error(m_pMySql);
             m_sErr.append(" ret : ").append(std::to_string(iRet)).append(" query : ==>>").append(sSql);
