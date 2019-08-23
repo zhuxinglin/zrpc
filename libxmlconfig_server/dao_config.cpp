@@ -188,9 +188,10 @@ int DaoConfig::Query(const std::string& sKey1, const std::string& sKey2, const s
 
     mysqlcli::MySqlHelper oHelper(pCli->pSqlCli);
 
-    std::string sSql = "select id,xml_key1,xml_key2,xml_key3,xml_key4,xml_value where status=2 and del_flag=0";
+    std::string sSql = "select xml_key1,xml_key2,xml_key3,xml_key4,xml_value from xml_config where status=2 and del_flag=0";
     setKey(sSql, sKey1, sKey2, sKey3, sKey4, oHelper);
 
+    LOGI_BIZ(DAO) << oHelper.GenerateSql(sSql);
     int64_t iRet = oHelper.Query(vConf);
     if(iRet < 0)
         LOGE_BIZ(DAO) << oHelper.GetErr();

@@ -279,7 +279,7 @@ int ConfigServer::Query(CControllerBase* pController, std::string* pMessage)
 
 int ConfigServer::InitQuery(CControllerBase* pController, std::string* pMessage)
 {
-    LOGI_BIZ(QUERY) << *pMessage;
+    LOGI_BIZ(INIT_QUERY) << *pMessage;
     std::vector<std::string> vParam;
     getQueryParam(pController, pMessage, vParam);
 
@@ -318,6 +318,7 @@ int ConfigServer::InitQuery(CControllerBase* pController, std::string* pMessage)
     delete pResp;
 
     std::string sKey = oJson.GetJson();
+    LOGD_BIZ(INIT_QUERY) << "json : " << sKey;
     CHttpController* pHttp = dynamic_cast<CHttpController*>(pController);
     pHttp->WriteResp(sKey.c_str(), sKey.length(), 200, 0, 3000, true);
     return 0;

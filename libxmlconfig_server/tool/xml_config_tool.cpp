@@ -166,7 +166,7 @@ static void OnMsg(std::string& sAddr, uint16_t wPort, const std::string& sUri, i
     int iBodyLen = atoi(p);
 
     p = strstr(p, "\r\n\r\n");
-    p += sizeof("\r\n\r\n");
+    p += sizeof("\r\n\r\n") - 1;
     sResp.append(p);
     if (debug == 1)
         printf("http response:\n%s", szBuf);
@@ -312,7 +312,12 @@ static void InitQuery(std::string& sAddr, uint16_t wPort, ConfigInfo* pConf)
         iPos = pConf->key.find_first_of(":", iStartPos);
     }
     if (iStartPos != pConf->key.length())
-        sUri.append(",\"").append(pConf->key.substr(iStartPos)).append("\"");
+    {
+        if (iStartPos != 0)
+            sUri.append(",\"").append(pConf->key.substr(iStartPos)).append("\"");
+        else
+            sUri.append("\"").append(pConf->key.substr(iStartPos)).append("\"");
+    }
     sUri.append("]");
     std::string sMsg;
     OnMsg(sAddr, wPort, sUri, 0, std::string(), sMsg, pConf->debug);

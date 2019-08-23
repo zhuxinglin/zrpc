@@ -139,6 +139,7 @@ int64_t MysqlCli::Query(const std::string& sSql, MySqlResult* pResult)
         if (iRet < 0)
         {
             m_sErr = mysql_error(m_pMySql);
+            m_sErr.append(" ret : ").append(std::to_string(iRet)).append(" query : ==>>").append(sSql);
             return -1;
         }
     }
@@ -154,12 +155,28 @@ int64_t MysqlCli::Query(const std::string& sSql, MySqlResult* pResult)
     {
         int64_t id = mysql_insert_id(m_pMySql);
         if (id != 0)
-            return id;
-        return mysql_affected_rows(m_pMySql);
+        {
+            if (id < 0)
+            {
+                m_sErr = mysql_error(m_pMySql);
+                m_sErr.append(" ret : ").append(std::to_string(iRet)).append(" insert : ==>>").append(sSql);
+            }
+        }
+        else
+        {
+            id = mysql_affected_rows(m_pMySql);
+            if (id < 0)
+            {
+                m_sErr = mysql_error(m_pMySql);
+                m_sErr.append(" ret : ").append(std::to_string(iRet)).append(" other : ==>>").append(sSql);
+            }
+        }
+        return id;
     }
     else
     {
         m_sErr = mysql_error(m_pMySql);
+        m_sErr.append(" ret : ").append(std::to_string(iRet)).append(" unknown : ==>>").append(sSql);
         return -1;
     }
 
