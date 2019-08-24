@@ -12,7 +12,7 @@
 *
 */
 
-#include "shm_config.h"
+#include "include/shm_config.h"
 #include "shm_struct.h"
 #include <sys/ipc.h>
 #include <sys/shm.h>

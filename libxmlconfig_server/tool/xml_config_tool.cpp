@@ -109,7 +109,7 @@ static void setKey(const std::string& sKey, std::string& sKey1, std::string& sKe
 
 static void OnMsg(std::string& sAddr, uint16_t wPort, const std::string& sUri, int type, const std::string& sReq, std::string& sResp, int debug)
 {
-    conet::CTcpCli oCli;
+    znet::CTcpCli oCli;
     oCli.SetSync();
     if (oCli.Create(sAddr.c_str(), wPort, 30000, nullptr) < 0)
     {
@@ -166,7 +166,7 @@ static void OnMsg(std::string& sAddr, uint16_t wPort, const std::string& sUri, i
     int iBodyLen = atoi(p);
 
     p = strstr(p, "\r\n\r\n");
-    p += sizeof("\r\n\r\n") - 1;
+    p += sizeof("\r\n\r\n");
     sResp.append(p);
     if (debug == 1)
         printf("http response:\n%s", szBuf);
@@ -312,12 +312,7 @@ static void InitQuery(std::string& sAddr, uint16_t wPort, ConfigInfo* pConf)
         iPos = pConf->key.find_first_of(":", iStartPos);
     }
     if (iStartPos != pConf->key.length())
-    {
-        if (iStartPos != 0)
-            sUri.append(",\"").append(pConf->key.substr(iStartPos)).append("\"");
-        else
-            sUri.append("\"").append(pConf->key.substr(iStartPos)).append("\"");
-    }
+        sUri.append(",\"").append(pConf->key.substr(iStartPos)).append("\"");
     sUri.append("]");
     std::string sMsg;
     OnMsg(sAddr, wPort, sUri, 0, std::string(), sMsg, pConf->debug);

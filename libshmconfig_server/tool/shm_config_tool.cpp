@@ -73,7 +73,7 @@ struct ConfigInfo
 
 static void OnMsg(std::string& sAddr, uint16_t wPort, const std::string& sUri, int type, const std::string& sReq, std::string& sResp, int debug)
 {
-    conet::CTcpCli oCli;
+    znet::CTcpCli oCli;
     oCli.SetSync();
     if (oCli.Create(sAddr.c_str(), wPort, 30000, nullptr) < 0)
     {

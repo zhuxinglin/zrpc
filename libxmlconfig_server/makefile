@@ -1,9 +1,9 @@
 CXX=g++
 CC=gcc
-INCLUDES= -I../libnet/include -I./ -I../corpc/include -I/usr/local/include -I../libmysql_cli/include -I../../code/include
+INCLUDES= -I../libnet/include -I./ -I../zsvc/include -I/usr/local/include -I../libmysql_cli/include -I../../code/include
 VERSION=1.0.0
 CFLAGS=-g2 -Wall -D_REENTRANT -Wno-invalid-offsetof -fvisibility=hidden -shared -fPIC -DVERSION -Wl,--as-needed -std=c++11
-LIBS= ../libnet/libnet.a -lpthread -lrt -ldl -L/usr/local/lib -lssl -lcrypto ../libmysql_cli/libmysql_cli.a
+LIBS= ../libnet/libnet.a -lpthread -lrt -ldl -L/usr/local/lib -lssl -lcrypto ../libmysql_cli/libmysql_cli.a -lmysqlclient
 BUILD_DIR= build
 
 OBJS+=$(BUILD_DIR)/config_server.o $(BUILD_DIR)/dao_config.o

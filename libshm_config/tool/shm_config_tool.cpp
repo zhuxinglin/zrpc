@@ -12,7 +12,7 @@
 *
 */
 
-#include "shm_config.h"
+#include "../include/shm_config.h"
 #include <string.h>
 #include <stdio.h>
 

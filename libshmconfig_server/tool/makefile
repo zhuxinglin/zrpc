@@ -1,7 +1,7 @@
 CXX=g++
 CC=gcc
-LIBS= ../../libconet/libconet.a -lpthread -lrt -ldl -L/usr/local/lib -lssl -lcrypto
-INCLUDES= -I../../libconet/include -I../ -I./include -I/usr/local/include  -I../../libmysql_cli/include
+LIBS= ../../libnet/libnet.a -lpthread -lrt -ldl -L/usr/local/lib -lssl -lcrypto
+INCLUDES= -I../../libnet/include -I../ -I./include -I/usr/local/include  -I../../libmysql_cli/include
 CFLAGS=-g2 -Wall -D_REENTRANT -Wl,--as-needed -Wno-invalid- -std=c++11
 SRC=
 BUILD_DIR=build

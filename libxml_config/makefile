@@ -1,8 +1,8 @@
 CXX=g++
 CC=gcc
-INCLUDES= -I../libconet/include -I./ -I../corpc/include -I/usr/local/include -I../libmysql_cli/include -I../../code/include -I../libshm_config/include
+INCLUDES= -I../libnet/include -I./ -I/usr/local/include -I../libmysql_cli/include -I../libshm_config/include
 CFLAGS=-g2 -Wall -D_REENTRANT -Wno-invalid-offsetof -shared -fPIC -DVERSION -Wl,--as-needed -std=c++11 
-LIBS= ../libconet/libconet.a -lpthread -lrt -ldl -L/usr/local/lib -lssl -lcrypto ../libshm_config/libshmconfig.a
+LIBS= ../libnet/libnet.a -lpthread -lrt -ldl -L/usr/local/lib -lssl -lcrypto ../libshm_config/libshmconfig.a
 BUILD_DIR= build
 VERSION=1.0.0
 

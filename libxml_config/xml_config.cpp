@@ -73,7 +73,7 @@ int XmlConfig::Query(const std::string& sAddr, std::vector<std::string>& vQueryK
 
 int XmlConfig::onMsg(const std::string& sAddr, uint16_t wPort, const std::string& sUri, std::string& sResp, bool bIsSync)
 {
-    conet::CTcpCli oCli;
+    znet::CTcpCli oCli;
     if (bIsSync)
         oCli.SetSync();
 

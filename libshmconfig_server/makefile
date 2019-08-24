@@ -3,7 +3,7 @@ CC=gcc
 INCLUDES= -I../libnet/include -I./ -I../zsvc/include -I/usr/local/include -I../libmysql_cli/include -I../libzk/include
 VERSION=1.0.0
 CFLAGS=-O2 -Wall -D_REENTRANT -Wno-invalid-offsetof -fvisibility=hidden -shared -fPIC -DVERSION -Wl,--as-needed -std=c++11
-LIBS= ../libzk/libzk.a ../libnet/libnet.a -lpthread -lrt -ldl -L/usr/local/lib -lssl -lz -lcrypto ../libmysql_cli/libmysql_cli.a /usr/lib/x86_64-linux-gnu/libmysqlclient.a
+LIBS= ../libzk/libzk.a ../libnet/libnet.a -lpthread -lrt -ldl -L/usr/local/lib -lssl -lz -lcrypto ../libmysql_cli/libmysql_cli.a -lmysqlclient
 BUILD_DIR= build
 
 OBJS+=$(BUILD_DIR)/config_server.o $(BUILD_DIR)/zk_config.o $(BUILD_DIR)/dao_config.o

@@ -65,10 +65,12 @@ int MysqlCli::Connect(const char* pszConnectInfo)
     s = getConnectInfo(s, '?', sDb);
     s = getConnectInfo(s, 0, sCharset);
     m_pMySql = mysql_init(NULL);
+    char value = 1;
+    mysql_options(m_pMySql, MYSQL_OPT_RECONNECT, &value);
 
-    if (!mysql_real_connect(m_pMySql, sProto.compare("tcp") == 0 ? sAddr.c_str() : nullptr, sUser.c_str(), 
-        sPasswrod.c_str(), sDb.c_str(), sPort.empty() ? 0 : atoi(sPort.c_str()), 
-        sProto.compare("tcp") == 0 ? nullptr : sAddr.c_str(), 0))
+    if (!mysql_real_connect(m_pMySql, sProto.compare("tcp") == 0 ? sAddr.c_str() : nullptr, sUser.c_str(),
+                            sPasswrod.c_str(), sDb.c_str(), sPort.empty() ? 0 : atoi(sPort.c_str()),
+                            sProto.compare("tcp") == 0 ? nullptr : sAddr.c_str(), 0))
     {
         m_sErr = mysql_error(m_pMySql);
         return -1;

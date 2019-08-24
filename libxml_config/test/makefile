@@ -1,6 +1,6 @@
 CXX=g++
 CC=gcc
-LIBS= -L../ -lxml_config -lpthread -lrt -ldl -L/usr/local/lib -lssl -lcrypto
+LIBS= -lpthread -lrt -ldl -L/usr/local/lib -lssl -lcrypto ../libxml_config.so.V1.0.0
 INCLUDES=  -I../include -I./include -I/usr/local/include
 CFLAGS=-g2 -Wall -D_REENTRANT -Wl,--as-needed -Wno-invalid- -std=c++11
 SRC=
