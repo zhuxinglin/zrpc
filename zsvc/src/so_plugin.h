@@ -38,6 +38,8 @@ public:
     int Swap(map_so_info **pmapRoute);
     int Del(map_so_info *pmapRoute, bool bIsAll);
     int Uninstall(map_so_info *pmapRoute, const char* pszSoName);
+    map_so_info* DelAll();
+    bool IsExit(){return m_bIsExit;}
 
     int ExecSo(znet::SharedTask& oCo, zplugin::CControllerBase* pController, uint64_t qwKey, std::string *pMessage, int &iCode);
     int InnerSo(znet::SharedTask& oCo, zplugin::CControllerBase* pController, uint64_t dwKey, std::string *pReq, std::string *pResp);
@@ -52,6 +54,7 @@ private:
 private:
     map_so_info* m_mapRoute;
     zplugin::CSharedData *m_pProc{nullptr};
+    volatile bool m_bIsExit{false};
 };
 
 }

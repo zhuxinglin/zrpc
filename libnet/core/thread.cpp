@@ -66,11 +66,9 @@ int CThread::Start(std::string sThreadName, bool bExitMode, void *pUserData, uin
 void CThread::Exit(void (*Notif)(void*), void* p)
 {
     m_bExit = false;
-    if (m_tid != 0)
+    if (m_tid != 0 && Notif != nullptr)
     {
-        if (Notif != nullptr)
-            Notif(p);
-
+        Notif(p);
         void* pParam;
         pthread_join(m_tid, &pParam);
     }

@@ -37,6 +37,9 @@ CContext::~CContext()
     if (m_pGo)
     {
         for (uint32_t i = 0; i < m_dwWorkThreadCount; ++i)
+            m_pGo[i].Exit();
+
+        for (uint32_t i = 0; i < m_dwWorkThreadCount; ++i)
             m_pGo[i].Exit([](void *p) {
                 CContext* th = reinterpret_cast<CContext*>(p);
                 for (uint32_t i = 0; i < th->m_dwWorkThreadCount; ++i)

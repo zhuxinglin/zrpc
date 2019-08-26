@@ -169,3 +169,15 @@ void CMonitorSo::MonitorLoadSo()
     }
     delete ie;
 }
+
+void CMonitorSo::Stop(CSoPlugin *pPlugin)
+{
+    LOGI << "monitorso exit ..............";
+    CSoUninstall* pSoUninstall = new CSoUninstall();
+    map_so_info* pSoInfo = pPlugin->DelAll();
+    pSoUninstall->SetSoMap(pSoInfo);
+    pSoUninstall->SetPluginObj(pPlugin);
+    CNet::GetObj()->Register(pSoUninstall, pPlugin, ITaskBase::PROTOCOL_TIMER, -1, 0);
+    // µÈ´ýÍË³ö
+    while (pPlugin->IsExit()) usleep(10);
+}

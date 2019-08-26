@@ -33,6 +33,7 @@ public:
 public:
     int InitMonitorDir(const char* pszDir);
     int Start(CSoPlugin* pPlugin);
+    void Stop(CSoPlugin *pPlugin);
 
 private:
     virtual void Run();

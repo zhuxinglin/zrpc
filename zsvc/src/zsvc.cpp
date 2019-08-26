@@ -82,6 +82,7 @@ int CJSvc::Start()
 
 void CJSvc::Stop()
 {
+    m_pMonitorSo->Stop(&m_oPlugin);
     CNet::Release();
 }
 

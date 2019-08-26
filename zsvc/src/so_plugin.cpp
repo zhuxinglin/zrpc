@@ -233,13 +233,31 @@ int CSoPlugin::Swap(map_so_info **pmapRoute)
     return 0;
 }
 
+map_so_info* CSoPlugin::DelAll()
+{
+    m_bIsExit = true;
+    map_so_info* pSoInfo = new map_so_info;
+    map_so_info* pTemp = m_mapRoute;
+    m_mapRoute = pSoInfo;
+    if (pTemp)
+    {
+        for (map_so_info_it it = pTemp->begin(); it != pTemp->end(); ++ it)
+            it->first->iDelFlag = 1;
+    }
+
+    return pTemp;
+}
+
 int CSoPlugin::Del(map_so_info *pmapRoute, bool bIsAll)
 {
     LOGI << "delete so .... ";
-    for (map_so_info_it it = pmapRoute->begin(); it != pmapRoute->end(); ++it)
+    for (map_so_info_it it = pmapRoute->begin(); it != pmapRoute->end();)
     {
         if (it->first->iDelFlag == 0 && bIsAll)
+        {
+            ++it;
             continue;
+        }
 
         // 正在执行中
         if (it->first->dwCount != 0)
@@ -247,13 +265,15 @@ int CSoPlugin::Del(map_so_info *pmapRoute, bool bIsAll)
 
         it->first->pPlugin->Release();
         dlclose(it->first->pSoHandle);
-        if (bIsAll)
+        if (bIsAll && !m_bIsExit)
             remove(it->first->sSoName.c_str());
 
         LOGI << "Uninstall : " << it->first->sSoName;
         delete it->first;
         delete it->second;
+        it = pmapRoute->erase(it);
     }
+    m_bIsExit = false;
     return 0;
 }
 
