@@ -87,14 +87,18 @@ double ShmConfig::GetValueD(const char* pszKey, const double dDefaultValue)
 
 int ShmConfig::init()
 {
-    m_pShmHeader = createShmHeader();
     if (!m_pShmHeader)
-        return -1;
+    {
+        m_pShmHeader = createShmHeader();
+        if (!m_pShmHeader)
+            return -1;
+    }
 
     ShmAddrHeader* pShmAddrHeader = reinterpret_cast<ShmAddrHeader*>(m_pShmHeader);
-    while (__sync_lock_test_and_set(&pShmAddrHeader->wSycLock, 1));
+    if (__atomic_load_n(&pShmAddrHeader->wSyncLock, std::memory_order_seq_cst))
+        return -1;
+
     m_pShmAddr = createShmData(pShmAddrHeader->dwBlockSize);
-    __sync_lock_release(&pShmAddrHeader->wSycLock);
     if (!m_pShmAddr)
         return -1;
     return 0;
@@ -135,7 +139,7 @@ int ShmConfig::searchKey(const char* pszKey, std::string& sValue)
         do
         {
             // 如果测试为真，表示服务端正在写操作，使用原来的数据
-            if (__sync_lock_test_and_set(&pShmAddrHeader->wSycLock, 1));
+            if (__atomic_load_n(&pShmAddrHeader->wSyncLock, std::memory_order_seq_cst));
                 break;
 
             AutoLock oLock(m_oCreateLock);
@@ -144,7 +148,6 @@ int ShmConfig::searchKey(const char* pszKey, std::string& sValue)
             shmdt(m_pShmAddr);
 
             m_pShmAddr = createShmData(pShmAddrHeader->dwBlockSize);
-            __sync_lock_release(&pShmAddrHeader->wSycLock);
             if (!m_pShmAddr)
             {
                 -- m_oReadLock;
@@ -170,14 +173,20 @@ int ShmConfig::searchKey(const char* pszKey, std::string& sValue)
         {
             iRet = 0;
             // 检测服务器端是否在更新
-            if (!__sync_bool_compare_and_swap(&pData->wLock, 0, 0));
+            if (__atomic_load_n(&pData->wLock, std::memory_order_seq_cst))
             {
-                while (__sync_lock_test_and_set(&pData->wLock, 1));
-                __sync_lock_release(&pData->wLock);
+                // 防止程序挂了退出值没有修改
+                int iExitCount = pData->wValueLen * 2;
+                while (__atomic_load_n(&pData->wLock, std::memory_order_seq_cst) && iExitCount) ++ iExitCount;
+
+                // 使用返回失败
+                if (iExitCount == 0)
+                {
+                    iRet = -1;
+                    break;
+                }
             }
-            __sync_fetch_and_add(&pData->wReference, 1);
             sValue.append(pData->szData + pData->wKeyLen, pData->wValueLen);
-            __sync_fetch_and_sub(&pData->wReference, 1);
             break;
         }
 
@@ -193,43 +202,21 @@ int ShmConfig::checkParam(const char* pszKey)
     if (!pszKey)
         return -1;
 
-    if (!m_pShmHeader)
+    if (!m_pShmHeader || !m_pShmAddr)
     {
-        do
-        {
-            AutoLock oLock(m_oCreateLock);
-            if (m_pShmHeader)
-                break;
-
-            if (init() < 0)
-                return -1;
-        } while (0);
+        if (init() < 0)
+            return -1;
     }
 
-    if (!m_pShmAddr)
-    {
-        do
-        {
-            AutoLock oLock(m_oCreateLock);
-            if (m_pShmAddr)
-                break;
-
-            ShmAddrHeader* pShmAddrHeader = reinterpret_cast<ShmAddrHeader*>(m_pShmHeader);
-            if (__sync_lock_test_and_set(&pShmAddrHeader->wSycLock, 1));
-                return -1;
-
-            m_pShmAddr = createShmData(pShmAddrHeader->dwBlockSize);
-            __sync_lock_release(&pShmAddrHeader->wSycLock);
-            if (!m_pShmAddr)
-                return -1;
-        } while (0);
-    }
     return 0;
 }
 
 void ShmConfig::PrintfAll()
 {
+    ShmAddrHeader* pShmAddrHeader = reinterpret_cast<ShmAddrHeader*>(m_pShmHeader);
+    printf("header:\nblock size: %u\nchange: %u\nsync lock: %d\n\n", pShmAddrHeader->dwBlockSize, pShmAddrHeader->dwChange, pShmAddrHeader->wSyncLock);
     ShmDataHeader* pHeader = reinterpret_cast<ShmDataHeader*>(m_pShmAddr);
+    printf("data header:\nhash table size: %u\nchange: %u\n\n", pHeader->dwHashTableCount, pHeader->dwChange);
     ShmHashTable* pTable = reinterpret_cast<ShmHashTable*>(pHeader->szData);
     for (uint32_t i = 0; i < pHeader->dwHashTableCount; ++ i)
     {

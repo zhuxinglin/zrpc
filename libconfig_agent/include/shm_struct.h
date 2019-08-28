@@ -27,7 +27,7 @@ typedef struct _ShmAddrHeader
 {
     uint32_t dwBlockSize;        // 总数据块大小
     uint32_t dwChange;           // 是否发生了变化
-    uint8_t wSycLock;            // 同步锁
+    volatile uint8_t wSyncLock;           // 同步锁
     uint8_t wReserve[3];         // 保留
 }ShmAddrHeader;
 
@@ -54,11 +54,9 @@ typedef struct _ShmHashData
     // 空闭长度
     uint8_t wBackLen;
     // 锁
-    uint8_t wLock;
+    volatile uint8_t wLock;
     // 保留
     uint8_t wReserve;
-    // 引用计数
-    uint16_t wReference;
     // 数据值长度
     uint16_t wValueLen;
     // 冲突地址

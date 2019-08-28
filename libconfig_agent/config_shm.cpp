@@ -99,6 +99,10 @@ void ConfigShm::GetShmDataKey(char* pszBlockAddr, uint32_t dwLen)
     {
         ShmHashData* pData = reinterpret_cast<ShmHashData*>(pszBlockAddr + dwOffset);
 
+        // 程序挂了，或强行退出
+        if (pData->wLock == 1)
+            pData->wLock = 0;
+
         uint16_t wKeyLen = pData->wKeyLen;
         m_mapConfigInfo.insert(std::map<std::string, std::string>::value_type(std::string(pData->szData, wKeyLen),
                                 std::string(pData->szData + wKeyLen, pData->wValueLen)));
@@ -168,7 +172,7 @@ int ConfigShm::writeShmData()
 
     // 存在当上一次更改了内存，客户端此时检查到dwChange已经变更, 现在马上又要更改，
     // 此时应该保证客户端成功，不应该去删除共享内存，让客户端去连接上一次
-    while(__sync_lock_test_and_set(&m_pShmAddrHeader->wSycLock, 1));
+    while(__sync_lock_test_and_set(&m_pShmAddrHeader->wSyncLock, 1));
     m_pShmAddrHeader->dwBlockSize = dwShmMemorySize;
     if (m_iShmDataId >= 0 && m_pBlockPtr)
     {
@@ -192,7 +196,7 @@ int ConfigShm::writeShmData()
         }
         break;
     }
-    // 如果失败了，同步锁wSycLock不能清0，客户端仍然使用上一次的变更
+    // 如果失败了，同步锁wSyncLock不能清0，客户端仍然使用上一次的变更
     if (iCount < 0)
         return -1;
 
@@ -207,7 +211,7 @@ int ConfigShm::writeShmData()
 
     // 通知更新成功
     m_pShmAddrHeader->dwChange = dwChange;
-    __sync_lock_release(&m_pShmAddrHeader->wSycLock);
+    __sync_lock_release(&m_pShmAddrHeader->wSyncLock);
     return 0;
 }
 
@@ -312,9 +316,7 @@ int ConfigShm::AddData(const std::string& sKey, const std::string& sValue)
         pData->wBackLen -= (sValue.length() - pData->wValueLen);
 
     // 加锁
-    while(__sync_lock_test_and_set(&pData->wLock, 1));
-    // 等待所有操作结束
-    while (!__sync_bool_compare_and_swap(&pData->wReference, 0, 0));
+    __sync_lock_test_and_set(&pData->wLock, 1);
     pData->wValueLen = sValue.length();
     memcpy(pData->szData + pData->wKeyLen, sValue.c_str(), sValue.length());
     __sync_lock_release(&pData->wLock);
