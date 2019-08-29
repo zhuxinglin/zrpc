@@ -185,38 +185,6 @@ int64_t MysqlCli::Query(const std::string& sSql, MySqlResult* pResult)
     return 0;
 }
 
-int MysqlCli::BeginCommit()
-{
-    int iRet = mysql_autocommit(m_pMySql, 0);
-    if (iRet < 0)
-        m_sErr = mysql_error(m_pMySql);
-    return iRet;
-}
-
-int MysqlCli::EndCommit()
-{
-    int iRet = mysql_autocommit(m_pMySql, 1);
-    if (iRet < 0)
-        m_sErr = mysql_error(m_pMySql);
-    return iRet;
-}
-
-int MysqlCli::Commit()
-{
-    int iRet = mysql_commit(m_pMySql);
-    if (iRet < 0)
-        m_sErr = mysql_error(m_pMySql);
-    return iRet;
-}
-
-int MysqlCli::Rollback()
-{
-    int iRet = mysql_rollback(m_pMySql);
-    if (iRet < 0)
-        m_sErr = mysql_error(m_pMySql);
-    return iRet;
-}
-
 std::string MysqlCli::GetEscapeString(const char* s, int len)
 {
     char* pStr = new char[len * 2 + 2];

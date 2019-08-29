@@ -122,24 +122,25 @@ int64_t MySqlHelper::Query()
     return iRet;
 }
 
-int MySqlHelper::BeginCommit()
+int MySqlHelper::Begin()
 {
-    return m_pCli->BeginCommit();
-}
-
-int MySqlHelper::EndCommit()
-{
-    return m_pCli->EndCommit();
+    MySqlResult oRes;
+    std::string sSql = "BEGIN";
+    return m_pCli->Query(m_sSql, &oRes);
 }
 
 int MySqlHelper::Commit()
 {
-    return m_pCli->Commit();
+    MySqlResult oRes;
+    std::string sSql = "COMMIT";
+    return m_pCli->Query(m_sSql, &oRes);
 }
 
 int MySqlHelper::Rollback()
 {
-    return m_pCli->Rollback();
+    MySqlResult oRes;
+    std::string sSql = "ROLLBACK";
+    return m_pCli->Query(m_sSql, &oRes);
 }
 
 std::string& MySqlHelper::GenerateSql(std::string& sSql)

@@ -34,10 +34,6 @@ public:
     void Close();
     int64_t Query(const std::string& sSql, MySqlResult* pResult);
     const char* GetErr() const {return m_sErr.c_str();}
-    int BeginCommit();
-    int EndCommit();
-    int Commit();
-    int Rollback();
     std::string GetEscapeString(const char* s, int len);
 
 private:

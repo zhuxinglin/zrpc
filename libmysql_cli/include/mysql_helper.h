@@ -153,8 +153,7 @@ public:
     void SetString(const char* v);
     const char* GetErr()const {return m_pCli->GetErr();}
 
-    int BeginCommit();
-    int EndCommit();
+    int Begin();
     int Commit();
     int Rollback();
 
