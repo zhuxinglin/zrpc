@@ -35,10 +35,10 @@ ConfigShm::~ConfigShm()
 int ConfigShm::Init()
 {
     int iShmAddrHeaderId = shmget(SHM_ADDR_HEADER_KEY, sizeof(ShmAddrHeader), 0666);
-    if (iShmAddrHeaderId < 0)
+    if (iShmAddrHeaderId == -1)
     {
         iShmAddrHeaderId = shmget(SHM_ADDR_HEADER_KEY, sizeof(ShmAddrHeader), 0666 | IPC_CREAT);
-        if (iShmAddrHeaderId < 0)
+        if (iShmAddrHeaderId == -1)
         {
             LOGE_BIZ(SHM_CACHE) << "get shm addr header failed";
             return -1;
@@ -78,7 +78,7 @@ int ConfigShm::CreateShmMem(uint32_t dwBlockSize, uint32_t dwFlags)
         return 0;       // 不需要连接
 
     m_iShmDataId = shmget(SHM_ADDR_DATA_KEY, dwBlockSize, 0666 | dwFlags);
-    if (m_iShmDataId < 0)
+    if (m_iShmDataId == -1)
     {
         LOGE_BIZ(SHM_CACHE) << "open shm chacke failed, key1 :" << SHM_ADDR_DATA_KEY << ", size : " << dwBlockSize;
         return -1;
@@ -172,7 +172,7 @@ int ConfigShm::writeShmData()
 
     // 存在当上一次更改了内存，客户端此时检查到dwChange已经变更, 现在马上又要更改，
     // 此时应该保证客户端成功，不应该去删除共享内存，让客户端去连接上一次
-    while(__sync_lock_test_and_set(&m_pShmAddrHeader->wSyncLock, 1));
+    __sync_lock_test_and_set(&m_pShmAddrHeader->wSyncLock, 1);
     m_pShmAddrHeader->dwBlockSize = dwShmMemorySize;
     if (m_iShmDataId >= 0 && m_pBlockPtr)
     {

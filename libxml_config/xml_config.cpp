@@ -118,7 +118,7 @@ int XmlConfig::onMsg(const std::string& sAddr, uint16_t wPort, const std::string
 
     p = strstr(p, "\r\n\r\n");
     p += sizeof("\r\n\r\n") - 1;
-    sResp.append(p);
+    sResp.append(p, iOffset - (p - pBuf.get()));
 
     if (sResp.length() == static_cast<std::size_t>(iBodyLen))
         return 0;
@@ -126,7 +126,6 @@ int XmlConfig::onMsg(const std::string& sAddr, uint16_t wPort, const std::string
     iBodyLen -= sResp.length();
 
     iLen = 8192;
-    memset(pBuf.get(), 0, iLen);
     while (iBodyLen > 0)
     {
         int iRet = oCli.Read(pBuf.get(), iLen);
@@ -135,7 +134,6 @@ int XmlConfig::onMsg(const std::string& sAddr, uint16_t wPort, const std::string
 
         sResp.append(pBuf.get(), iRet);
         iBodyLen -= iRet;
-        memset(pBuf.get(), 0, iRet);
     }
     return 0;
 }

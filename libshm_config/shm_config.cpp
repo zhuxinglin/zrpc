@@ -107,7 +107,7 @@ int ShmConfig::init()
 void* ShmConfig::createShmHeader()
 {
     int iShmAddrHeaderId = shmget(SHM_ADDR_HEADER_KEY, sizeof(ShmAddrHeader), 0666);
-    if (iShmAddrHeaderId < 0)
+    if (iShmAddrHeaderId == -1)
         return nullptr;
     return shmat(iShmAddrHeaderId, NULL, 0);
 }
@@ -115,7 +115,7 @@ void* ShmConfig::createShmHeader()
 void* ShmConfig::createShmData(uint32_t dwBlockSize)
 {
     int iShmAddrHeaderId = shmget(SHM_ADDR_DATA_KEY, dwBlockSize, 0666);
-    if (iShmAddrHeaderId < 0)
+    if (iShmAddrHeaderId == -1)
         return nullptr;
     return shmat(iShmAddrHeaderId, NULL, 0);
 }
@@ -139,7 +139,7 @@ int ShmConfig::searchKey(const char* pszKey, std::string& sValue)
         do
         {
             // 如果测试为真，表示服务端正在写操作，使用原来的数据
-            if (__atomic_load_n(&pShmAddrHeader->wSyncLock, std::memory_order_seq_cst));
+            if (__atomic_load_n(&pShmAddrHeader->wSyncLock, std::memory_order_seq_cst))
                 break;
 
             AutoLock oLock(m_oCreateLock);
@@ -154,6 +154,7 @@ int ShmConfig::searchKey(const char* pszKey, std::string& sValue)
                 return iRet;
             }
             pHeader = reinterpret_cast<ShmDataHeader*>(m_pShmAddr);
+
         } while (0);
     }
 
