@@ -180,9 +180,6 @@ int CSockFd::GetSockAddr(sockaddr_in *addr4, sockaddr_in6 *addr6, sockaddr **pAd
 
 int CSockFd::WaitConnect(uint32_t dwTimeout, ITaskBase *pTask, int iEvent)
 {
-    if (GetConnectErr() == 0)
-        return 0;
-
     if (Wait(iEvent, dwTimeout, pTask) < 0)
         return -1;
 
