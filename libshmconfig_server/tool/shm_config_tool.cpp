@@ -32,6 +32,7 @@ void show()
     printf("-d shm config description\n");
     printf("-n query page no\n");
     printf("-c query page size\n");
+    printf("-S sync all config to shm\n");
     printf("=====================================================================\n");
     printf("-V 版本\n-h 帮助\n-H 服务地址\n-P 服务端口\n-i 调试信息\n");
     printf("-A 添加内存配置,命令格式如:(-A -k -v -s -a -d)\n");
@@ -45,6 +46,7 @@ void show()
     printf("-d 内存配置描述信息\n");
     printf("-n 查询的页\n");
     printf("-c 查询页大小\n");
+    printf("-S 同步所有配置到共享内存\n");
     exit(0);
 }
 
@@ -253,6 +255,14 @@ static void Query(std::string& sAddr, uint16_t wPort, ConfigInfo* pConf)
     printf("query reslut:\n%s\n", sMsg.c_str());
 }
 
+static void SycAllConfigShm(std::string& sAddr, uint16_t wPort, ConfigInfo* pConf)
+{
+    std::string sUri = "/shm/sync/all/config";
+    std::string sMsg;
+    OnMsg(sAddr, wPort, sUri, 0, std::string(), sMsg, pConf->debug);
+    printf("query reslut:\n%s\n", sMsg.c_str());
+}
+
 int main(int argc, char * const argv[])
 {
     if (argc < 2)
@@ -265,7 +275,7 @@ int main(int argc, char * const argv[])
     ConfigInfo oInfo;
     std::string sAddr;
     uint16_t wPort = 0;
-    while ((opt = getopt(argc, argv, "VhH:P:k:v:s:a:d:ADMQn:c:i")) != -1)
+    while ((opt = getopt(argc, argv, "VhH:P:k:v:s:a:d:ADMQn:c:iS")) != -1)
     {
         switch (opt)
         {
@@ -292,6 +302,10 @@ int main(int argc, char * const argv[])
 
         case 'Q':
             type = 'Q';
+            break;
+
+        case 'S':
+            type = 'S';
             break;
 
         case 'k':
@@ -362,6 +376,10 @@ int main(int argc, char * const argv[])
 
     case 'Q':
         Query(sAddr, wPort, &oInfo);
+        break;
+
+    case 'S':
+        SycAllConfigShm(sAddr, wPort, &oInfo);
         break;
 
     default:

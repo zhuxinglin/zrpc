@@ -170,6 +170,23 @@ int DaoConfig::Query(const std::string& sKey, uint32_t dwPageNo, uint32_t dwPage
     return static_cast<int>(iRet);
 }
 
+int DaoConfig::GetAllConfig(std::vector<ShmConfigTable>& vConf)
+{
+    ManageMysqlPool* pCli = getMysqlCliObj();
+    if (!pCli)
+        return -1;
+
+    mysqlcli::MySqlHelper oHelper(pCli->pSqlCli);
+
+    std::string sSql = "select id,shm_key,shm_value,status,del_flag,create_time,update_time,author,description from shm_config where del_flag=0 and status=2";
+    LOGI_BIZ(DAO) << oHelper.GenerateSql(sSql);
+    int64_t iRet = oHelper.Query(vConf);
+    if(iRet < 0)
+        LOGE_BIZ(DAO) << oHelper.GetErr();
+    pCli->wRef = 0;
+    return static_cast<int>(iRet);
+}
+
 DaoConfig::ManageMysqlPool* DaoConfig::getMysqlCliObj()
 {
     for (int i = 0; i < DB_CONNECT_COUNT; ++ i)

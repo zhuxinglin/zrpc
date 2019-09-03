@@ -20,6 +20,7 @@ using namespace zplugin;
 #define URL_MOD_CONFIG  "/shm/config/mod"
 #define URL_ADD_CONFIG  "/shm/config/add"
 #define URL_DEL_CONFIG  "/shm/config/del"
+#define URL_SYNC_ALL_CONFIG  "/shm/sync/all/config"
 
 #pragma GCC diagnostic ignored "-Wdelete-non-virtual-dtor"
 #define SHM_CONFIG_ROOT     "/shm_config/"
@@ -58,6 +59,7 @@ int ConfigServer::Initialize(znet::CLog *pLog, znet::CNet *pN, CSharedData *pPro
     m_mapFun.insert(MAP_FUN::value_type(CUtilHash::UriHash(URL_MOD_CONFIG, sizeof(URL_MOD_CONFIG) - 1), &ConfigServer::Mod));
     m_mapFun.insert(MAP_FUN::value_type(CUtilHash::UriHash(URL_ADD_CONFIG, sizeof(URL_ADD_CONFIG) - 1), &ConfigServer::Add));
     m_mapFun.insert(MAP_FUN::value_type(CUtilHash::UriHash(URL_DEL_CONFIG, sizeof(URL_DEL_CONFIG) - 1), &ConfigServer::Del));
+    m_mapFun.insert(MAP_FUN::value_type(CUtilHash::UriHash(URL_SYNC_ALL_CONFIG, sizeof(URL_SYNC_ALL_CONFIG) - 1), &ConfigServer::SyncAllShmConfig));
     return 0;
 }
 
@@ -325,6 +327,27 @@ int ConfigServer::Query(CControllerBase* pController, std::string* pMessage)
     sKey = oJson.GetJson();
     CHttpController* pHttp = dynamic_cast<CHttpController*>(pController);
     pHttp->WriteResp(sKey.c_str(), sKey.length(), 200, 0, 3000, true);
+    return 0;
+}
+
+int ConfigServer::SyncAllShmConfig(CControllerBase* pController, std::string* pMessage)
+{
+    std::vector<dao::ShmConfigTable> vConf;
+    if (m_oDao.GetAllConfig(vConf) < 0)
+    {
+        WriteError(pController, -1, "query db failed");
+        return -1;
+    }
+
+    for (auto it = vConf.begin(); it != vConf.end(); ++ it)
+    {
+        if (AddZk(&(*it)) < 0)
+        {
+            WriteError(pController, -1, "add zk failed");
+            return -1;
+        }
+    }
+    WriteError(pController, 0, "");
     return 0;
 }
 

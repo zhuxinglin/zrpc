@@ -97,6 +97,7 @@ public:
     int Del(const std::string& sKey, const std::string& sAuthor);
     int Query(const std::string& sKey, uint32_t dwPageNo, uint32_t dwPageSize, std::vector<ShmConfigTable>& vConf);
     int ConfigCount(uint32_t& dwSumCount);
+    int GetAllConfig(std::vector<ShmConfigTable>& vConf);
 
 private:
     struct ManageMysqlPool;

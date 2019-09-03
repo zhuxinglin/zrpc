@@ -46,6 +46,7 @@ private:
     int Del(CControllerBase* pController, std::string* pMessage);
     int Mod(CControllerBase* pController, std::string* pMessage);
     int Query(CControllerBase* pController, std::string* pMessage);
+    int SyncAllShmConfig(CControllerBase* pController, std::string* pMessage);
 
 private:
     void WriteError(CControllerBase* pController, int iCode, std::string sMsg);
