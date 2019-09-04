@@ -316,6 +316,12 @@ int ConfigServer::Query(CControllerBase* pController, std::string* pMessage)
         }
     }
 
+    if (pResp->page.page_size == 0)
+    {
+        pResp->page.page_size = 1;
+        pResp->page.total_num = 1;
+    }
+
     pResp->page.total_page = pResp->page.total_num / pResp->page.page_size;
     if (pResp->page.total_num % pResp->page.page_size)
         pResp->page.total_page += 1;
