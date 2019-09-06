@@ -159,6 +159,11 @@ public:
 
     std::string& GenerateSql(std::string& sSql);
 
+    operator bool()
+    {
+        return m_pCli == nullptr;
+    }
+
 private:
     void Clear();
 
