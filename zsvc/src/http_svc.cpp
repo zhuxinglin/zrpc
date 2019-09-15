@@ -249,7 +249,8 @@ int CHttpSvc::WriteHttp(const char *pszData, int iDataLen, int iCode, int iRet, 
 {
     std::stringstream ssResp;
     ssResp << "HTTP/1.1 " << iCode << " OK\r\nCache-Control: no-cache\r\nServer: jsvc 1.0\r\n"
-                                      "Content-Type: text/html\r\n";
+            "Content-Type: application/json; charset=utf-8\r\nAccess-Control-Allow-Origin: *\r\n"
+            "Access-Control-Allow-Credentials:true\r\n";
     ssResp << "Ret: " << iRet << "\r\n";
     
     for (header_it it = m_oHttpHeader.begin(); it != m_oHttpHeader.end(); ++it)
