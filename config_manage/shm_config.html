@@ -1,0 +1,416 @@
+<!DOCTYPE HTML>
+<html lang="zh-CN">
+    <head>
+        <meta charset="UTF-8"/>
+        <style type="text/css">
+            .header {
+                background-color:black;
+                color:white;
+                text-align:center;
+                padding:5px;
+            }
+
+            table {
+                border-collapse: collapse;
+                background-color:#eeeeee;
+                width:50%;
+            }
+
+            table,th,td{
+                border:1px solid black;
+            }
+            td{
+                height: 50px;
+            }
+
+            #pop_div {
+                position: absolute;
+                visibility: hidden;
+                overflow: hidden;
+                border: 2px solid #AEBBCA;
+                background-color: #EEF1F8;
+                cursor: move;
+                padding: 1px;
+                z-index:4000;
+            }
+
+            #pop_title {
+                background: #9DACBF;
+                height: 20px;
+                line-height: 20px;
+                padding: 1px;
+            }
+
+            #pop_form {
+                padding: 2px;
+                padding-left: 15px;
+            }
+
+            .title_left {
+                font-weight: bold;
+                padding-left: 5px;
+                float: left;
+            }
+
+            .title_right {
+                float: right;
+            }
+
+            #pop_title .title_right a {
+                color: #000;
+                text-decoration: none;
+            }
+
+            #pop_title .title_right a:hover {
+                text-decoration: underline;
+                color: #FF0000;
+            }
+
+            #new_div {
+                position: absolute;
+                visibility: hidden;
+                overflow: hidden;
+                border: 2px solid #AEBBCA;
+                background-color: #EEF1F8;
+                cursor: move;
+                padding: 1px;
+                z-index:4000;
+            }
+
+            #new_title {
+                background: #9DACBF;
+                height: 20px;
+                line-height: 20px;
+                padding: 1px;
+            }
+
+            #new_form {
+                padding: 2px;
+                padding-left: 15px;
+            }
+
+            #new_title .title_right a {
+                color: #000;
+                text-decoration: none;
+            }
+
+            #new_title .title_right a:hover {
+                text-decoration: underline;
+                color: #FF0000;
+            }
+        </style>
+    </head>
+
+    <body >
+        <p style='font-family:verdana;color:red'>共享内存管理</p>
+        <div>
+            <script type="text/javascript">
+                function query(){
+                    var shm_url = getUri("/shm/config/querylist");
+                    if (shm_url == "")
+                        return;
+
+                    var element = document.getElementById("shmtable");
+                    var childs = element.childNodes;
+                    for(var i = childs.length - 1; i >= 0; i--) { 
+                        element.removeChild(childs[i]); 
+                    }
+
+                    var key = document.getElementById('shm_key').value;
+                    if (key != "")
+                        shm_url = shm_url + "?key=" + key;
+
+                    var req = new XMLHttpRequest();
+                    req.open("GET", shm_url, true);
+                    req.send();
+                    req.onreadystatechange = function(){
+                        if (req.readyState == 4 && req.status == 200){
+                            var json = req.responseText;
+                            var shmData = JSON.parse(json);
+                            if (shmData.code != 0)
+                                return;
+
+                            var data = shmData.data;
+                            for (row in data){
+                                var shmTable = document.createElement("tr");
+                                var shmKay = document.createElement("td");
+                                shmKay.innerHTML = data[row].key;
+                                shmTable.append(shmKay);
+
+                                var shmValue = document.createElement("td");
+                                shmValue.innerHTML = data[row].value;
+                                shmTable.append(shmValue);
+
+                                var shmState = document.createElement("td");
+                                var sState = "";
+                                var iSt = data[row].status;
+                                if (iSt == 0){
+                                    sState = "草搞";
+                                }
+                                else if (iSt == 1){
+                                    sState = "编辑";
+                                }
+                                else{
+                                    sState = "发布";
+                                }
+
+                                shmState.innerHTML = sState;
+                                shmState.value = iSt;
+                                shmTable.append(shmState);
+
+                                var shmAuthor = document.createElement("td");
+                                shmAuthor.innerHTML = data[row].author;
+                                shmTable.append(shmAuthor);
+
+                                var shmDesc = document.createElement("td");
+                                shmDesc.innerHTML = data[row].description;
+                                shmTable.append(shmDesc);
+
+                                var count = document.getElementById("shmtable").rows.length
+                                sState = '<input type="button" value="编辑" onclick="mod(' + count + ')"/><input type="button" value="删除"onclick="del(' + count + ')"/><input type="button" value="发布"onclick="publish(' + count + ')"/>';
+                                var shmOperation = document.createElement("td");
+                                shmOperation.innerHTML = sState;
+                                shmTable.append(shmOperation);
+
+                                document.getElementById("shmtable").appendChild(shmTable);
+                            }
+                        }
+                    }
+                }
+
+                function mod(row){
+                    var objDiv = document.getElementById("pop_div");
+                    objDiv.style.top = "50px";//设置弹出层距离上边界的距离
+                    objDiv.style.left = "200px";//设置弹出层距离左边界的距离
+                    objDiv.style.width = "250px";//设置弹出层的宽度
+                    objDiv.style.height = "130px";//设置弹出层的高度
+                    //objDiv.style.display = "block";
+                    objDiv.style.visibility = "visible";
+
+                    var oBjTable = document.getElementById("shmtable");
+                    document.getElementById("mod_key").value = oBjTable.rows[row].cells[0].innerHTML;
+                    document.getElementById("mod_value").value = oBjTable.rows[row].cells[1].innerHTML;
+                    document.getElementById("row_value").value = row;
+                }
+
+                function del(row){
+                    var oBjTable = document.getElementById("shmtable");
+                    var oBbjRow = oBjTable.rows[row];
+                    var shm_url = getUri("/shm/config/del");
+                    if (shm_url == "")
+                        return;
+
+                    shm_url = shm_url + "?key=" + oBbjRow.cells[0].innerHTML + "&author=" + oBbjRow.cells[3].innerHTML;
+
+                    var req = new XMLHttpRequest;
+                    req.open("GET", shm_url, true);
+                    req.send();
+                    req.onreadystatechange = function(){
+                        if (req.readyState == 4 && req.status == 200){
+                            query();
+                        }
+                    }
+                }
+
+                function publish(row){
+                    var oBjTable = document.getElementById("shmtable");
+                    var oBbjRow = oBjTable.rows[row];
+                    oBbjRow.cells[2].innerHTML = "发布";
+                    oBbjRow.cells[2].value = 2;
+                    publish_shm(oBbjRow, "/shm/config/mod");
+                }
+
+                function mod_pop_close(){
+                    var objDiv = document.getElementById("pop_div");
+                    objDiv.style.visibility = "hidden";
+                }
+
+                function mod_val(){
+                    mod_shm(0);
+                    mod_pop_close();
+                }
+
+                function mod_publish(){
+                    if (!mod_shm(1)){
+                        return;
+                    }
+                    mod_pop_close();
+                }
+
+                function mod_shm(flag){
+                    var row = document.getElementById("row_value").value;
+                    var oBjTable = document.getElementById("shmtable");
+                    var oBbjRow = oBjTable.rows[row];
+                    oBbjRow.cells[1].innerHTML = document.getElementById("mod_value").value;
+                    if (flag == 0){
+                        oBbjRow.cells[2].innerHTML = "编辑";
+                        oBbjRow.cells[2].value = 1;
+                        return true;
+                    }
+                    oBbjRow.cells[2].innerHTML = "发布";
+                    oBbjRow.cells[2].value = 2;
+
+                    return publish_shm(oBbjRow, "/shm/config/mod");
+                }
+
+                function publish_shm(oBbjRow, uri){
+                    var shm_url = getUri(uri);
+                    if (shm_url == "")
+                        return false;
+
+                    var req = new XMLHttpRequest;
+                    req.open("POST", shm_url, true);
+                    req.setRequestHeader("Content-Type", "text/json; charset=UTF-8; application/x-www-form-urlencoded");
+                    var data = {};
+                    data.key = oBbjRow.cells[0].innerHTML;
+                    data.value = oBbjRow.cells[1].innerHTML;
+                    data.status = oBbjRow.cells[2].value;
+                    data.author = oBbjRow.cells[3].innerHTML;
+                    data.description = oBbjRow.cells[4].innerHTML;
+
+                    req.send(JSON.stringify(data));
+                    req.onreadystatechange = function(){
+                        if (req.readyState == 4 && req.status == 200){
+                        }
+                        else{
+                        }
+                    }
+                    return true;
+                }
+
+                function getUri(uri)
+                {
+                    var ip = document.getElementById('svr_addr').value;
+                    var port = document.getElementById('svr_port').value;
+                    if (ip == "")
+                        return "";
+
+                    var shm_url = "http://" + ip;
+                    if (port != 80)
+                        shm_url = shm_url + ":" + port;
+                    shm_url = shm_url + uri;
+                    return shm_url;
+                }
+
+                function add_pop_close(){
+                    var objDiv = document.getElementById("new_div");
+                    objDiv.style.visibility = "hidden";
+                }
+
+                function new_shm(){
+                    var objDiv = document.getElementById("new_div");
+                    objDiv.style.top = "50px";//设置弹出层距离上边界的距离
+                    objDiv.style.left = "200px";//设置弹出层距离左边界的距离
+                    objDiv.style.width = "250px";//设置弹出层的宽度
+                    objDiv.style.height = "200px";//设置弹出层的高度
+                    //objDiv.style.display = "block";
+                    objDiv.style.visibility = "visible";
+                }
+
+                function add_val(){
+                    var shm_key = document.getElementById("add_key").value;
+                    var shm_value = document.getElementById("add_value").value;
+                    var shm_author = document.getElementById("add_author").value;
+                    var shm_desc = document.getElementById("add_desc").value;
+
+                    var shmTable = document.createElement("tr");
+                    var shmKay = document.createElement("td");
+                    shmKay.innerHTML = shm_key;
+                    shmTable.append(shmKay);
+
+                    var shmValue = document.createElement("td");
+                    shmValue.innerHTML = shm_value;
+                    shmTable.append(shmValue);
+
+                    var shmState = document.createElement("td");
+                    var sState = "草搞";
+
+                    shmState.innerHTML = sState;
+                    shmState.value = 0;
+                    shmTable.append(shmState);
+
+                    var shmAuthor = document.createElement("td");
+                    shmAuthor.innerHTML = shm_author;
+                    shmTable.append(shmAuthor);
+
+                    var shmDesc = document.createElement("td");
+                    shmDesc.innerHTML = shm_desc;
+                    shmTable.append(shmDesc);
+
+                    var oBjTable = document.getElementById("shmtable");
+                    var count = oBjTable.rows.length
+                    sState = '<input type="button" value="编辑" onclick="mod(' + count + ')"/><input type="button" value="删除"onclick="del(' + count + ')"/><input type="button" value="发布"onclick="publish(' + count + ')"/>';
+                    var shmOperation = document.createElement("td");
+                    shmOperation.innerHTML = sState;
+                    shmTable.append(shmOperation);
+                    oBjTable.appendChild(shmTable);
+
+                    var oBbjRow = oBjTable.rows[count];
+                    publish_shm(oBbjRow, "/shm/config/add");
+                    add_pop_close();
+                }
+
+            </script>
+            <p>
+                地址: <input type="text" id="svr_addr" autofocus="autofocus" value="127.0.0.1"/>
+                端口: <input type="number" id="svr_port" min="80" max="65535" value="80"/>
+            </p>
+            <p>
+                查询键: <input type="text" id="shm_key"/>
+                <input type="button" value="查询" onclick="query()"/>
+                <input type="button" value="新建" onclick="new_shm()" />
+            </p>
+        </div>
+        <div>
+            <h3>共享内存列表</h3>
+            <table>
+                <tr>
+                    <th >键</th>
+                    <th >值</th>
+                    <th >状态</th>
+                    <th >作者</th>
+                    <th >描述</th>
+                    <th >操作</th>
+                </tr>
+                <br/>
+                <tbody id="shmtable">
+                </tbody>
+            </table>
+        </div>
+
+        <div id="pop_div">
+            <div id="pop_title">
+                <span class="title_left">修改操作</span>
+                <span class="title_right"><a href="#" onclick="mod_pop_close()">关闭</a></span>
+            </div>
+            <div id="pop_form">
+                <p>
+                    键: <input type="text" id="mod_key" disabled="false"/> <br/>
+                    值: <input type="text" id="mod_value"/>
+                    <input type="number" id="row_value" style="display:none"/>
+                </p>
+                <input type="button" value="修改" onclick="mod_val()"/>
+                <input type="button" value="修改并发布" onclick="mod_publish()"/>
+                <input type="button" value="取消" onclick="mod_pop_close()"/>
+            </div>
+        </div>
+
+        <div id="new_div">
+            <div id="new_title">
+                <span class="title_left">修改操作</span>
+                <span class="title_right"><a href="#" onclick="add_pop_close()">关闭</a></span>
+            </div>
+
+            <div id="new_form">
+                <p>
+                    键__:<input type="text" id="add_key"/> <br/>
+                    值__:<input type="text" id="add_value"/><br/>
+                    作者:<input type="text" id="add_author"/><br/>
+                    描述:<input type="text" id="add_desc"/><br/>
+                </p>
+                <input type="button" value="增加" onclick="add_val()"/>
+                <input type="button" value="取消" onclick="add_pop_close()"/>
+            </div>
+        </div>
+    </body>
+</html>
