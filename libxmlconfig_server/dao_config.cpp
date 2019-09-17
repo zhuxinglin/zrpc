@@ -162,8 +162,8 @@ int DaoConfig::Query(const std::string& sKey1, const std::string& sKey2, const s
     std::string sSql = "select id,xml_key1,xml_key2,xml_key3,xml_key4,xml_value,status,del_flag,create_time,update_time,author,description from xml_config where del_flag=0";
     if (sKey1.empty())
     {
-        sSql.append(" limit ?, ?");
-        oHelper.SetValueI(dwPageNo == 1 ? 0 : dwPageNo * dwPageSize);
+        sSql.append(" order by update_time desc limit ?, ?");
+        oHelper.SetValueI(dwPageNo * dwPageSize);
         oHelper.SetValueI(dwPageSize);
     }
     else

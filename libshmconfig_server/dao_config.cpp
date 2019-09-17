@@ -151,8 +151,8 @@ int DaoConfig::Query(const std::string& sKey, uint32_t dwPageNo, uint32_t dwPage
     std::string sSql = "select id,shm_key,shm_value,status,del_flag,create_time,update_time,author,description from shm_config where del_flag=0 ";
     if (sKey.empty())
     {
-        sSql.append("limit ?, ?");
-        oHelper.SetValueI(dwPageNo == 1 ? 0 : dwPageNo * dwPageSize);
+        sSql.append("order by update_time desc limit ?, ?");
+        oHelper.SetValueI(dwPageNo * dwPageSize);
         oHelper.SetValueI(dwPageSize);
     }
     else

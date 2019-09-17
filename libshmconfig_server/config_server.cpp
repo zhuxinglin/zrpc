@@ -291,6 +291,7 @@ int ConfigServer::Query(CControllerBase* pController, std::string* pMessage)
         if (!sPage.empty())
             pResp->page.page_no = strtol(sPage.c_str(), nullptr, 10);
 
+        sPage = "";
         getParam(pMessage->c_str(), "page_size", sPage);
         if (!sPage.empty())
             pResp->page.page_size = strtol(sPage.c_str(), nullptr, 10);

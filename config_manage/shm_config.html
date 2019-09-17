@@ -119,6 +119,8 @@
                     var key = document.getElementById('shm_key').value;
                     if (key != "")
                         shm_url = shm_url + "?key=" + key;
+                    else
+                        shm_url = shm_url + "?page_size=20&page_no=" + document.getElementById("cur_page").value;
 
                     var req = new XMLHttpRequest();
                     req.open("GET", shm_url, true);
@@ -129,6 +131,9 @@
                             var shmData = JSON.parse(json);
                             if (shmData.code != 0)
                                 return;
+
+                            document.getElementById("sum_page").value = shmData.page.total_page;
+                            document.getElementById("sum_count").value = shmData.page.total_num;
 
                             var data = shmData.data;
                             for (row in data){
@@ -350,6 +355,34 @@
                     add_pop_close();
                 }
 
+                function upPage(){
+                    var count = document.getElementById("xmltable").rows.length;
+                    if (count == 0)
+                        return;
+
+                    var page = document.getElementById('cur_page').value;
+                    var sum_page = document.getElementById('sum_page').value;
+                    if (parseInt(page) == 0)
+                        return;
+
+                    document.getElementById('cur_page').value = parseInt(page) - 1;
+                    query();
+                }
+
+                function downPage(){
+                    var count = document.getElementById("xmltable").rows.length;
+                    if (count == 0)
+                        return;
+                    var page = document.getElementById('cur_page').value;
+                    var sum_page = document.getElementById('sum_page').value;
+                    if (parseInt(page) >= parseInt(sum_page))
+                        return;
+
+                    if (parseInt(page) + 1 < parseInt(sum_page))
+                        document.getElementById('cur_page').value = parseInt(page) + 1;
+                    query();
+                }
+
             </script>
             <p>
                 地址: <input type="text" id="svr_addr" autofocus="autofocus" value="127.0.0.1"/>
@@ -376,6 +409,13 @@
                 <tbody id="shmtable">
                 </tbody>
             </table>
+        </div>
+        <div>
+            <button onclick="upPage()">上一页</button>
+            <span>当前页: <input type="number" id="cur_page" value="0" min="0" max="1024" /></span>
+            <span>总页数: <input type="number" id="sum_page" value="0" disabled="false" min="0" max="1024" /></span>
+            <span>总条数: <input type="number" id="sum_count" value="0" disabled="false" min="0" max="1024" /></span>
+            <button onclick="downPage()">下一页</button>
         </div>
 
         <div id="pop_div">
