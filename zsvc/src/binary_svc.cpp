@@ -50,7 +50,8 @@ void CBinarySvc::Go()
         std::shared_ptr<std::string> oBuf(new std::string());
         uint16_t wCmd;
         if (ReadData(oBuf, wCmd) < 0)
-            break;
+            wCmd = 0xFFFF;
+
         CBinaryHandle* pHandle = new (std::nothrow) CBinaryHandle(m_oPtr, oBuf, wCmd);
         if (!pHandle)
         {
@@ -60,6 +61,9 @@ void CBinarySvc::Go()
 
         if (znet::CNet::GetObj()->Register(pHandle, m_pData, znet::ITaskBase::PROTOCOL_TIMER, -1, 0) < 0)
             LOGE << "create coroutine failed : " << znet::CNet::GetObj()->GetErr();
+
+        if (wCmd == 0xFFFF)
+            break;
     }
 }
 

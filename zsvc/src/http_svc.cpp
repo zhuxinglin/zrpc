@@ -80,7 +80,10 @@ void CHttpSvc::Go()
         int iRet = pPlugin->ExecSo(m_oPtr, this, zplugin::CUtilHash::UriHash(m_oHttpReq.sUri.c_str(), m_oHttpReq.sUri.size()), &m_oHttpReq.szBody, iCode);
         LOGD_BIZ(HTTP_END) << "URL: " << m_oHttpReq.sUri << ", Code : " << iCode << ", ret: " << iRet;
         if (iCode != 200)
+        {
             WriteHttp(0, 0, iCode, iRet, 3e3);
+            break;
+        }
     } while (m_iKeepAlive);
 }
 
@@ -248,22 +251,13 @@ void CHttpSvc::SetHttpHeader(const char *pszKey, const char *pszValue)
 int CHttpSvc::WriteHttp(const char *pszData, int iDataLen, int iCode, int iRet, int32_t dwTimoutMs)
 {
     std::stringstream ssResp;
-    ssResp << "HTTP/1.1 " << iCode << " OK\r\nCache-Control: no-cache\r\nServer: rpc 1.0\r\n"
-        "Content-Type: application/json; charset=utf-8\r\nAccess-Control-Allow-Origin: *\r\n"
-        "Access-Control-Allow-Credentials: true\r\nAccess-Control-Allow-Methods: *\r\n";
+    ssResp << "HTTP/1.1 " << iCode << " OK\r\nCache-Control: no-cache\r\nServer: jsvc 1.0\r\n"
+            "Content-Type: application/json; charset=utf-8\r\nAccess-Control-Allow-Origin: *\r\n"
+            "Access-Control-Allow-Credentials:true\r\n";
     ssResp << "Ret: " << iRet << "\r\n";
-
-    const char* pszAcce = GetHttpHeader("Access-Control-Request-Headers");
-    if (pszAcce)
-    {
-        ssResp << "Access-Control-Allow-Headers: " << pszAcce << "\r\n";
-    }
-/*
-    for (header_it it = m_oHttpReq.mapHeader.begin(); it != m_oHttpReq.mapHeader.end(); ++ it)
-        ssResp << it->first << ": " << it->second << "\r\n";
-*/
+    
     for (header_it it = m_oHttpHeader.begin(); it != m_oHttpHeader.end(); ++it)
-        ssResp << it->first << ": " << it->second << "\r\n";
+        ssResp << it->first << it->second << "\r\n";
 
     if (iDataLen == 0)
         ssResp << "Content-Length: 0\r\n";

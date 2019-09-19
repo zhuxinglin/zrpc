@@ -35,7 +35,11 @@ CNetTask::CNetTask() : m_pFd(0), m_wUdpAddLen(0)
 
 CNetTask::~CNetTask()
 {
-    Close();
+    if (m_pFd)
+    {
+        delete m_pFd;
+        m_pFd = 0;
+    }
 }
 
 int CNetTask::Read(char *pszBuf, int iLen, uint32_t dwTimeoutMs)
@@ -237,9 +241,9 @@ void CNetTask::Close()
     if (m_pFd)
     {
         g_pContext->m_pSchedule->PushMsg(m_pFd->GetFd(), 2, 0, 0);
-        delete m_pFd;
-        m_pFd = 0;
+        m_pFd->Close();
     }
+    Sleep(0);
 }
 
 void CNetTask::Run()

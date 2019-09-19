@@ -52,5 +52,6 @@ void CBinaryHandle::Run()
         pBin->Hton();
         *((uint8_t*)pBin->szBody) = (uint8_t)END_FLAGE;
         pSvc->Write((const char*)szBuf, sizeof(zplugin::CBinaryProtocolHeader) + 1, 3e3);
+        pSvc->Close();
     }
 }
