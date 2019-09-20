@@ -115,6 +115,7 @@ struct ITaskBase
     };
     uint8_t m_wIsRuning;
     uint8_t m_wRunStatus;
+    uint8_t m_wRunStatusLock;
 };
 
 using SharedTask = std::shared_ptr<ITaskBase>;

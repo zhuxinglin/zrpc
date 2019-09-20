@@ -72,17 +72,17 @@ ITaskBase::~ITaskBase()
 
 int ITaskBase::YieldEventDel(uint32_t dwTimeoutMs, int iFd, int iSetEvent, int iRestoreEvent)
 {
-    return Yield(dwTimeoutMs, iFd, YIELD_ADD, YIELD_DEL, iSetEvent, iRestoreEvent, RUN_WAIT);
+    return g_pContext->m_pCo->GetTaskBase()->Yield(dwTimeoutMs, iFd, YIELD_ADD, YIELD_DEL, iSetEvent, iRestoreEvent, RUN_WAIT);
 }
 
 int ITaskBase::YieldEventRestore(uint32_t dwTimeoutMs, int iFd, int iSetEvent, int iRestoreEvent)
 {
-    return Yield(dwTimeoutMs, iFd, YIELD_MOD, YIELD_MOD, iSetEvent, iRestoreEvent, RUN_WAIT);
+    return g_pContext->m_pCo->GetTaskBase()->Yield(dwTimeoutMs, iFd, YIELD_MOD, YIELD_MOD, iSetEvent, iRestoreEvent, RUN_WAIT);
 }
 
 int ITaskBase::Yield(uint32_t dwTimeoutMs, uint8_t wRunStatus)
 {
-    return Yield(dwTimeoutMs, -1, 0, 0, 0, 0, wRunStatus);
+    return g_pContext->m_pCo->GetTaskBase()->Yield(dwTimeoutMs, -1, 0, 0, 0, 0, wRunStatus);
 }
 
 int ITaskBase::Sleep(uint32_t dwTimeoutMs)
@@ -98,11 +98,13 @@ int ITaskBase::Yield(uint32_t dwTimeoutMs, int iFd, int iSetOpt, int iRestoreOpt
     else
         m_dwTimeout = dwTimeoutMs;
 
+    while (__sync_lock_test_and_set(&m_wRunStatusLock, 1));
     m_wRunStatus = (RUN_EXIT & m_wRunStatus);
     if (wRunStatus != RUN_WAIT)
         m_wRunStatus |= wRunStatus;
     else
         m_wRunStatus |= RUN_WAIT;
+    __sync_lock_release(&m_wRunStatusLock);
 
     if (m_dwTimeout != dwTimeout)
     {
@@ -114,7 +116,6 @@ int ITaskBase::Yield(uint32_t dwTimeoutMs, int iFd, int iSetOpt, int iRestoreOpt
         g_pContext->m_pSchedule->PushMsg(iFd, iSetOpt, iSetEvent, (void *)m_qwCid);
 
     m_wStatus = STATUS_TIME;
-
     g_pContext->m_pCo->Swap(this, false);
 
     if (iRestoreEvent != -1 && iFd != -1)
@@ -128,6 +129,9 @@ int ITaskBase::Yield(uint32_t dwTimeoutMs, int iFd, int iSetOpt, int iRestoreOpt
     }
 
     if (m_wStatus == STATUS_TIMEOUT)
+        return -2;
+
+    if (m_wRunStatus & RUN_EXIT)
         return -1;
 
     return 0;

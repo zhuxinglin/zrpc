@@ -110,7 +110,7 @@ int CBinarySvc::ReadData(std::shared_ptr<std::string>& oBuf, uint16_t& wCmd)
                 return -1;
             }
 
-            iOffset = ntohl(pH->iLen) + 1;
+            iOffset = ntohl(pH->iLen);
             wCmd = ntohs(pH->wCmd);
             break;
         }
@@ -133,7 +133,7 @@ int CBinarySvc::ReadData(std::shared_ptr<std::string>& oBuf, uint16_t& wCmd)
         oBuf->append(m_pszRecvBuff, iLen);
     }
 
-    const char* e = oBuf->c_str() + oBuf->size();
+    const char* e = oBuf->c_str() + oBuf->size() - 1;
     if (*e != END_FLAGE)
         return -1;
 

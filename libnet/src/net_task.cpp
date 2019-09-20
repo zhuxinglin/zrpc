@@ -79,12 +79,21 @@ int CNetTask::Write(const char *pszBuf, int iLen, uint32_t dwTimeoutMs)
 int CNetTask::ReadReliable(char *pszBuf, int iLen, uint32_t dwTimeoutMs)
 {
     CReliableFd *pSock = (CReliableFd *)m_pFd;
-    int iRet = pSock->Read(pszBuf, iLen);
-    if (iRet == 0)
+    int iRet;
+    while (true)
     {
-        if (Yield(dwTimeoutMs) < 0)
-            return -2;
+        iRet = pSock->Read(pszBuf, iLen);
+        if (iRet == 0)
+        {
+            iRet = Yield(dwTimeoutMs);
+            if (iRet < 0)
+                break;
+
+            continue;
+        }
+        break;
     }
+
     return iRet;
 }
 
@@ -92,12 +101,20 @@ int CNetTask::ReadUnreliable(char *pszBuf, int iLen, uint32_t dwTimeoutMs)
 {
     CUnreliableFd *pSock = (CUnreliableFd *)m_pFd;
     m_wUdpAddLen = sizeof(m_szUdpAddr);
-    int iRet = pSock->Read(pszBuf, iLen, (struct sockaddr *)m_szUdpAddr, (uint32_t *)&m_wUdpAddLen);
-    if (iRet == 0)
+    int iRet;
+    while (true)
     {
-        if (Yield(dwTimeoutMs) < 0)
-            return -2;
+        iRet = pSock->Read(pszBuf, iLen, (struct sockaddr *)m_szUdpAddr, (uint32_t *)&m_wUdpAddLen);
+        if (iRet == 0)
+        {
+            iRet = Yield(dwTimeoutMs);
+            if (iRet < 0)
+                break;
+            continue;
+        }
+        break;
     }
+
     return iRet;
 }
 
@@ -114,8 +131,9 @@ int CNetTask::WriteReliable(const char *pszBuf, int iLen, uint32_t dwTimeoutMs)
 
         if (iRet == 0)
         {
-            if (YieldEventRestore(dwTimeoutMs, m_pFd->GetFd(), ITaskBase::YIELD_ET_OUT, ITaskBase::YIELD_ET_IN) < 0)
-                return -2;
+            iRet = YieldEventRestore(dwTimeoutMs, m_pFd->GetFd(), ITaskBase::YIELD_ET_OUT, ITaskBase::YIELD_ET_IN);
+            if (iRet < 0)
+                return iRet;
             continue;
         }
 
@@ -139,8 +157,9 @@ int CNetTask::WriteUnreliable(const char *pszBuf, int iLen, uint32_t dwTimeoutMs
 
         if (iRet == 0)
         {
-            if (YieldEventRestore(dwTimeoutMs, m_pFd->GetFd(), ITaskBase::YIELD_ET_OUT, ITaskBase::YIELD_ET_IN) < 0)
-                return -2;
+            iRet = YieldEventRestore(dwTimeoutMs, m_pFd->GetFd(), ITaskBase::YIELD_ET_OUT, ITaskBase::YIELD_ET_IN);
+            if (iRet < 0)
+                return iRet;
             continue;
         }
 
@@ -202,12 +221,20 @@ int CNetTask::WriteEvent(const char *pszBuf, int iLen)
 int CNetTask::ReadTcps(char *pszBuf, int iLen, uint32_t dwTimeoutMs)
 {
     CTcpsReliableFd *pSock = (CTcpsReliableFd*)m_pFd;
-    int iRet = pSock->Read(pszBuf, iLen);
-    if (iRet == 0)
+    int iRet;
+    while (true)
     {
-        if (Yield(dwTimeoutMs) < 0)
-            return -2;
+        iRet = pSock->Read(pszBuf, iLen);
+        if (iRet == 0)
+        {
+            iRet = Yield(dwTimeoutMs);
+            if (iRet < 0)
+                break;
+            continue;
+        }
+        break;
     }
+
     return iRet;
 }
 
@@ -243,7 +270,10 @@ void CNetTask::Close()
         g_pContext->m_pSchedule->PushMsg(m_pFd->GetFd(), 2, 0, 0);
         m_pFd->Close();
     }
-    Sleep(0);
+
+    ITaskBase* pBase = (ITaskBase*)this;
+    if (g_pContext->m_pCo->GetTaskBase() != pBase)
+        CNet::GetObj()->ExitCo(m_qwCid);
 }
 
 void CNetTask::Run()
