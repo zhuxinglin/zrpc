@@ -108,7 +108,6 @@ CTaskNode *CTaskQueue::AddWaitTask(CTaskNode *pNode)
 
         CSpinLock oLock(&pRb->dwSync);
         pRb->oTaskRb.insert(CTaskWaitRb::TaskRb::value_type(oKey, pNode));
-
         if (!pRb->oFdRb.insert(pNode->pTask->m_qwCid, oKey))
         {
             DelMultiMap(pRb, oKey, pNode->pTask->m_qwCid);
@@ -220,15 +219,13 @@ CTaskNode* CTaskQueue::UpdateTask(CTaskWaitRb *pRb, uint64_t qwCid, bool bIsLock
     if (!it)
         return 0;
 
-    CTaskWaitRb::TaskIt itNode = pRb->oTaskRb.find(it->second);
-    if (itNode == pRb->oTaskRb.end())
+    CTaskNode* pNode = DelMultiMap(pRb, it->second, qwCid);
+    if (!pNode)
     {
         pRb->oFdRb.erase(qwCid);
         return 0;
     }
-
-    CTaskNode* pNode = itNode->second;
-    UpdateTaskTime(pRb, pNode, it->second);
+    UpdateTaskTime(pRb, pNode);
 
     if (bIsLock && pNode->pTask->m_wRunStatus & ITaskBase::RUN_LOCK)
     {
@@ -246,14 +243,15 @@ int CTaskQueue::DelRbTask(CTaskWaitRb *pRb, CTaskNode *pNode)
 
     CSpinLock oLock(&pRb->dwSync);
     pRb->oFdRb.erase(pNode->pTask->m_qwCid);
-    return DelMultiMap(pRb, oKey, pNode->pTask->m_qwCid);
+    DelMultiMap(pRb, oKey, pNode->pTask->m_qwCid);
+    return 0;
 }
 
-int CTaskQueue::DelMultiMap(CTaskWaitRb *&pRb, const CTaskKey& oKey, uint64_t qwCId)
+CTaskNode* CTaskQueue::DelMultiMap(CTaskWaitRb *&pRb, const CTaskKey& oKey, uint64_t qwCId)
 {
     CTaskWaitRb::TaskIt it = pRb->oTaskRb.find(oKey);
     if (it == pRb->oTaskRb.end())
-        return -1;
+        return nullptr;
 
     for (; it != pRb->oTaskRb.end(); ++ it)
     {
@@ -261,14 +259,15 @@ int CTaskQueue::DelMultiMap(CTaskWaitRb *&pRb, const CTaskKey& oKey, uint64_t qw
         {
             if (qwCId == it->second->pTask->m_qwCid)
             {
+                CTaskNode* pNode = it->second;
                 pRb->oTaskRb.erase(it);
-                break;
+                return pNode;
             }
             continue;
         }
-        return -1;
+        break;
     }
-    return 0;
+    return nullptr;
 }
 
 int CTaskQueue::SwapTimerToExec(uint64_t qwCurTime)
@@ -321,7 +320,7 @@ void CTaskQueue::SwapTimerToExec(uint64_t qwCurTime, int iIndex, int& iSu)
             __sync_lock_release(&pBase->m_wRunStatusLock);
 
             it = pRb->oTaskRb.erase(it);
-            UpdateTaskTime(pRb, pTaskNode, oKey);
+            UpdateTaskTime(pRb, pTaskNode);
 
             AddTask(pTaskNode, ITaskBase::RUN_EXEC);
             iSu = 0;
@@ -332,7 +331,7 @@ void CTaskQueue::SwapTimerToExec(uint64_t qwCurTime, int iIndex, int& iSu)
     }
 }
 
-void CTaskQueue::UpdateTaskTime(CTaskWaitRb *pRb, CTaskNode *pTaskNode, const CTaskKey &oKey)
+void CTaskQueue::UpdateTaskTime(CTaskWaitRb *pRb, CTaskNode *pTaskNode)
 {
     ITaskBase *pBase = pTaskNode->pTask;
     pBase->m_qwBeginTime = CTimerFd::GetNs();

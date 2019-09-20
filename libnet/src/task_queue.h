@@ -60,8 +60,8 @@ private:
     CTaskNode *UpdateTask(CTaskWaitRb *pRb, uint64_t qwCid, bool bIsLock);
     void SwapTimerToExec(uint64_t qwCurTime, int iIndex, int& iSu);
     CTaskWaitRb* GetWaitRb(uint64_t qwCid);
-    void UpdateTaskTime(CTaskWaitRb *pRb, CTaskNode *pTaskNode, const CTaskKey& oKey);
-    int DelMultiMap(CTaskWaitRb *&pRb, const CTaskKey& oKey, uint64_t qwCId);
+    void UpdateTaskTime(CTaskWaitRb *pRb, CTaskNode *pTaskNode);
+    CTaskNode* DelMultiMap(CTaskWaitRb *&pRb, const CTaskKey& oKey, uint64_t qwCId);
     CTaskNode* GetTaskNode(uint64_t qwCid, CTaskWaitRb *pRb);
 
 private:

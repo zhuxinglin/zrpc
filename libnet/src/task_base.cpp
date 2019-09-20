@@ -50,7 +50,8 @@ ITaskBase::ITaskBase() : m_oPtr(this),
                          m_wStatus(0),
                          m_wProtocol(0),
                          m_wIsRuning(true),
-                         m_wRunStatus(RUN_INIT)
+                         m_wRunStatus(RUN_INIT),
+                         m_wRunStatusLock(0)
 {
 }
 
