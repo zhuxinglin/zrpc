@@ -44,6 +44,11 @@ struct CHttpController : public CControllerBase
     virtual int WriteResp(const char *pszData, int iDataLen, int iCode, int iRet, int32_t dwTimoutMs, bool bIsHeader) = 0;
 };
 
+struct CBinaryController : public CControllerBase
+{
+    virtual int WriteResp(const char *pszData, int iDataLen, uint16_t wCmd, int16_t iRet, int32_t dwTimoutMs) = 0;
+};
+
 #define HEADER_FLAGE    0x61613535      // 数据包头开始 aa355   主要作用抓包
 #define END_FLAGE   0x03                // 数据包结束3
 

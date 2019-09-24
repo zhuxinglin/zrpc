@@ -23,6 +23,7 @@
 #include <unistd.h>
 #include "timer_fd.h"
 #include "task_base.h"
+#include <assert.h>
 
 using namespace znet;
 
@@ -107,12 +108,10 @@ CTaskNode *CTaskQueue::AddWaitTask(CTaskNode *pNode)
         pNode->pTask->m_qwBeginTime = oKey.qwTimeNs;
 
         CSpinLock oLock(&pRb->dwSync);
-        pRb->oTaskRb.insert(CTaskWaitRb::TaskRb::value_type(oKey, pNode));
         if (!pRb->oFdRb.insert(pNode->pTask->m_qwCid, oKey))
-        {
-            DelMultiMap(pRb, oKey, pNode->pTask->m_qwCid);
             return 0;
-        }
+
+        pRb->oTaskRb.insert(CTaskWaitRb::TaskRb::value_type(oKey, pNode));
     }
     __sync_fetch_and_add(&m_dwCurTaskCount, 1);
     return pNode;
@@ -239,11 +238,11 @@ CTaskNode* CTaskQueue::UpdateTask(CTaskWaitRb *pRb, uint64_t qwCid, bool bIsLock
 
 int CTaskQueue::DelRbTask(CTaskWaitRb *pRb, CTaskNode *pNode)
 {
-    CTaskKey oKey(pNode->pTask->m_qwBeginTime, pNode->pTask->m_dwTimeout);
-
     CSpinLock oLock(&pRb->dwSync);
+    CTaskKey oKey(pNode->pTask->m_qwBeginTime, pNode->pTask->m_dwTimeout);
     pRb->oFdRb.erase(pNode->pTask->m_qwCid);
     DelMultiMap(pRb, oKey, pNode->pTask->m_qwCid);
+    assert(pRb->oFdRb.size() == pRb->oTaskRb.size());
     return 0;
 }
 
@@ -255,17 +254,15 @@ CTaskNode* CTaskQueue::DelMultiMap(CTaskWaitRb *&pRb, const CTaskKey& oKey, uint
 
     for (; it != pRb->oTaskRb.end(); ++ it)
     {
-        if (it->first == oKey)
+        if (it->first != oKey)
+            break;
+
+        if (qwCId == it->second->pTask->m_qwCid)
         {
-            if (qwCId == it->second->pTask->m_qwCid)
-            {
-                CTaskNode* pNode = it->second;
-                pRb->oTaskRb.erase(it);
-                return pNode;
-            }
-            continue;
+            CTaskNode* pNode = it->second;
+            pRb->oTaskRb.erase(it);
+            return pNode;
         }
-        break;
     }
     return nullptr;
 }
@@ -370,6 +367,15 @@ CTaskNode* CTaskQueue::GetTaskNode(uint64_t qwCid, CTaskWaitRb *pRb)
     {
         pRb->oFdRb.erase(qwCid);
         return nullptr;
+    }
+
+    for (; itNode != pRb->oTaskRb.end(); ++ itNode)
+    {
+        if (itNode->first != it->second)
+            return nullptr;
+
+        if (qwCid == itNode->second->pTask->m_qwCid)
+            break;
     }
     return itNode->second;
 }

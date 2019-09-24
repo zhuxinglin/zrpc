@@ -101,6 +101,13 @@ struct CTaskKey
             return true;
         return false;
     }
+
+    bool operator != (const CTaskKey &rhs) const
+    {
+        if ((qwTimeNs != rhs.qwTimeNs) && (dwTimeout != rhs.dwTimeout))
+            return true;
+        return false;
+    }
 }__attribute__((aligned(4)));
 
 typedef struct _TaskWaitRb

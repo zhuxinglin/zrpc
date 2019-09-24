@@ -72,6 +72,21 @@ int CBinarySvc::WriteMsg(const char *pszData, int iDataLen, uint32_t dwTimoutMs)
     return Write(pszData, iDataLen, dwTimoutMs);
 }
 
+int CBinarySvc::WriteResp(const char *pszData, int iDataLen, uint16_t wCmd, int16_t iRet, int32_t dwTimoutMs)
+{
+    std::string sData;
+    sData.resize(sizeof(zplugin::CBinaryProtocolHeader));
+    zplugin::CBinaryProtocolHeader* pHeader = (zplugin::CBinaryProtocolHeader*)sData.c_str();
+    sData.append(pszData, iDataLen);
+    pHeader->dwHeader = HEADER_FLAGE;
+    pHeader->iLen = iDataLen + 1;
+    pHeader->wCmd = wCmd;
+    pHeader->iRet = iRet;
+    pHeader->Hton();
+    sData.append(END_FLAGE, 1);
+    return Write(sData.c_str(), sData.size(), dwTimoutMs);
+}
+
 int CBinarySvc::CallPlugin(uint64_t dwKey, std::string *pReq, std::string *pResp)
 {
     CSoPlugin *pPlugin = (CSoPlugin *)m_pData;
