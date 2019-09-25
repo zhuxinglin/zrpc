@@ -44,16 +44,29 @@ int CNetClient::Connect(const char *pszAddr, uint16_t wPort, uint16_t wProtocol,
     if (m_pFd)
         return -1;
 
-    m_dwCloseRef = 1;
     m_wProtocol = wProtocol;
     m_wVer = wVer;
+    m_sAddr = pszAddr;
+    m_wPort = wPort;
+    return Reconnect();
+}
+
+int CNetClient::Reconnect()
+{
+    if (m_pFd)
+        return -1;
+
+    m_dwCloseRef = 1;
+
     int iRet = -1;
-    if (wProtocol == ITaskBase::PROTOCOL_TCP)
-        iRet = TcpConnect(pszAddr, wPort);
-    else if (wProtocol == ITaskBase::PROTOCOL_UNIX)
-        iRet = UnixConnect(pszAddr);
-    else if (wProtocol <= ITaskBase::PROTOCOL_UDPG)
-        iRet = UdpConnect(pszAddr, wPort);
+    if (m_wProtocol == ITaskBase::PROTOCOL_TCP)
+        iRet = TcpConnect();
+    else if (m_wProtocol == ITaskBase::PROTOCOL_UNIX)
+        iRet = UnixConnect();
+    else if (m_wProtocol == ITaskBase::PROTOCOL_TCPS)
+        iRet = TcpsConnect();
+    else if (m_wProtocol <= ITaskBase::PROTOCOL_UDPG)
+        iRet = UdpConnect();
 
     if (iRet < 0)
         Close();
@@ -98,7 +111,7 @@ int CNetClient::Write(const char *pszBuf, int iLen, uint32_t dwTimeoutMs)
     return iRet;
 }
 
-int CNetClient::TcpConnect(const char *pszAddr, uint16_t wPort)
+int CNetClient::TcpConnect()
 {
     CTcpCli *pCli = new (std::nothrow) CTcpCli();
     if (!pCli)
@@ -107,10 +120,10 @@ int CNetClient::TcpConnect(const char *pszAddr, uint16_t wPort)
         return -1;
     }
     m_pFd = pCli;
-    return pCli->Create(pszAddr, wPort, m_dwConnTimeout, g_pContext->m_pCo->GetTaskBase(), m_wVer);
+    return pCli->Create(m_sAddr.c_str(), m_wPort, m_dwConnTimeout, g_pContext->m_pCo->GetTaskBase(), m_wVer);
 }
 
-int CNetClient::UdpConnect(const char *pszAddr, uint16_t wPort)
+int CNetClient::UdpConnect()
 {
     CUdpCli *pCli = new (std::nothrow) CUdpCli();
     if (!pCli)
@@ -119,10 +132,10 @@ int CNetClient::UdpConnect(const char *pszAddr, uint16_t wPort)
         return -1;
     }
     m_pFd = pCli;
-    return pCli->Create(pszAddr, wPort, m_szUdpAddr, (uint32_t *)&m_wAddrLen, m_wVer);
+    return pCli->Create(m_sAddr.c_str(), m_wPort, m_szUdpAddr, (uint32_t *)&m_wAddrLen, m_wVer);
 }
 
-int CNetClient::UnixConnect(const char *pszAddr)
+int CNetClient::UnixConnect()
 {
     CUnixCli *pCli = new (std::nothrow) CUnixCli();
     if (!pCli)
@@ -131,7 +144,20 @@ int CNetClient::UnixConnect(const char *pszAddr)
         return -1;
     }
     m_pFd = pCli;
-    return pCli->Create(pszAddr, m_dwConnTimeout, g_pContext->m_pCo->GetTaskBase());
+    return pCli->Create(m_sAddr.c_str(), m_dwConnTimeout, g_pContext->m_pCo->GetTaskBase());
+}
+
+int CNetClient::TcpsConnect()
+{
+    CTcpsCli *pCli = new (std::nothrow) CTcpsCli();
+    if (!pCli)
+    {
+        m_pFd->SetErr("new unix object failed");
+        return -1;
+    }
+    m_pFd = pCli;
+    return pCli->Create(m_sAddr.c_str(), m_wPort, m_sCacert.c_str(), m_sPass.c_str(), 
+                    m_sCert.c_str(), m_sKey.c_str(), m_dwConnTimeout, g_pContext->m_pCo->GetTaskBase(), m_wVer);
 }
 
 int CNetClient::ReadReliable(char *pszBuf, int iLen, uint32_t dwTimeoutMs)
@@ -223,16 +249,26 @@ int CNetClient::Wait(int iEvent, uint32_t dwTimeoutMs)
 
 int CNetClient::Connect(const char *pszAddr, uint16_t wPort, const char *pszCacert, const char *pszPass, const char *pszCert, const char *pszKey, uint16_t wVer)
 {
+    if (m_pFd)
+        return -1;
+
     m_wProtocol = ITaskBase::PROTOCOL_TCPS;
     m_wVer = wVer;
-    CTcpsCli *pCli = new (std::nothrow) CTcpsCli();
-    if (!pCli)
-    {
-        m_pFd->SetErr("new unix object failed");
-        return -1;
-    }
-    m_pFd = pCli;
-    return pCli->Create(pszAddr, wPort, pszCacert, pszPass, pszCert, pszKey, m_dwConnTimeout, g_pContext->m_pCo->GetTaskBase(), wVer);
+    m_sAddr = pszAddr;
+    m_wPort = wPort;
+    if (pszCacert)
+        m_sCacert = pszCacert;
+
+    if (pszPass)
+        m_sPass = pszPass;
+
+    if (pszCert)
+        m_sCert = pszCert;
+
+    if (pszKey)
+        m_sKey = pszKey;
+
+    return Reconnect();
 }
 
 int CNetClient::TcpsRead(char *pszBuf, int iLen, uint32_t dwTimeoutMs)

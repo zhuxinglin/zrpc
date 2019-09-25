@@ -39,11 +39,13 @@ public:
     void SetConnTimeoutMs(uint32_t dwTimeoutMs){m_dwConnTimeout = dwTimeoutMs;}
     std::string GetErr(){return m_pFd->GetErr();};
     void Close();
+    int Reconnect();
 
 private:
-    int TcpConnect(const char* pszAddr, uint16_t wPort);
-    int UdpConnect(const char *pszAddr, uint16_t wPort);
-    int UnixConnect(const char *pszAddr);
+    int TcpConnect();
+    int UdpConnect();
+    int UnixConnect();
+    int TcpsConnect();
     int ReadReliable(char *pszBuf, int iLen, uint32_t dwTimeoutMs);
     int ReadUnreliable(char *pszBuf, int iLen, uint32_t dwTimeoutMs);
     int WriteReliable(const char *pszBuf, int iLen, uint32_t dwTimeoutMs);
@@ -61,8 +63,14 @@ private:
     uint32_t m_dwConnTimeout;
     char m_szUdpAddr[32];
     uint16_t m_wAddrLen;
+    uint16_t m_wPort;
     CFileFd *m_pFd;
     CCoLock m_oLock;
+    std::string m_sAddr;
+    std::string m_sCacert;
+    std::string m_sPass;
+    std::string m_sCert;
+    std::string m_sKey;
 
     class Reference
     {
