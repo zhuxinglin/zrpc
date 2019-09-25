@@ -48,6 +48,7 @@ public:
     uint32_t GetCurTaskCount() const;
     uint32_t GetTaskThreadCount() const;
     uint64_t GetCurCid() const;
+    ITaskBase* GetCurTask();
     // 本函数不会清理保存栈中的堆内存，这样会发生内存泄漏，设置退
 	// 出时会执行一次Co
     void ExitCo(uint64_t qwCid = 0);

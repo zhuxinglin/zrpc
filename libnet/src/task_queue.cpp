@@ -242,7 +242,6 @@ int CTaskQueue::DelRbTask(CTaskWaitRb *pRb, CTaskNode *pNode)
     CTaskKey oKey(pNode->pTask->m_qwBeginTime, pNode->pTask->m_dwTimeout);
     pRb->oFdRb.erase(pNode->pTask->m_qwCid);
     DelMultiMap(pRb, oKey, pNode->pTask->m_qwCid);
-    assert(pRb->oFdRb.size() == pRb->oTaskRb.size());
     return 0;
 }
 

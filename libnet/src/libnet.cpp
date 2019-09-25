@@ -175,6 +175,13 @@ uint64_t CNet::GetCurCid() const
     return pCx->m_pCo->GetTaskBase()->m_qwCid;
 }
 
+ITaskBase *CNet::GetCurTask()
+{
+    if (!g_pContext || g_pContext->m_pCo)
+        return nullptr;
+    return g_pContext->m_pCo->GetTaskBase();
+}
+
 int CNet::Register(NEWOBJ(ITaskBase, pCb), void *pData, uint16_t wProtocol, uint16_t wPort, const char *pszIP,
                    uint16_t wVer, uint32_t dwTimeoutMs, const char *pszServerName, const char *pszSslCert, const char *pszSslKey)
 {
