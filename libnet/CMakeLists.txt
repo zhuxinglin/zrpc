@@ -3,7 +3,7 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -static")
 
 set(SOURCES_FILE
     src/go.cpp
-    src/libconet.cpp
+    src/libnet.cpp
     src/schedule.cpp
     src/net_task.cpp
     src/net_clinet.cpp
@@ -25,5 +25,5 @@ set(SOURCES_FILE
     core/timer_fd.cpp
 )
 
-add_library(conet STATIC ${SOURCES_FILE})
-install(TARGETS conet DESTINATION bin)
+add_library(net STATIC ${SOURCES_FILE})
+install(TARGETS net DESTINATION bin)

@@ -18,11 +18,11 @@ set(LINK_LIBS
     pthread
     rt
     dl
-    conet
+    net
     ssl
     crypto
 )
 
-add_executable(corpc ${SOURCES_FILE})
-target_link_libraries(corpc ${LINK_LIBS})
-install(TARGETS corpc DESTINATION bin)
+add_executable(zsvc ${SOURCES_FILE})
+target_link_libraries(zsvc ${LINK_LIBS})
+install(TARGETS zsvc DESTINATION bin)

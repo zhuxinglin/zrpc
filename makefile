@@ -1,7 +1,7 @@
-SUB_DIR:=libconet \
+SUB_DIR:=libnet \
 	libzk \
 	libmysql_cli \
-	corpc \
+	zsvc \
 	libshmconfig_server \
 	libshmconfig_agent \
 	libshm_config \
