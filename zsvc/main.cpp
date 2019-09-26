@@ -19,7 +19,7 @@
 #include <stdio.h>
 
 #include "log.h"
-#include "zsvc.h"
+#include "src/zsvc.h"
 
 using namespace znet;
 using namespace zrpc;

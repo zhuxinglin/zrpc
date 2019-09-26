@@ -18,7 +18,6 @@
 #include "coroutine.h"
 #include <string.h>
 #include <stdio.h>
-#include "task_queue.h"
 
 using namespace znet;
 

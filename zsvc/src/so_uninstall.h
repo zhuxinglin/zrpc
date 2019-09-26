@@ -19,7 +19,7 @@
 
 #include <task_base.h>
 #include "so_plugin.h"
-#include <so_struct.h>
+#include "so_struct.h"
 
 namespace zrpc
 {

@@ -18,7 +18,7 @@
 #include <sys/inotify.h>
 #include <unistd.h>
 #include "so_plugin.h"
-#include <so_struct.h>
+#include "so_struct.h"
 #include "so_uninstall.h"
 #include "log.h"
 
