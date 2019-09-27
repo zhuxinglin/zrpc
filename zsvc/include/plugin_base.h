@@ -49,18 +49,19 @@ struct CBinaryController : public CControllerBase
     virtual int WriteResp(const char *pszData, int iDataLen, uint16_t wCmd, int16_t iRet, int32_t dwTimoutMs) = 0;
 };
 
-#define HEADER_FLAGE    0x61613535      // 数据包头开始 aa355   主要作用抓包
+#define HEADER_FLAGE    0x6161      // 数据包头开始 aa   主要作用抓包
 #define END_FLAGE   0x03                // 数据包结束3
 
 // 二进制协议头
 struct CBinaryProtocolHeader
 {
-    CBinaryProtocolHeader(int32_t len, uint16_t cmd, int16_t ret) : dwHeader(HEADER_FLAGE),
+    CBinaryProtocolHeader(int32_t len, uint16_t cmd, int16_t ret) : wHeader(HEADER_FLAGE),
                                                                     iLen(len),
                                                                     wCmd(cmd),
                                                                     iRet(ret)
     {}
-    uint32_t dwHeader;  // aa55=0x61613535
+    uint16_t wHeader;  // aa=0x6161
+    uint16_t wVer;
     int32_t iLen;       // iLen = sizeof(CBinaryProtocolHeader) + data_len + 1
     uint16_t wCmd;
     int16_t iRet;
@@ -68,7 +69,7 @@ struct CBinaryProtocolHeader
 
     void Set(int32_t len, uint16_t cmd, int16_t ret)
     {
-        dwHeader = HEADER_FLAGE;
+        wHeader = HEADER_FLAGE;
         iLen = len;
         wCmd = cmd;
         iRet = ret;
@@ -76,9 +77,11 @@ struct CBinaryProtocolHeader
 
     void Hton()
     {
+        wVer = 0;
         iLen = htonl(iLen);
         wCmd = htons(wCmd);
         iRet = htons(iRet);
+        wVer = htons(wVer);
     }
 };
 

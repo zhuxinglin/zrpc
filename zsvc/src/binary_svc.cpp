@@ -78,7 +78,7 @@ int CBinarySvc::WriteResp(const char *pszData, int iDataLen, uint16_t wCmd, int1
     sData.resize(sizeof(zplugin::CBinaryProtocolHeader));
     zplugin::CBinaryProtocolHeader* pHeader = (zplugin::CBinaryProtocolHeader*)sData.c_str();
     sData.append(pszData, iDataLen);
-    pHeader->dwHeader = HEADER_FLAGE;
+    pHeader->wHeader = HEADER_FLAGE;
     pHeader->iLen = iDataLen + 1;
     pHeader->wCmd = wCmd;
     pHeader->iRet = iRet;
@@ -119,7 +119,7 @@ int CBinarySvc::ReadData(std::shared_ptr<std::string>& oBuf, uint16_t& wCmd)
         if (oBuf->size() == sizeof(zplugin::CBinaryProtocolHeader))
         {
             zplugin::CBinaryProtocolHeader* pH = (zplugin::CBinaryProtocolHeader*)oBuf->c_str();
-            if (pH->dwHeader != HEADER_FLAGE)
+            if (pH->wHeader != HEADER_FLAGE)
             {
                 LOGE << "error data package";
                 return -1;

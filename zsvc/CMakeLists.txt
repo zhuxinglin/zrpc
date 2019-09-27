@@ -18,7 +18,7 @@ set(LINK_LIBS
     pthread
     rt
     dl
-    net
+    conet
     ssl
     crypto
 )
