@@ -28,13 +28,13 @@ class XmlConf
 {
 public:
     static XmlConf* CreateObj();
-    virtual int Query(const std::string& sAddr, std::vector<std::string>& vQueryKey, std::map<std::string, std::string>& mapData) = 0;
+    virtual int Query(const std::string& sAddr, std::vector<std::string>& vQueryKey, std::map<std::string, std::string>& mapData, bool bIsSync) = 0;
 };
 
 class XmlConfHelper
 {
 public:
-    XmlConfHelper(std::string sAddr = ""):m_sAddr(sAddr)
+    XmlConfHelper(std::string sAddr = "", bool bIsSync = false):m_sAddr(sAddr), m_bIsSync(bIsSync)
     {}
 
 public:
@@ -47,7 +47,7 @@ public:
         if (!pXml)
             return -1;
 
-        int iRet = pXml->Query(m_sAddr, m_vQueryKey, m_mapData);
+        int iRet = pXml->Query(m_sAddr, m_vQueryKey, m_mapData, m_bIsSync);
         delete pXml;
         if (iRet < 0)
             return -1;
@@ -94,6 +94,7 @@ public:
 
 private:
     std::string m_sAddr;
+    bool m_bIsSync;
     std::vector<std::string> m_vQueryKey;
     std::map<std::string, std::string> m_mapData;
 };

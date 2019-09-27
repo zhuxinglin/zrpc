@@ -29,7 +29,7 @@ XmlConfig::~XmlConfig()
 {
 }
 
-int XmlConfig::Query(const std::string& sAddr, std::vector<std::string>& vQueryKey, std::map<std::string, std::string>& mapData)
+int XmlConfig::Query(const std::string& sAddr, std::vector<std::string>& vQueryKey, std::map<std::string, std::string>& mapData, bool bIsSync)
 {
     std::string sAddrInfo;
     if (sAddr.empty())
@@ -54,7 +54,7 @@ int XmlConfig::Query(const std::string& sAddr, std::vector<std::string>& vQueryK
 
     std::string sUri = getUri(vQueryKey);
     std::string sJson;
-    int iRet = onMsg(sIp, wPort, sUri, sJson);
+    int iRet = onMsg(sIp, wPort, sUri, sJson, bIsSync);
     if (iRet < 0)
         return -1;
 
@@ -71,10 +71,11 @@ int XmlConfig::Query(const std::string& sAddr, std::vector<std::string>& vQueryK
     return 0;
 }
 
-int XmlConfig::onMsg(const std::string& sAddr, uint16_t wPort, const std::string& sUri, std::string& sResp)
+int XmlConfig::onMsg(const std::string& sAddr, uint16_t wPort, const std::string& sUri, std::string& sResp, bool bIsSync)
 {
     znet::CTcpCli oCli;
-    oCli.SetSync();
+    if (bIsSync)
+        oCli.SetSync();
     if (oCli.Create(sAddr.c_str(), wPort, 30000, nullptr) < 0)
         return -1;
 
