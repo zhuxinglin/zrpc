@@ -42,7 +42,7 @@ struct ITaskBase
     int YieldEventDel(uint32_t dwTimeoutMs, int iFd, int iSetEvent, int iRestoreEvent);
     int YieldEventRestore(uint32_t dwTimeoutMs, int iFd, int iSetEvent, int iRestoreEvent);
     int Yield(uint32_t dwTimeoutMs = 0xFFFFFFFF, uint8_t wRunStatus = RUN_WAIT);
-    int Sleep(uint32_t dwTimeoutMs = 0xFFFFFFFF);
+    static int Sleep(uint32_t dwTimeoutMs = 0xFFFFFFFF);
     bool IsExitCo() const;
 
     enum _YieldOpt

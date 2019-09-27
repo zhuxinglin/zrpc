@@ -16,5 +16,6 @@ set(LINK_LIBS
 )
 
 add_library(shmconfig_server SHARED ${SOURCES_FILE})
+SET_TARGET_PROPERTIES(shmconfig_server PROPERTIES VERSION V.1.0 SOVERSION 0)
 target_link_libraries(shmconfig_server ${LINK_LIBS})
 install(TARGETS shmconfig_server DESTINATION bin)

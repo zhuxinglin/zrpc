@@ -88,7 +88,7 @@ int ITaskBase::Yield(uint32_t dwTimeoutMs, uint8_t wRunStatus)
 
 int ITaskBase::Sleep(uint32_t dwTimeoutMs)
 {
-    return Yield(dwTimeoutMs, RUN_SLEEP);
+    return g_pContext->m_pCo->GetTaskBase()->Yield(dwTimeoutMs, -1, 0, 0, 0, 0, RUN_SLEEP);
 }
 
 int ITaskBase::Yield(uint32_t dwTimeoutMs, int iFd, int iSetOpt, int iRestoreOpt, int iSetEvent, int iRestoreEvent, uint8_t wRunStatus)

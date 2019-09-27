@@ -15,5 +15,6 @@ set(LINK_LIBS
 )
 
 add_library(xmlconfig_server SHARED ${SOURCES_FILE})
+SET_TARGET_PROPERTIES(xmlconfig_server PROPERTIES VERSION V.1.0 SOVERSION 0)
 target_link_libraries(xmlconfig_server ${LINK_LIBS})
 install(TARGETS xmlconfig_server DESTINATION bin)

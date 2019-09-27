@@ -8,18 +8,17 @@ SUB_DIR:=libnet \
 	libxmlconfig_server \
 	libxml_config \
 
-SUB_DIR_CLEAN = $(SUB_DIR%=%_clean)
+SUB_DIR_CLEAN = $(SUB_DIR:%=%_clean)
 
-.PHONY: subdirs $(SUB_DIR)
-
-subdirs:$(SUB_DIR)
+all:$(SUB_DIR)
 
 $(SUB_DIR):
 	@+make -C $@
 
-all:${SUB_DIR}
-
 $(SUB_DIR_CLEAN):
-	@+make -C $@ clean;
+	@+make clean -C $(@:%_clean=%)
 
 clean:$(SUB_DIR_CLEAN)
+
+
+.PHONY: all clean $(SUB_DIR) $(SUB_DIR_CLEAN)

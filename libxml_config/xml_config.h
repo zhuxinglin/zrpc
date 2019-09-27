@@ -52,8 +52,8 @@ public:
     ~XmlConfig();
 
 private:
-    virtual int Query(const std::string& sAddr, std::vector<std::string>& vQueryKey, std::map<std::string, std::string>& mapData, bool bIsSync = false);
-    int onMsg(const std::string& sAddr, uint16_t wPort, const std::string& sUri, std::string& sResp, bool bIsSync);
+    virtual int Query(const std::string& sAddr, std::vector<std::string>& vQueryKey, std::map<std::string, std::string>& mapData);
+    int onMsg(const std::string& sAddr, uint16_t wPort, const std::string& sUri, std::string& sResp);
     std::string getUri(std::vector<std::string>& vQueryKey);
 };
 
