@@ -53,6 +53,9 @@ int CNetClient::Connect(const char *pszAddr, uint16_t wPort, uint16_t wProtocol,
 
 int CNetClient::Reconnect()
 {
+    if (IsClose())
+        return -1;
+
     if (m_pFd)
         return -1;
 
