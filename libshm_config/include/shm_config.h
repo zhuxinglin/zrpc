@@ -52,6 +52,8 @@ public:
 
     void PrintfAll();
 
+    void Close();
+
 private:
     int init();
     void* createShmHeader();

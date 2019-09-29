@@ -212,6 +212,20 @@ int ShmConfig::checkParam(const char* pszKey)
     return 0;
 }
 
+void ShmConfig::Close()
+{
+    if (m_pShmHeader)
+        shmdt(m_pShmHeader);
+    m_pShmHeader = nullptr;
+
+    if (m_pShmAddr)
+        shmdt(m_pShmAddr);
+    m_pShmAddr = 0;
+
+    m_oCreateLock.clear();
+    m_oReadLock = 0;
+}
+
 void ShmConfig::PrintfAll()
 {
     ShmAddrHeader* pShmAddrHeader = reinterpret_cast<ShmAddrHeader*>(m_pShmHeader);
