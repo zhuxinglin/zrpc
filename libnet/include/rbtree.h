@@ -116,10 +116,7 @@ public:
 		{
 			root = new_rb(key, val, 0);
 			if (!root)
-			{
-				printf("000000000000000000000\n");
 				return 0;
-			}
 
 			// 如果插入的是根结点，因为原树是空树，此情况只会违反性质2，所以直接把此结点涂为黑色。
 			root->color = rb_BLACK;
@@ -168,21 +165,13 @@ public:
 					tmp = tmp->right;
 			}
 			else
-			{
 				return 0;
-			}
 		}
 		insert_balance_tree(tmp);
 		count++;
 		return &node->it;
 	}
 
-	/*
-	1. 如果要删除的节点只有一个孩子，那么直接用孩子节点的值代替父节点的值。删除子节点就可以，不需要进入删除调整算法。
-	2. 若当前要删除的节点两个孩子都不为空，此时我们只需要找到当前节点中序序列的后继节点。用后继节点的值替换当前节点的值。将后继节点作为新的当前节点，
-	此时的当前节点一定只有一个右孩子或左右孩子都为空。
-	3. 通过步骤2后如果当前节点有后继节点，直接用其后继节点值替换当前节点值，不需要进入删除调整算法。如果当前节点没有后继节点，进入删除调整算法。
-	*/
 	int erase(K& key)
 	{
 		struct rb* del;
@@ -190,100 +179,33 @@ public:
 		if (!del)
 			return -1;
 
-		count--;
-		if (min == del)
-		{
-			if (del->right)
-				min = del->right;
-			else
-				min = del->parent;
-		}
-
-		if (del == max)
-		{
-			if (del->left)
-				max = del->left;
-			else
-				max = del->parent;
-		}
-
-		struct rb* c, *p;
-		char col;
-		if (del->left && del->right)
-		{
-			// 将要删除的结点与找到右儿子结点中最小的数换位
-			struct rb *swap = min_rb(del->right);
-
-			if (del->parent)
-			{
-				if (del->parent->left == del)
-					del->parent->left = swap;
-				else
-					del->parent->right = swap;
-			}
-			else
-				root = swap;
-
-			col = swap->color;
-			c = swap->right;
-			p = swap->parent;
-
-			if (p == del)
-				p = swap;
-			else
-			{
-				if (c)
-					c->parent = p;
-				p->left = c;
-				swap->right = del->right;
-				del->right->parent = swap;
-			}
-
-			swap->parent = del->parent;
-			swap->color = del->color;
-			swap->left = del->left;
-			del->left->parent = swap;
-		}
-		else
-		{
-			col = del->color;
-			p = del->parent;
-			if (!del->left)
-				c = del->right;
-			else
-				c = del->left;
-
-			if (c)
-				c->parent = p;
-
-			if (p)
-			{
-				if (del == p->left)
-					p->left = c;
-				else
-					p->right = c;
-			}
-			else
-				root = c;
-		}
-
-		if (!col)
-			delete_balance_tree(c, p);
-		m_oPool.Free(del);
+		erase(del);
 		return 0;
 	}
 
-	int begin(iterator** cur)
+	iterator* erase(iterator* cur)
 	{
-		if (!min) {
-			return rb_BLACK;
-		}
-		if (!*cur)
-			*cur = &(min->it);
+		if (!cur)
+			return nullptr;
+
+		iterator* tmp = begin(cur);
+
+		struct rb* del = GET_NUMBER(cur, struct rb, it);
+		erase(del);
+		return tmp;
+	}
+
+	iterator* begin(iterator* cur)
+	{
+		if (!min)
+			return nullptr;
+
+		if (!cur)
+			cur = &(min->it);
 		else
 		{
 			// 中序遍历
-			struct rb* tmp = GET_NUMBER(*cur, struct rb, it);
+			struct rb* tmp = GET_NUMBER(cur, struct rb, it);
 			if (tmp->right)
 				tmp = min_rb(tmp->right);
 			else if (tmp->parent && tmp == tmp->parent->left)
@@ -296,22 +218,23 @@ public:
 			}
 
 			if (!tmp)
-				return rb_BLACK;
-			*cur = &(tmp->it);
+				return nullptr;
+
+			cur = &(tmp->it);
 		}
-		return rb_RED;
+		return cur;
 	}
 
-	int end(iterator** cur)
+	iterator* end(iterator* cur)
 	{
 		if (!max)
-			return rb_BLACK;
+			return nullptr;
 
-		if (!*cur)
-			*cur = &(max->it);
+		if (!cur)
+			cur = &(max->it);
 		else
 		{
-			struct rb* tmp = GET_NUMBER(*cur, struct rb, it);
+			struct rb* tmp = GET_NUMBER(cur, struct rb, it);
 			if (tmp->left)
 				tmp = max_rb(tmp->left);
 			else if (tmp->parent && tmp == tmp->parent->right)
@@ -324,10 +247,11 @@ public:
 			}
 
 			if (!tmp)
-				return rb_BLACK;
-			*cur = &(tmp->it);
+				return nullptr;
+
+			cur = &(tmp->it);
 		}
-		return rb_RED;
+		return cur;
 	}
 
 	int size(){return count;}
@@ -457,6 +381,96 @@ private:
 		y->right = pi;
 		pi->parent = y;
 		return pi;
+	}
+
+	/*
+	1. 如果要删除的节点只有一个孩子，那么直接用孩子节点的值代替父节点的值。删除子节点就可以，不需要进入删除调整算法。
+	2. 若当前要删除的节点两个孩子都不为空，此时我们只需要找到当前节点中序序列的后继节点。用后继节点的值替换当前节点的值。将后继节点作为新的当前节点，
+	此时的当前节点一定只有一个右孩子或左右孩子都为空。
+	3. 通过步骤2后如果当前节点有后继节点，直接用其后继节点值替换当前节点值，不需要进入删除调整算法。如果当前节点没有后继节点，进入删除调整算法。
+	*/
+	void erase(struct rb* del)
+	{
+		count--;
+		if (min == del)
+		{
+			if (del->right)
+				min = del->right;
+			else
+				min = del->parent;
+		}
+
+		if (del == max)
+		{
+			if (del->left)
+				max = del->left;
+			else
+				max = del->parent;
+		}
+
+		struct rb* c, *p;
+		char col;
+		if (del->left && del->right)
+		{
+			// 将要删除的结点与找到右儿子结点中最小的数换位
+			struct rb *swap = min_rb(del->right);
+
+			if (del->parent)
+			{
+				if (del->parent->left == del)
+					del->parent->left = swap;
+				else
+					del->parent->right = swap;
+			}
+			else
+				root = swap;
+
+			col = swap->color;
+			c = swap->right;
+			p = swap->parent;
+
+			if (p == del)
+				p = swap;
+			else
+			{
+				if (c)
+					c->parent = p;
+				p->left = c;
+				swap->right = del->right;
+				del->right->parent = swap;
+			}
+
+			swap->parent = del->parent;
+			swap->color = del->color;
+			swap->left = del->left;
+			del->left->parent = swap;
+		}
+		else
+		{
+			col = del->color;
+			p = del->parent;
+			if (!del->left)
+				c = del->right;
+			else
+				c = del->left;
+
+			if (c)
+				c->parent = p;
+
+			if (p)
+			{
+				if (del == p->left)
+					p->left = c;
+				else
+					p->right = c;
+			}
+			else
+				root = c;
+		}
+
+		if (!col)
+			delete_balance_tree(c, p);
+		m_oPool.Free(del);
 	}
 
 	/*

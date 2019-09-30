@@ -30,7 +30,7 @@ using namespace znet;
 CTaskQueue::CTaskQueue(uint32_t dwWorkThreadCount)
 {
     m_oPool.SetSize(sizeof(CTaskNode));
-    m_oPool.SetMaxNodeCount(100000);
+    m_oPool.SetMaxNodeCount(10000000);
     m_dwSumCpu = dwWorkThreadCount << 1;
     m_pWait = new CTaskWaitRb[m_dwSumCpu];
     m_dwCurTaskCount = 0;
@@ -221,7 +221,7 @@ CTaskNode* CTaskQueue::UpdateTask(CTaskWaitRb *pRb, uint64_t qwCid, bool bIsLock
     CTaskNode* pNode = DelMultiMap(pRb, it->second, qwCid);
     if (!pNode)
     {
-        pRb->oFdRb.erase(qwCid);
+        pRb->oFdRb.erase(it);
         return 0;
     }
     UpdateTaskTime(pRb, pNode);
@@ -364,14 +364,17 @@ CTaskNode* CTaskQueue::GetTaskNode(uint64_t qwCid, CTaskWaitRb *pRb)
     CTaskWaitRb::TaskIt itNode = pRb->oTaskRb.find(it->second);
     if (itNode == pRb->oTaskRb.end())
     {
-        pRb->oFdRb.erase(qwCid);
+        pRb->oFdRb.erase(it);
         return nullptr;
     }
 
     for (; itNode != pRb->oTaskRb.end(); ++ itNode)
     {
         if (itNode->first != it->second)
+        {
+            pRb->oFdRb.erase(it);
             return nullptr;
+        }
 
         if (qwCid == itNode->second->pTask->m_qwCid)
             break;
