@@ -9,7 +9,7 @@ LIBS=
 CFLAGS	= -g2 -Wall -D_REENTRANT -Wno-invalid-offsetof -static -fPIC -std=c++11
 CFLAGS_C	= -g2 -Wall -D_REENTRANT -static -fPIC
 
-OBJS += $(BUILD_DIR)/shm_config.o
+OBJS += $(BUILD_DIR)/shm_config.o $(BUILD_DIR)/shm_config_go.o
 
 LIB=libshmconfig.a
 

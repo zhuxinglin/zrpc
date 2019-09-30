@@ -1,44 +1,29 @@
 package shmconfig
 
 /*
-#cgo LDFLAGS:-L -lshmconfig
+#cgo LDFLAGS:-L. -lshmconfig -lstdc++
 #cgo CFLAGS: -I./
-#include "shm_config.h"
-
-#ifdef __cplusplus
-extern "C"{
-#endif
-
-int GetValue(const char* pszKey, char** pszValue)
-{
-    *pszValue = 0;
-    std::string sVar = SHM_CONF->GetValue(pszKey);
-    if (sVar.empty())
-        return -1;
-
-    *pszValue = new char[sVar.size()];
-    memcpy(*pszValue, sVar.c_str(), sVar.size());
-    return sVar.size();
-}
-
-void FreeValue(char* pszValue)
-{
-    if (pszValue)
-        delete pszValue;
-}
-
-uint64_t GetValueI(const char* pszKey, uint64_t a)
-{
-    return SHM_CONF->GetValueI(pszKey, a);
-}
-
-void CloseShm()
-{
-    SHM_CONF->Close();
-}
-
-#ifdef __cplusplus
-}
-#endif
+#include "shm_config_go.h"
+#include <stdlib.h>
 */
 import "C"
+import "unsafe"
+
+func GetValue(key, defaul_tvalue string) string {
+    var pValue *C.char;
+    var k *C.char = C.CString(key);
+    iRet := C.GetValue(k, &pValue);
+    defer C.free(unsafe.Pointer(k))
+    if iRet < 0{
+        return defaul_tvalue;
+    }
+    defer C.FreeValue(pValue);
+    return C.GoStringN(pValue, iRet)
+}
+
+func GetValueI(key string, defaul_tvalue uint64) uint64 {
+    var k *C.char = C.CString(key);
+    val := C.GetValueI(k, C.uint64_t(defaul_tvalue));
+    defer C.free(unsafe.Pointer(k))
+    return uint64(val);
+}

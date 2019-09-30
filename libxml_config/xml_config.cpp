@@ -41,8 +41,8 @@ int XmlConfig::Query(const std::string& sAddr, std::vector<std::string>& vQueryK
         return -1;
 
     std::string sIp;
-    uint16_t wPort = 9008;
-    std::size_t dwPos = sAddrInfo.find(":");
+    uint16_t wPort = 80;
+    std::size_t dwPos = sAddrInfo.find_last_of(":");
     if (dwPos == std::string::npos)
         sIp = sAddrInfo;
     else
