@@ -76,9 +76,9 @@ void CHttpSvc::Go()
         SetUri();
 
         int iCode;
-        //LOGD_BIZ(HTTP_START) << "URL: " << m_oHttpReq.sUri << ", len: " << m_oHttpReq.szBody.length();
-        int iRet = pPlugin->ExecSo(m_oPtr, this, zplugin::CUtilHash::UriHash(m_oHttpReq.sUri.c_str(), m_oHttpReq.sUri.size()), &m_oHttpReq.szBody, iCode);
-        //LOGD_BIZ(HTTP_END) << "URL: " << m_oHttpReq.sUri << ", Code : " << iCode << ", ret: " << iRet;
+        LOGD_BIZ(HTTP_START) << "URL: " << m_oHttpReq.sUri << ", len: " << m_oHttpReq.szBody.length();
+        int iRet = pPlugin->ExecSo(m_oPtr, this, coplugin::CUtilHash::UriHash(m_oHttpReq.sUri.c_str(), m_oHttpReq.sUri.size()), &m_oHttpReq.szBody, iCode);
+        LOGD_BIZ(HTTP_END) << "URL: " << m_oHttpReq.sUri << ", Code : " << iCode << ", ret: " << iRet;
         if (iCode != 200)
         {
             WriteHttp(0, 0, iCode, iRet, 3e3);
@@ -250,33 +250,33 @@ void CHttpSvc::SetHttpHeader(const char *pszKey, const char *pszValue)
 
 int CHttpSvc::WriteHttp(const char *pszData, int iDataLen, int iCode, int iRet, int32_t dwTimoutMs)
 {
-    std::stringstream ssResp;
-    ssResp << "HTTP/1.1 " << iCode << " OK\r\nCache-Control: no-cache\r\nServer: jsvc 1.0\r\n"
-            "Content-Type: application/json; charset=utf-8\r\nAccess-Control-Allow-Origin: *\r\n"
-        "Access-Control-Allow-Credentials: true\r\nAccess-Control-Allow-Methods: *\r\n";
-    ssResp << "Ret: " << iRet << "\r\n";
+    std::string sResp = "HTTP/1.1 ";
+    sResp.append(std::to_string(iCode));
+    sResp.append(" OK\r\nCache-Control: no-cache\r\nServer: jsvc 1.0\r\n"
+        "Content-Type: application/json; charset=utf-8\r\nAccess-Control-Allow-Origin: *\r\n"
+        "Access-Control-Allow-Credentials: true\r\nAccess-Control-Allow-Methods: *\r\nRet: ");
+    sResp.append(std::to_string(iRet)).append("\r\n");
 
     const char* pszAcce = GetHttpHeader("Access-Control-Request-Headers");
     if (pszAcce)
-    {
-        ssResp << "Access-Control-Allow-Headers: " << pszAcce << "\r\n";
-    }
+        sResp.append("Access-Control-Allow-Headers: ").append(pszAcce).append("\r\n");
+
 /*
     for (header_it it = m_oHttpReq.mapHeader.begin(); it != m_oHttpReq.mapHeader.end(); ++ it)
-        ssResp << it->first << ": " << it->second << "\r\n";
+        sResp << it->first << ": " << it->second << "\r\n";
 */
     for (header_it it = m_oHttpHeader.begin(); it != m_oHttpHeader.end(); ++it)
-        ssResp << it->first << ": " << it->second << "\r\n";
+        sResp.append(it->first).append(": ").append(it->second).append("\r\n");
 
     if (iDataLen == 0)
-        ssResp << "Content-Length: 0\r\n";
+        sResp.append("Content-Length: 0\r\n\r\n");
     else
     {
-        ssResp << "Content-Length: " << iDataLen << "\r\n\r\n";
-        ssResp.write(pszData, iDataLen);
+        sResp.append("Content-Length: ").append(std::to_string(iDataLen)).append("\r\n\r\n");
+        sResp.append(pszData, iDataLen);
     }
-    ssResp << "\r\n\r\n";
-    if (Write(ssResp.str().c_str(), ssResp.str().length(), dwTimoutMs) < 0)
+
+    if (Write(sResp.c_str(), sResp.length(), dwTimoutMs) < 0)
         return -1;
 
     return 0;
