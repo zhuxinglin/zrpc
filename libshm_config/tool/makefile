@@ -1,7 +1,7 @@
 CXX=g++
 CC=gcc
 LIBS= -lpthread -lrt -ldl -L/usr/local/lib -lssl -lcrypto ../libshmconfig.a
-INCLUDES= -I../libconet/include -I../ -I./include -I/usr/local/include
+INCLUDES= -I../libnet/include -I../ -I./include -I/usr/local/include
 CFLAGS=-g2 -Wall -D_REENTRANT -Wl,--as-needed -Wno-invalid- -std=c++11
 SRC=
 BUILD_DIR=build

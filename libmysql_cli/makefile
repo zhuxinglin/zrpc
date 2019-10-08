@@ -4,7 +4,7 @@ CXX := g++
 AR := ar
 SRC = src
 BUILD_DIR = build
-INCLUDES=-I../include -I/usr/local/include -I../libconet/include -I../../code/include/
+INCLUDES=-I../include -I/usr/local/include -I../libnet/include -I../../code/include/
 
 LIBS=
 CFLAGS	= -g2 -Wall -D_REENTRANT -Wno-invalid-offsetof -static -fPIC -std=c++11

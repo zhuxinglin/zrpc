@@ -7,7 +7,7 @@ set(SOURCES_FILE
     src/http_parser.cpp
     src/http_svc.cpp
     src/monitor_so.cpp
-    src/corpc.cpp
+    src/zsvc.cpp
     src/so_plugin.cpp
     src/so_uninstall.cpp
     src/binary_svc.cpp
@@ -18,7 +18,7 @@ set(LINK_LIBS
     pthread
     rt
     dl
-    conet
+    net
     ssl
     crypto
 )
