@@ -25,6 +25,7 @@ type ConfigResp struct
 
 func getUrl(key* []string) (string, error) {
     xml_addr := shmconfig.GetValue("xml.config.server.addr", "");
+    shmconfig.Close();
     if xml_addr == "" {
         return "", errors.New("get xml server addess failed")
     }

@@ -27,3 +27,7 @@ func GetValueI(key string, defaul_tvalue uint64) uint64 {
     defer C.free(unsafe.Pointer(k))
     return uint64(val);
 }
+
+func Close() {
+    C.CloseShm();
+}
