@@ -14,13 +14,13 @@ const pszUri = "/xml/config/query?key=[";
 
 type XmlConfigResp struct
 {
-    key string;
-    value string;
+    Key string  `json:"key"`
+    Value string    `json:"value"`
 };
 
 type ConfigResp struct
 {
-    data []XmlConfigResp;
+    Data []XmlConfigResp    `json:"data"`
 };
 
 func getUrl(key* []string) (string, error) {
@@ -70,8 +70,8 @@ func Query(key* []string) (map[string]string, error) {
     json.Unmarshal(body, &con);
 
     var xml map[string]string = make(map[string]string)
-    for _, v := range con.data {
-        xml[v.key] = v.value;
+    for _, v := range con.Data {
+        xml[v.Key] = v.Value;
     }
     return xml, nil;
 }
