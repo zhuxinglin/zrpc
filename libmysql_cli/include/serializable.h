@@ -247,7 +247,7 @@ public:
             m_ssJson << "[";
         
         m_pszFieldName = NULL;
-        bool bIsChar = m_bIsChar;
+        //bool bIsChar = m_bIsChar;
         bool bIsFirst = false;
         typename std::map<K, V>::iterator it = m.begin();
         for (; it != m.end(); ++ it)
@@ -256,14 +256,16 @@ public:
             if (bIsFirst)
                 m_ssJson << ",[";
             else
+            {
                 m_ssJson << "[";
+                bIsFirst = true;
+            }
 
             m_pszFieldName = nullptr;
             *this |= it->first;
             m_pszFieldName = nullptr;
             *this |= it->second;
             m_ssJson << "]";
-            bIsFirst = true;
         }
         m_ssJson << "]";
         return *this;
