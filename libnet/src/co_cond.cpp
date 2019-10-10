@@ -51,7 +51,7 @@ void CCoCond::Signal()
 
 void CCoCond::Broadcast()
 {
-    while (m_oCond.empty())
+    while (!m_oCond.empty())
     {
         uint64_t qwCoId;
         {
