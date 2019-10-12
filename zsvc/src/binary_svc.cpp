@@ -23,12 +23,11 @@
 
 using namespace zrpc;
 
-#define BIN_BUFF    4096
 extern map_confog g_mapConfig;
 
 CBinarySvc::CBinarySvc()
 {
-    m_pszRecvBuff = new char[BIN_BUFF];
+    m_pszRecvBuff = new char[sizeof(zplugin::CBinaryProtocolHeader)];
 }
 
 CBinarySvc::~CBinarySvc()
@@ -101,22 +100,21 @@ void CBinarySvc::Error(const char* pszExitStr)
 int CBinarySvc::ReadData(std::shared_ptr<std::string>& oBuf, uint16_t& wCmd)
 {
     int iOffset = sizeof(zplugin::CBinaryProtocolHeader);
+    char *pBuf = m_pszRecvBuff;
     while (true)
     {
-        int iLen = Read(m_pszRecvBuff, iOffset, 0xFFFFFFFF);
+        int iLen = Read(pBuf, iOffset, 0xFFFFFFFF);
         if (iLen < 0)
-            return -1;
-        if (iLen == 0)
         {
-            if (znet::ITaskBase::STATUS_TIMEOUT != m_wStatus)
-                continue;
-            else
-                return -1;
+            // if (iLen == -2) // ³¬Ê±
+            //     return -1;
+            return -1;
         }
-        iOffset -= iLen;
 
-        oBuf->append(m_pszRecvBuff, iLen);
-        if (oBuf->size() == sizeof(zplugin::CBinaryProtocolHeader))
+        iOffset -= iLen;
+        pBuf += iLen;
+
+        if (iOffset == 0)
         {
             zplugin::CBinaryProtocolHeader* pH = (zplugin::CBinaryProtocolHeader*)oBuf->c_str();
             if (pH->wHeader != HEADER_FLAGE)
@@ -131,25 +129,25 @@ int CBinarySvc::ReadData(std::shared_ptr<std::string>& oBuf, uint16_t& wCmd)
         }
     }
 
+    oBuf->resize(iOffset + sizeof(zplugin::CBinaryProtocolHeader));
+    pBuf = (char*)oBuf->c_str() + sizeof(zplugin::CBinaryProtocolHeader);
+
     while (iOffset > 0)
     {
-        int iLen = Read(m_pszRecvBuff, iOffset, 0xFFFFFFFF);
+        int iLen = Read(pBuf, iOffset, 0xFFFFFFFF);
         if (iLen < 0)
-            return -1;
-        if (iLen == 0)
         {
-            if (znet::ITaskBase::STATUS_TIMEOUT != m_wStatus)
-                continue;
-            else
-                return -1;
+            // if (iLen == -2) // ³¬Ê±
+            //     return -1;
+            return -1;
         }
-        iOffset -= iLen;
 
-        oBuf->append(m_pszRecvBuff, iLen);
+        iOffset -= iLen;
+        pBuf += iLen;
     }
 
-    const char* e = oBuf->c_str() + oBuf->size() - 1;
-    if (*e != END_FLAGE)
+    -- pBuf;
+    if (*pBuf != END_FLAGE)
         return -1;
 
     return 0;

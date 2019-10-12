@@ -102,13 +102,11 @@ int CHttpSvc::ReadHttp()
     {
         int iLen = Read(m_pszReadBuf, g_iReadLen, 0xFFFFFFFF);
         if (iLen < 0)
-            return -1;
-        if (iLen == 0)
         {
-            if (znet::ITaskBase::STATUS_TIMEOUT != m_wStatus)
-                continue;
-            else
-                return -1;
+            // if (iLen == -2) // ³¬Ê±
+            //     return -1;
+
+            return -1;
         }
 
         iLen = http_parser_execute(&m_oParser, &m_oParserSetring, m_pszReadBuf, iLen);
