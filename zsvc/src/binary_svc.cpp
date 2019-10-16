@@ -129,8 +129,11 @@ int CBinarySvc::ReadData(std::shared_ptr<std::string>& oBuf, uint16_t& wCmd)
         }
     }
 
-    oBuf->resize(iOffset + sizeof(zplugin::CBinaryProtocolHeader));
-    pBuf = (char*)oBuf->c_str() + sizeof(zplugin::CBinaryProtocolHeader);
+    oBuf->resize(iOffset);
+    pBuf = (char*)oBuf->c_str();
+    memcpy(pBuf, m_pszRecvBuff, sizeof(zplugin::CBinaryProtocolHeader));
+    pBuf += sizeof(zplugin::CBinaryProtocolHeader);
+    iOffset -= sizeof(zplugin::CBinaryProtocolHeader);
 
     while (iOffset > 0)
     {
