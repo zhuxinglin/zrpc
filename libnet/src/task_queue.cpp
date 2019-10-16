@@ -253,9 +253,6 @@ CTaskNode* CTaskQueue::DelMultiMap(CTaskWaitRb *&pRb, const CTaskKey& oKey, uint
 
     for (; it != pRb->oTaskRb.end(); ++ it)
     {
-        if (it->first != oKey)
-            break;
-
         if (qwCId == it->second->pTask->m_qwCid)
         {
             CTaskNode* pNode = it->second;
@@ -263,6 +260,7 @@ CTaskNode* CTaskQueue::DelMultiMap(CTaskWaitRb *&pRb, const CTaskKey& oKey, uint
             return pNode;
         }
     }
+
     return nullptr;
 }
 
@@ -370,14 +368,10 @@ CTaskNode* CTaskQueue::GetTaskNode(uint64_t qwCid, CTaskWaitRb *pRb)
 
     for (; itNode != pRb->oTaskRb.end(); ++ itNode)
     {
-        if (itNode->first != it->second)
-        {
-            pRb->oFdRb.erase(it);
-            return nullptr;
-        }
-
         if (qwCid == itNode->second->pTask->m_qwCid)
-            break;
+            return itNode->second;
     }
-    return itNode->second;
+
+    pRb->oFdRb.erase(it);
+    return nullptr;
 }
