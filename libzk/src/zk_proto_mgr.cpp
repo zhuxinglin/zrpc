@@ -202,6 +202,9 @@ int ZkProtoMgr::Read(std::shared_ptr<char>& oMsg)
             if (iRet == -1)
                 return -1;
 
+            if (!m_bIsExit)
+                return -1;
+
             // ping
             if (ping() < 0)
                 return -1;
@@ -275,7 +278,7 @@ int ZkProtoMgr::connectResp()
         zk_connect_request *pReq = new zk_connect_request;
         pReq->protocol_version = 0;
         pReq->last_zxid_seen = this->m_iLastZxid;
-        pReq->timeout = this->m_iTimeout;
+        pReq->timeout = this->m_iTimeout + 3000;
         pReq->session_id = this->m_oClientId.client_id;
         pReq->passwd_len = sizeof(pReq->passwd);
         memcpy(pReq->passwd, this->m_oClientId.password, sizeof(pReq->passwd));
@@ -587,7 +590,6 @@ int ZkProtoMgr::Exists(const char *pszPath, int watch, zkproto::zk_stat *stat)
     zk_exists_response resp;
     resp.Ntoh(oRes->msg.get(), oRes->msg_len);
     *stat = resp.stat;
-
     return 0;
 }
 

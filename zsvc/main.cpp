@@ -52,22 +52,23 @@ void DoMain(int argc, const char** argv)
     znet::CLog::DelObj();
     delete g_pSvc;
     g_pSvc = 0;
+    exit(0);
 }
 
 void PorcErr(int iErr)
 {
     if (iErr == -1)
     {
-        printf("process exit\n");
+        fprintf(stderr, "process exit\n");
     }
     else if (iErr == SIGHUP)
     {
-        printf("child restert %d\n", getpid());
+        fprintf(stderr, "child restert %d\n", getpid());
         g_pSvc->Stop();
     }
     else
     {
-        printf("process runing\n");
+        fprintf(stderr, "process runing\n");
     }
 }
 

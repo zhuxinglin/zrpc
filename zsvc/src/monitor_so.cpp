@@ -35,11 +35,8 @@ CMonitorSo::CMonitorSo() : m_iFd(-1),
 
 CMonitorSo::~CMonitorSo()
 {
-    if (m_iIw != -1)
-    {
-        inotify_rm_watch(m_iFd, m_iIw);
-        close(m_iIw);
-    }
+    // if (m_iIw != -1)
+    //     inotify_rm_watch(m_iFd, m_iIw);
     m_iIw = -1;
 
     if (m_iFd != -1)
@@ -86,7 +83,7 @@ void CMonitorSo::Run()
 void CMonitorSo::LoadSo()
 {
     CSoPlugin *pSoPlugin = (CSoPlugin*)m_pData;
-    // ¼ÓÔØ²å¼þ
+    // åŠ è½½æ’ä»¶
     pSoPlugin->LoadSo(m_sSoPath.c_str());
 }
 
@@ -95,7 +92,7 @@ void CMonitorSo::MonitorLoadSo()
     char *ie = new char[1024];
     CSoPlugin *pSoPlugin = (CSoPlugin*)m_pData;
     map_so_info* pSoInfo;
-    while(true)
+    while(m_bIsExit)
     {
         pSoInfo = 0;
         memset(ie, 0, 1024);
@@ -178,6 +175,9 @@ void CMonitorSo::Stop(CSoPlugin *pPlugin)
     pSoUninstall->SetSoMap(pSoInfo);
     pSoUninstall->SetPluginObj(pPlugin);
     CNet::GetObj()->Register(pSoUninstall, pPlugin, ITaskBase::PROTOCOL_TIMER, -1, 0);
-    // µÈ´ýÍË³ö
+    // ç­‰å¾…é€€å‡º
     while (pPlugin->IsExit()) usleep(10);
+    m_bIsExit = false;
+    CNet::GetObj()->ExitCo(m_qwCid);
+    usleep(100);
 }

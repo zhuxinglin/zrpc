@@ -244,6 +244,7 @@ map_so_info* CSoPlugin::DelAll()
         for (map_so_info_it it = pTemp->begin(); it != pTemp->end(); ++ it)
             it->first->iDelFlag = 1;
     }
+    m_mapRoute = nullptr;
 
     return pTemp;
 }

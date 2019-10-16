@@ -44,6 +44,7 @@ private:
     int m_iFd;
     int m_iIw;
     std::string m_sSoPath;
+    volatile bool m_bIsExit{true};
 };
 
 }

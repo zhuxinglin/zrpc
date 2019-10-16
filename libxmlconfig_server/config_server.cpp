@@ -104,6 +104,7 @@ int ConfigServer::getConnectConfig(std::string& sMysqlConfig)
                 continue;
         }
     }
+    fclose(fp);
     delete szBuf;
     LOGI_BIZ(INIT) << "key : mysql, value : " << sMysqlConfig;
 

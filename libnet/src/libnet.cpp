@@ -55,7 +55,6 @@ CNet::~CNet()
         return;
 
     m_bIsMainExit = false;
-
     if (g_pContext)
         g_pContext->m_oNetPool.GetUse(this, &CNet::FreeListenFd);
 
@@ -113,7 +112,7 @@ int CNet::Init(uint32_t dwWorkThread, uint32_t dwSp)
         return -1;
 
     m_pContext = g_pContext;
-    CContext *pCx = g_pContext;
+    CContext* pCx = g_pContext;
     if (pCx->Init(dwWorkThread) < 0)
         return -1;
 

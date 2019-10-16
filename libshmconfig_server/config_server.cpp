@@ -119,6 +119,7 @@ int ConfigServer::getConnectConfig(std::string& sZkConfig, std::string& sMysqlCo
                 continue;
         }
     }
+    fclose(fp);
     delete szBuf;
     LOGI_BIZ(INIT) << "key : mysql, value : " << sMysqlConfig;
     LOGI_BIZ(INIT) << "key : zookeeper, value : " << sZkConfig;
