@@ -51,16 +51,9 @@ CNet::CNet()
 
 CNet::~CNet()
 {
-    if (!m_bIsMainExit)
-        return;
-
     m_bIsMainExit = false;
     if (g_pContext)
         g_pContext->m_oNetPool.GetUse(this, &CNet::FreeListenFd);
-
-    ERR_free_strings();
-    EVP_cleanup();
-    CRYPTO_cleanup_all_ex_data();
 
     if (!g_pContext)
         return;
@@ -693,6 +686,16 @@ int CNet::Start()
         }
     }
     return 0;
+}
+
+void CNet::Stop()
+{
+    m_bIsMainExit = false;
+    if (!g_pContext)
+        return;
+
+    CFileFd &oFd(g_pContext->m_oEvent);
+    oFd.Close();
 }
 
 int CNet::FreeListenFd(void *pEvent, void* pData)

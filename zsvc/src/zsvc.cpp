@@ -83,7 +83,7 @@ int CJSvc::Start()
 void CJSvc::Stop()
 {
     m_pMonitorSo->Stop(&m_oPlugin);
-    CNet::Release();
+    CNet::GetObj()->Stop();
 }
 
 int CJSvc::InitGlobal(CConfig::config_info *pCfg)

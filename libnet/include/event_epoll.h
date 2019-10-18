@@ -49,9 +49,6 @@ public:
     int Create();
     int SetCtl(int iFd, int iOpt, int iEvent, void *pData);
     int Wait(epoll_event *pEv, int iEvSize, uint32_t dwTimeout);
-    
-private:
-    virtual void Close(int iFd = -1);
 };
 
 }

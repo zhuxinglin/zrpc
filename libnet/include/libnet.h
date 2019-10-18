@@ -42,6 +42,7 @@ public:
     int Register(ITaskBase *pBase, void* pData, uint16_t wProtocol, int iFd, uint32_t dwTimeoutMs);
     int Register(NEWOBJ(ITaskBase, pCb), void* pData, uint16_t wProtocol, int iFd, uint32_t dwTimeoutMs);
     int Start();
+    void Stop();
     int Unregister(const char *pszServerName);
     const char* GetErr();
     void SetMaxTaskCount(uint32_t dwMaxTaskCount);

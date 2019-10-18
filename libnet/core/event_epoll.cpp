@@ -27,7 +27,6 @@ CEventEpoll::CEventEpoll()
 
 CEventEpoll::~CEventEpoll()
 {
-    Close();
 }
 
 int CEventEpoll::Create()
@@ -94,21 +93,4 @@ int CEventEpoll::Wait(epoll_event *pEv, int iEvSize, uint32_t dwTimeout)
         break;
     }
     return iRet;
-}
-
-void CEventEpoll::Close(int iFd)
-{
-    if (-1 != m_iFd)
-    {
-        CEventFd oEve;
-        int iFdTr = oEve.Create();
-        oEve.Write(1);
-
-        struct epoll_event ev;
-        // 将服务类型及fd设置到epoll中
-        ev.data.u64 = iFdTr;
-        ev.events = EPOLLIN | EPOLLIN;
-        epoll_ctl(m_iFd, EPOLL_CTL_ADD, iFdTr, &ev);
-        usleep(0);
-    }
 }

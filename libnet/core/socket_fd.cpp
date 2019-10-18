@@ -1071,6 +1071,7 @@ int CTcpsReliableFd::X509NameOneline()
             SetErr("X509_NAME_oneline X509_get_issuer_name failed");
             break;
         }
+        OPENSSL_free(pStr);
         iRet = 0;
     }while (0);
     X509_free(pCert);
