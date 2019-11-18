@@ -70,7 +70,7 @@ int MysqlCli::Connect(const char* pszConnectInfo)
 
     if (!mysql_real_connect(m_pMySql, sProto.compare("tcp") == 0 ? sAddr.c_str() : nullptr, sUser.c_str(),
                             sPasswrod.c_str(), sDb.c_str(), sPort.empty() ? 0 : atoi(sPort.c_str()),
-                            sProto.compare("tcp") == 0 ? nullptr : sAddr.c_str(), 0))
+                            sProto.compare("tcp") == 0 ? nullptr : sAddr.c_str(), CLIENT_MULTI_RESULTS))
     {
         m_sErr = mysql_error(m_pMySql);
         return -1;
@@ -149,9 +149,7 @@ int64_t MysqlCli::Query(const std::string& sSql, MySqlResult* pResult)
     MYSQL_RES* pRes = mysql_store_result(m_pMySql);
     if (pRes)
     {
-        int64_t rows = mysql_num_rows(pRes);
-        pResult->SetResult(pRes, rows);
-        return rows;
+        return pResult->SetResult(pRes, m_pMySql);
     }
     else if (mysql_field_count(m_pMySql) == 0)
     {

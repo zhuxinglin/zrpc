@@ -126,21 +126,21 @@ int MySqlHelper::Begin()
 {
     MySqlResult oRes;
     std::string sSql = "BEGIN";
-    return m_pCli->Query(m_sSql, &oRes);
+    return m_pCli->Query(sSql, &oRes);
 }
 
 int MySqlHelper::Commit()
 {
     MySqlResult oRes;
     std::string sSql = "COMMIT";
-    return m_pCli->Query(m_sSql, &oRes);
+    return m_pCli->Query(sSql, &oRes);
 }
 
 int MySqlHelper::Rollback()
 {
     MySqlResult oRes;
     std::string sSql = "ROLLBACK";
-    return m_pCli->Query(m_sSql, &oRes);
+    return m_pCli->Query(sSql, &oRes);
 }
 
 std::string& MySqlHelper::GenerateSql(std::string& sSql)
