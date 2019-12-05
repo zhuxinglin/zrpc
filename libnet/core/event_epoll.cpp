@@ -94,3 +94,18 @@ int CEventEpoll::Wait(epoll_event *pEv, int iEvSize, uint32_t dwTimeout)
     }
     return iRet;
 }
+
+void CEventEpoll::Close(int iFd)
+{
+    if (m_iFd != -1)
+    {
+        CEventFd oEvent;
+        iFd = oEvent.Create();
+        SetCtl(iFd, 0, 1, nullptr);
+        usleep(0);
+        usleep(0);
+        if (m_iFd != -1)
+            close(m_iFd);
+        m_iFd = -1;
+    }
+}

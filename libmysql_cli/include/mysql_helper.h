@@ -34,6 +34,8 @@ public:
     MySqlResult():m_pRes(nullptr), m_qwRows(0), m_pRowRes(nullptr),m_dwIndex(0),m_pMySql(nullptr), m_dwFields(0){}
     ~MySqlResult()
     {
+        if (!m_pMySql)
+            return;
         do
         {
             if (!m_pRes)
@@ -164,6 +166,9 @@ public:
 private:
     bool NextRes()
     {
+        if (!m_pMySql)
+            return true;
+
         if (m_dwIndex >= m_dwFields)
         {
             if (mysql_next_result(m_pMySql))
