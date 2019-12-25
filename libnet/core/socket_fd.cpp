@@ -24,6 +24,7 @@
 #include <netdb.h>
 #include <stdio.h>
 #include <netinet/tcp.h>
+#include <sstream>
 
 using namespace znet;
 
@@ -90,9 +91,9 @@ int CSockFd::GetFdOpt(int iLevel, int iOptName, void* pOptVal, uint32_t *iOptLen
     int iRet = getsockopt(iFd, iLevel, iOptName, pOptVal, (socklen_t *)iOptLen);
     if (iRet != 0)
     {
-        char szBuf[128];
-        snprintf(szBuf, sizeof(szBuf), "get socket opt fail!, ret:[%d] level:[%d], optname:[%d], ", iRet, iLevel, iOptName);
-        SetErr(szBuf, m_iFd);
+        std::stringstream ssErr;
+        ssErr << "get socket opt fail!, ret:[" << iRet << "] level:[" << iLevel << "], optname:[" << iOptName << ", ";
+        SetErr(ssErr.str(), m_iFd);
     }
     return iRet;
 }
@@ -105,9 +106,9 @@ int CSockFd::SetFdOpt(int iLevel, int iOptName, void* pOptVal, uint32_t iOptLen,
     int iRet = setsockopt(iFd, iLevel, iOptName, pOptVal, iOptLen);
     if (iRet != 0)
     {
-        char szBuf[128];
-        snprintf(szBuf, sizeof(szBuf), "set socket opt fail!, ret:[%d] level:[%d], optname:[%d], ", iRet, iLevel, iOptName);
-        SetErr(szBuf, m_iFd);
+        std::stringstream ssErr;
+        ssErr << "set socket opt fail!, ret:[" << iRet << "] level:[" << iLevel << "], optname:[" << iOptName << ", ";
+        SetErr(ssErr.str(), m_iFd);
     }
     return iRet;
 }
@@ -219,15 +220,15 @@ int CSockFd::Wait(int iEvent, uint32_t dwTimeoutMs, ITaskBase *pTask)
 
 void CSockFd::SetFdErr(const char *pszDesc, sockaddr_in *addr4, sockaddr_in6 *addr6, const char *pszAddr, uint16_t wPort, uint32_t dwTimeout)
 {
-    char szBuf[256];
     char szIp[40];
     if (4 == m_dwVer)
         inet_ntop(AF_INET, &addr4->sin_addr, szIp, sizeof(szIp));
     else
         inet_ntop(AF_INET6, &addr6->sin6_addr, szIp, sizeof(szIp));
 
-    snprintf(szBuf, sizeof(szBuf), "%s address:[%s], ip:[%s], prot:[%d], ver:[%u], timeout:[%u]", pszDesc, pszAddr, szIp, wPort, m_dwVer, dwTimeout);
-    SetErr(szBuf, m_iFd);
+    std::stringstream ssErr;
+    ssErr << pszDesc << " address:[" << pszAddr << "], ip:[" << szIp << ":" << wPort << "], ver:[" << m_dwVer << "], timeout:[" << dwTimeout << "]";
+    SetErr(ssErr.str(), m_iFd);
 }
 
 //============================================================================
@@ -873,17 +874,17 @@ int CUnixCli::Create(const char *pszAddr, uint32_t dwTimeout, ITaskBase *pTask)
 
         if (::connect(m_iFd, (sockaddr *)&oUnaddr, iLen) < 0)
         {
-            char szBuf[128];
-            snprintf(szBuf, sizeof(szBuf), "connect unix fail! addr:[%s], ", pszAddr);
-            SetErr(szBuf, m_iFd);
+            std::string sErr = "connect unix fail! addr:[";
+            sErr.append(pszAddr).append("], ");
+            SetErr(sErr, m_iFd);
             break;
         }
 
         if (m_bAsync && WaitConnect(dwTimeout, pTask) < 0)
         {
-            char szBuf[128];
-            snprintf(szBuf, sizeof(szBuf), "connect unix timeout! addr:[%s], timeout:[%u], ", pszAddr, dwTimeout);
-            SetErr(szBuf, m_iFd);
+            std::string sErr = "connect unix timeout! addr:[";
+            sErr.append(pszAddr).append("], timeout:[").append(std::to_string(dwTimeout)).append("], ");
+            SetErr(sErr, m_iFd);
             break;
         }
 
@@ -1124,17 +1125,17 @@ int CTcpsSvc::Create(const char *pszAddr, uint16_t wPort, uint32_t dwListen, con
     int iRet = SSL_CTX_use_certificate_file(m_pCtx, pszCert, SSL_FILETYPE_PEM);
     if (iRet != 1)
     {
-        char szBuf[128];
-        snprintf(szBuf, sizeof(szBuf), "SSL_CTX_use_certificate_file '%s' failed", pszCert);
-        SetErr(szBuf);
+        std::string sErr = "SSL_CTX_use_certificate_file '";
+        sErr.append(pszCert).append("' failed");
+        SetErr(sErr);
         return -1;
     }
     iRet = SSL_CTX_use_PrivateKey_file(m_pCtx, pszKey, SSL_FILETYPE_PEM);
     if (iRet != 1)
     {
-        char szBuf[128];
-        snprintf(szBuf, sizeof(szBuf), "SSL_CTX_use_PrivateKey_file '%s' failed", pszKey);
-        SetErr(szBuf);
+        std::string sErr = "SSL_CTX_use_PrivateKey_file '";
+        sErr.append(pszKey).append("' failed");
+        SetErr(sErr);
         return -1;
     }
 
