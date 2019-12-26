@@ -37,7 +37,7 @@ public:
     static void Release();
     int Init(uint32_t dwWorkThread = 0, uint32_t dwSp = 0);
     int Register(NEWOBJ(ITaskBase, pCb), void *pData, uint16_t wProtocol, uint16_t wPort, const char *pszIP,
-                 uint16_t wVer, uint32_t dwTimeoutMs, const char* pszServerName, const char *pszSslCert = 0, const char *pszSslKey = 0);
+                 uint16_t wVer, uint32_t dwTimeoutMs, const char* pszServerName, const char *pszSslCert = 0, const char *pszSslKey = 0, const char* pszPass = 0);
     int Register(NEWOBJ(ITaskBase, pCb), void* pData, uint16_t wProtocol, uint32_t dwTimeoutMs);
     int Register(ITaskBase *pBase, void* pData, uint16_t wProtocol, int iFd, uint32_t dwTimeoutMs);
     int Register(NEWOBJ(ITaskBase, pCb), void* pData, uint16_t wProtocol, int iFd, uint32_t dwTimeoutMs);
@@ -56,7 +56,7 @@ public:
     bool IsExitCo(uint64_t qwCid = 0) const;
 
 private:
-    CFileFd* GetFd(uint16_t wProtocol, uint16_t wPort, const char *pszIP, uint16_t wVer, const char *pszSslCert, const char *pszSslKey);
+    CFileFd* GetFd(uint16_t wProtocol, uint16_t wPort, const char *pszIP, uint16_t wVer, const char* pszPass, const char *pszSslCert, const char *pszSslKey);
     int SetUdpTask(NEWOBJ(ITaskBase, pCb), CFileFd* pFd, void *pData, uint16_t wProtocol, const char *pszIP);
     int Go();
     ITaskBase *NewTask(NEWOBJ(ITaskBase, pCb), void *pData, uint16_t wProtocol, uint32_t dwTimeoutUs = -1);

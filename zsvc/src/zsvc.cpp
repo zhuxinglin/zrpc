@@ -270,6 +270,7 @@ int CJSvc::Register(CConfig::config_info *pCfg)
 
     const char *pszSslCert = 0;
     const char *pszSslKey = 0;
+    const char *pszPass = 0;
     if (wProtocol == ITaskBase::PROTOCOL_TCPS)
     {
         it = pCfg->find("ssl_cert");
@@ -299,13 +300,17 @@ int CJSvc::Register(CConfig::config_info *pCfg)
             return -1;
         }
         pszSslKey = it->second.c_str();
+
+        it = pCfg->find("ssl_cert_password");
+        if (it != pCfg->end() && !it->second.empty())
+            pszPass = it->second.c_str();
     }
 
     if (s)
         LOGI << proto << " server name [" << pszServerName << "] server address [" << s << "] server port [" << wPort << "] timeout [" << dwTimeout << "]";
     else
         LOGI << proto << " server name [" << pszServerName << "] server address [] server port [" << wPort << "] timeout [" << dwTimeout << "]";
-    if (CNet::GetObj()->Register(pNewObj, &m_oPlugin, wProtocol, wPort, s, wVer, dwTimeout, pszServerName, pszSslCert, pszSslKey) < 0)
+    if (CNet::GetObj()->Register(pNewObj, &m_oPlugin, wProtocol, wPort, s, wVer, dwTimeout, pszServerName, pszSslCert, pszSslKey, pszPass) < 0)
     {
         LOGE << CNet::GetObj()->GetErr();
         return -1;

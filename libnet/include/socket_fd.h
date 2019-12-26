@@ -258,7 +258,7 @@ public:
     ~CTcpsSvc();
 
 public:
-    int Create(const char* pszAddr, uint16_t wPort, uint32_t dwListen, const char* pszCert, const char* pszKey, uint32_t dwVer = 4);
+    int Create(const char* pszAddr, uint16_t wPort, uint32_t dwListen, const char *pszPass, const char* pszCert, const char* pszKey, uint32_t dwVer = 4);
 };
 
 //============================================================================

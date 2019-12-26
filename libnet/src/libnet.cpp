@@ -175,7 +175,7 @@ ITaskBase *CNet::GetCurTask()
 }
 
 int CNet::Register(NEWOBJ(ITaskBase, pCb), void *pData, uint16_t wProtocol, uint16_t wPort, const char *pszIP,
-                   uint16_t wVer, uint32_t dwTimeoutMs, const char *pszServerName, const char *pszSslCert, const char *pszSslKey)
+                   uint16_t wVer, uint32_t dwTimeoutMs, const char *pszServerName, const char *pszSslCert, const char *pszSslKey, const char* pszPass)
 {
     CContext* pCx = g_pContext;
     if (!pCb)
@@ -191,7 +191,7 @@ int CNet::Register(NEWOBJ(ITaskBase, pCb), void *pData, uint16_t wProtocol, uint
     }
 
     int iRet;
-    CFileFd *pFd = GetFd(wProtocol, wPort, pszIP, wVer, pszSslCert, pszSslKey);
+    CFileFd *pFd = GetFd(wProtocol, wPort, pszIP, wVer, pszPass, pszSslCert, pszSslKey);
     if (!pFd)
         return -1;
 
@@ -402,7 +402,7 @@ int CNet::AddFdTask(ITaskBase *pTask, int iFd)
     return 0;
 }
 
-CFileFd *CNet::GetFd(uint16_t wProtocol, uint16_t wPort, const char *pszIP, uint16_t wVer, const char *pszSslCert, const char *pszSslKey)
+CFileFd *CNet::GetFd(uint16_t wProtocol, uint16_t wPort, const char *pszIP, uint16_t wVer, const char* pszPass, const char *pszSslCert, const char *pszSslKey)
 {
     CFileFd* pFd = 0;
     switch (wProtocol)
@@ -435,7 +435,7 @@ CFileFd *CNet::GetFd(uint16_t wProtocol, uint16_t wPort, const char *pszIP, uint
             break;
         }
 
-        int iRet = pTcps->Create(pszIP, wPort, 10240, pszSslCert, pszSslKey, wVer);
+        int iRet = pTcps->Create(pszIP, wPort, 10240, pszPass, pszSslCert, pszSslKey, wVer);
         if (iRet < 0)
         {
             g_pContext->m_sErr = pTcps->GetErr();

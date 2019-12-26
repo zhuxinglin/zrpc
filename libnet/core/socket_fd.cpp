@@ -93,7 +93,7 @@ int CSockFd::GetFdOpt(int iLevel, int iOptName, void* pOptVal, uint32_t *iOptLen
     {
         std::stringstream ssErr;
         ssErr << "get socket opt fail!, ret:[" << iRet << "] level:[" << iLevel << "], optname:[" << iOptName << ", ";
-        SetErr(ssErr.str(), m_iFd);
+        SetErr(ssErr.str().c_str(), iFd);
     }
     return iRet;
 }
@@ -108,7 +108,7 @@ int CSockFd::SetFdOpt(int iLevel, int iOptName, void* pOptVal, uint32_t iOptLen,
     {
         std::stringstream ssErr;
         ssErr << "set socket opt fail!, ret:[" << iRet << "] level:[" << iLevel << "], optname:[" << iOptName << ", ";
-        SetErr(ssErr.str(), m_iFd);
+        SetErr(ssErr.str().c_str(), iFd);
     }
     return iRet;
 }
@@ -228,7 +228,7 @@ void CSockFd::SetFdErr(const char *pszDesc, sockaddr_in *addr4, sockaddr_in6 *ad
 
     std::stringstream ssErr;
     ssErr << pszDesc << " address:[" << pszAddr << "], ip:[" << szIp << ":" << wPort << "], ver:[" << m_dwVer << "], timeout:[" << dwTimeout << "]";
-    SetErr(ssErr.str(), m_iFd);
+    SetErr(ssErr.str().c_str(), m_iFd);
 }
 
 //============================================================================
@@ -803,17 +803,17 @@ int CUnixSvc::Create(const char *pszAddr, uint32_t dwListen)
 
         if (::bind(m_iFd, (sockaddr *)&oUnAddr, iLen) < 0)
         {
-            char szBuf[128];
-            snprintf(szBuf, sizeof(szBuf), "bind unix fail! addr:[%s], ", pszAddr);
-            SetErr(szBuf, m_iFd);
+            std::string sErr = "bind unix fail! addr:[";
+            sErr.append(pszAddr).append("], ");
+            SetErr(sErr.c_str(), m_iFd);
             break;
         }
 
         if (listen(m_iFd, dwListen) < 0)
         {
-            char szBuf[128];
-            snprintf(szBuf, sizeof(szBuf), "bind unix fail! addr:[%s], listen:[%u], ", pszAddr, dwListen);
-            SetErr(szBuf, m_iFd);
+            std::string sErr = "bind unix fail! addr:[";
+            sErr.append(pszAddr).append("], listen:[").append(std::to_string(dwListen)).append("], ");
+            SetErr(sErr.c_str(), m_iFd);
             break;
         }
 
@@ -876,7 +876,7 @@ int CUnixCli::Create(const char *pszAddr, uint32_t dwTimeout, ITaskBase *pTask)
         {
             std::string sErr = "connect unix fail! addr:[";
             sErr.append(pszAddr).append("], ");
-            SetErr(sErr, m_iFd);
+            SetErr(sErr.c_str(), m_iFd);
             break;
         }
 
@@ -884,7 +884,7 @@ int CUnixCli::Create(const char *pszAddr, uint32_t dwTimeout, ITaskBase *pTask)
         {
             std::string sErr = "connect unix timeout! addr:[";
             sErr.append(pszAddr).append("], timeout:[").append(std::to_string(dwTimeout)).append("], ");
-            SetErr(sErr, m_iFd);
+            SetErr(sErr.c_str(), m_iFd);
             break;
         }
 
@@ -1099,7 +1099,7 @@ CTcpsSvc::~CTcpsSvc()
     m_pCtx = NULL;
 }
 
-int CTcpsSvc::Create(const char *pszAddr, uint16_t wPort, uint32_t dwListen, const char *pszCert, const char *pszKey, uint32_t dwVer)
+int CTcpsSvc::Create(const char *pszAddr, uint16_t wPort, uint32_t dwListen, const char *pszPass, const char *pszCert, const char *pszKey, uint32_t dwVer)
 {
     if (!pszCert || !pszKey)
     {
@@ -1121,6 +1121,9 @@ int CTcpsSvc::Create(const char *pszAddr, uint16_t wPort, uint32_t dwListen, con
     }
     SSL_CTX_set_options(m_pCtx, SSL_OP_ALL);
     SSL_CTX_set_quiet_shutdown(m_pCtx, 1);
+
+    if (pszPass)
+        SSL_CTX_set_default_passwd_cb_userdata(m_pCtx, (void *)pszPass);
 
     int iRet = SSL_CTX_use_certificate_file(m_pCtx, pszCert, SSL_FILETYPE_PEM);
     if (iRet != 1)
@@ -1201,14 +1204,14 @@ int CTcpsCli::Create(const char *pszAddr, uint16_t wPort, const char *pszCacert,
     // 加载本地证书
     if (pszCacert)
     {
+        // 设置为验证对方
+        SSL_CTX_set_verify(m_pCtx, SSL_VERIFY_PEER, NULL);
+        // 验证对方证书
         if (SSL_CTX_load_verify_locations(m_pCtx, pszCacert, NULL) != 1)
         {
             SetErr("SSL_CTX_load_verify_locations failed!");
             return -1;
         }
-
-        // 设置为验证对方
-        SSL_CTX_set_verify(m_pCtx, SSL_VERIFY_PEER, NULL);
         SSL_CTX_set_verify_depth(m_pCtx, 1);
     }
 
