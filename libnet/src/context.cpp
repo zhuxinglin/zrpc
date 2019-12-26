@@ -28,25 +28,6 @@ CContext::~CContext()
     CFileFd &oFd(m_oEvent);
     oFd.Close();
 
-    if (m_pSchedule)
-    {
-        CThread *pSch = dynamic_cast<CThread *>(m_pSchedule);
-        pSch->Exit();
-    }
-
-    if (m_pGo)
-    {
-        for (uint32_t i = 0; i < m_dwWorkThreadCount; ++i)
-            m_pGo[i].Exit();
-
-        for (uint32_t i = 0; i < m_dwWorkThreadCount; ++i)
-            m_pGo[i].Exit([](void *p) {
-                CContext* th = reinterpret_cast<CContext*>(p);
-                for (uint32_t i = 0; i < th->m_dwWorkThreadCount; ++i)
-                    CGoPost::Post();
-            }, this);
-    }
-
     if (m_pCo)
         delete m_pCo;
     m_pCo = nullptr;

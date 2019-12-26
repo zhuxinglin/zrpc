@@ -288,7 +288,7 @@ void CTaskQueue::SwapTimerToExec(uint64_t qwCurTime, int iIndex, int& iSu)
             break;
 
         uint64_t qwEndTime = qwCurTime - oKey.qwTimeNs;
-        qwEndTime /= 1e3;
+        qwEndTime /= 1e3L;
 
         if ((uint32_t)qwEndTime < oKey.dwTimeout)
             break;
@@ -298,7 +298,7 @@ void CTaskQueue::SwapTimerToExec(uint64_t qwCurTime, int iIndex, int& iSu)
         {
             if (pBase->m_wRunStatus & ITaskBase::RUN_INIT)
             {
-                if (qwEndTime > 100 * 1e3)
+                if (qwEndTime > 100 * 1e3L)
                 {
                     while (__sync_lock_test_and_set(&pBase->m_wRunStatusLock, 1));
                     pBase->m_wRunStatus = (ITaskBase::RUN_EXIT & pBase->m_wRunStatus) | ITaskBase::RUN_READY;

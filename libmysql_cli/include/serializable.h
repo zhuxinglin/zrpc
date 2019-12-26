@@ -37,6 +37,7 @@
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wold-style-cast"
 #pragma GCC diagnostic ignored "-Wconversion"
+#pragma GCC diagnostic ignored "-Wunused"
 
 namespace serialize
 {
@@ -337,10 +338,12 @@ private:
             return *this;                   \
         }
 
-        TO_OBJ_FIELD(int)
+        TO_OBJ_FIELD(int16_t)
+        TO_OBJ_FIELD(uint16_t)
+        TO_OBJ_FIELD(int32_t)
         TO_OBJ_FIELD(uint32_t)
         TO_OBJ_FIELD(std::string)
-        TO_OBJ_FIELD(long)
+        TO_OBJ_FIELD(int64_t)
         TO_OBJ_FIELD(uint64_t)
         TO_OBJ_FIELD(float)
         TO_OBJ_FIELD(double)
@@ -423,24 +426,32 @@ private:
         {*t = static_cast<TYPE>(v);}
 
 #define TO_OBJ_STRING(type)                             \
-        inline void to_type(std::string*& v, type& t)   \
+        inline void to_type(const std::string*& v, type& t)   \
         {*v = std::to_string(t);}
 
-        TO_OBJ_STRING(int)
+        TO_OBJ_STRING(int16_t)
+        TO_OBJ_STRING(uint16_t)
+        TO_OBJ_STRING(int32_t)
         TO_OBJ_STRING(uint32_t)
-        TO_OBJ_STRING(long)
+        TO_OBJ_STRING(int64_t)
         TO_OBJ_STRING(uint64_t)
         TO_OBJ_STRING(float)
         TO_OBJ_STRING(double)
 #undef TO_OBJ_STRING
 
-        inline void to_type(int*& v, std::string& t)
+        inline void to_type(int16_t*& v, std::string& t)
+        {*v = atoi(t.c_str());}
+
+        inline void to_type(uint16_t*& v, std::string& t)
+        {*v = atoi(t.c_str());}
+
+        inline void to_type(int32_t*& v, std::string& t)
         {*v = atoi(t.c_str());}
 
         inline void to_type(uint32_t*& v, std::string& t)
         {*v = strtoul(t.c_str(), nullptr, 10);}
 
-        inline void to_type(long*& v, std::string& t)
+        inline void to_type(int64_t*& v, std::string& t)
         {*v = atol(t.c_str());}
 
         inline void to_type(uint64_t*& v, std::string& t)
@@ -457,17 +468,19 @@ private:
     };
 
 private:
-    template<typename I>
+    template<typename I, typename S>
     class CBaseTypeToObj : public ISerialize
     {
     public:
-        CBaseTypeToObj(I& i):m_oIt(i){};
+        CBaseTypeToObj(I& i, S& s):m_oIt(i),m_oObj(s){};
         ~CBaseTypeToObj() = default;
     
     public:
         template<typename T>
         CBaseTypeToObj& operator|= (T& v)
         {
+            if (m_oIt == m_oObj.end())
+                return *this;
             ConversionValue<T> oV(v);
             oV << *m_oIt;
             ++ m_oIt;
@@ -477,12 +490,15 @@ private:
         template<typename T>
         CBaseTypeToObj& operator >> (T& o)
         {
+            if (m_oIt == m_oObj.end())
+                return *this;
             o.Serialize(*this);
             return *this;
         }
     
     private:
         I& m_oIt;
+        S& m_oObj;
     };
 
 private:
@@ -511,7 +527,7 @@ public:
         typename OBJECT::iterator it = m_pObj->begin();
         for (; it != m_pObj->end();)
         {
-            CBaseTypeToObj<typename OBJECT::iterator> oArray(it);
+            CBaseTypeToObj<typename OBJECT::iterator, OBJECT> oArray(it, *m_pObj);
             OBJ o;
             oArray >> o;
             v.push_back(o);
@@ -525,7 +541,7 @@ public:
         typename OBJECT::iterator it = m_pObj->begin();
         for (; it != m_pObj->end();)
         {
-            CBaseTypeToObj<typename OBJECT::iterator> oArray(it);
+            CBaseTypeToObj<typename OBJECT::iterator, OBJECT> oArray(it, *m_pObj);
             OBJ o;
             oArray >> o;
             v.push_back(o);
@@ -537,7 +553,7 @@ public:
     CStlToObj& operator >> (OBJ& o)
     {
         typename OBJECT::iterator it = m_pObj->begin();
-        CBaseTypeToObj<typename OBJECT::iterator> oArray(it);
+        CBaseTypeToObj<typename OBJECT::iterator, OBJECT> oArray(it, *m_pObj);
         oArray >> o;
         return *this;
     }
@@ -836,6 +852,45 @@ private:
     rapidjson::Value* m_pValue;
 };
 
+static std::string Base64Encode(const char* buf, int src_len)
+{
+    uint8_t * base64 = (uint8_t *)"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/=";
+    int i, j;
+    std::string sBuf;
+    sBuf.resize(src_len / 3 * 4 + 2);
+    uint8_t *dst = reinterpret_cast<uint8_t*>(const_cast<char*>(sBuf.c_str()));
+    uint8_t* p = dst;
+    for(i = 0, j = 0; i <= src_len - 3; i += 3, j += 4)
+    {
+        dst[j] = (buf[i] & 0xFC) >> 2;
+        dst[j + 1] = ((buf[i] & 0x03) << 4) + ((buf[i + 1] & 0xF0) >> 4);
+        dst[j + 2] = ((buf[i + 1] & 0x0F) << 2) + ((buf[i + 2] & 0xC0) >> 6);
+        dst[j + 3] = buf[i + 2] & 0x3F;
+    }
+
+    if(src_len % 3 == 1)
+    {
+        dst[j] = (buf[i] & 0xFC) >> 2;
+        dst[j + 1] = ((buf[i] & 0x03) << 4);
+        dst[j + 2] = 64;
+        dst[j + 3] = 64;
+        j += 4;
+    }
+    else if(src_len % 3 == 2)
+    {
+        dst[j] = (buf[i] & 0xFC) >> 2;
+        dst[j + 1] = ((buf[i] & 0x03) << 4) + ((buf[i + 1] & 0xF0) >> 4);
+        dst[j + 2] = ((buf[i + 1] & 0x0F) << 2);
+        dst[j + 3] = 64;
+        j += 4;
+    }
+    for(i = 0; i < j; i++) // map 6 bit value to base64 ASCII character 
+        *p++ = base64[dst[i]];
+    *p = 0;
+    sBuf.resize(p - dst);
+    return std::move(sBuf);
+}
+
 //=====================================================================================
 // PB 转 Json
 //=====================================================================================
@@ -959,11 +1014,18 @@ private:
 #undef CASE_FIELD_TYPE_PB_TO_JSON
 
         case ::google::protobuf::FieldDescriptor::CPPTYPE_STRING:
-        //case ::google::protobuf::FieldDescriptor::CPPTYPE_BYTES:
         {
             std::string s;
             if (field->is_repeated())
-                s = reflection->GetRepeatedString(oMsg, field, i);
+            {
+                s = reflection->GetRepeatedStringReference(oMsg, field, i, &s);
+                if (::google::protobuf::FieldDescriptor::TYPE_BYTES == field->type())
+                {
+                    s = Base64Encode(s.c_str(), s.length());
+                    m_ssStream << "\"" << s << "\"";
+                    break;
+                }
+            }
             else
                 s = reflection->GetString(oMsg, field);
             StrConv(m_ssStream, s);
@@ -1011,6 +1073,50 @@ private:
     bool m_bIsEnumValue;
 };
 
+static std::string Base64Decode(const char* buf, int src_len)
+{
+        //根据base64表，以字符找到对应的十进制数据  
+    int table[]=
+    {
+        0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0, 0,
+        0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0, 0,
+        0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0, 0,
+        0,  0,  0,  0,  0,  0,  0,  62, 0,  0,  0, 63,
+        52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 0,  0,
+        0,  0,  0,  0,  0,  0,  1,  2,  3,  4,  5,  6,
+        7,  8,  9,  10, 11, 12, 13, 14, 15, 16, 17, 18,
+        19, 20, 21, 22, 23, 24, 25, 0,  0,  0,  0,  0,
+        0,  26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36,
+        37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48,
+        49, 50, 51
+    };
+
+    int len = src_len / 4 * 3;
+    const char* e = buf + src_len - 1;
+    while (*e == '=' && *e != 0)
+        -- len;
+
+    const uint8_t* dat = reinterpret_cast<const uint8_t*>(buf);
+
+    std::string sBuf;
+    sBuf.resize(len);
+    uint8_t *res = reinterpret_cast<uint8_t*>(const_cast<char*>(sBuf.c_str()));
+
+    //以4个字符为一位进行解码
+    for(int i = 0, j = 0; i < src_len - 2; j += 3, i += 4)
+    {
+        //取出第一个字符对应base64表的十进制数的前6位与第二个字符对应base64表的十进制数的后2位进行组合
+        res[j] = ((uint8_t)table[dat[i]]) << 2 | (((uint8_t)table[dat[i + 1]]) >> 4);
+        //取出第二个字符对应base64表的十进制数的后4位与第三个字符对应bas464表的十进制数的后4位进行组合
+        res[j + 1] = (((uint8_t)table[dat[i + 1]]) << 4) | (((uint8_t)table[dat[i + 2]]) >> 2);
+        //取出第三个字符对应base64表的十进制数的后2位与第4个字符进行组合
+        res[j + 2] = (((uint8_t)table[dat[i + 2]]) <<6 ) | ((uint8_t)table[dat[i + 3]]);
+    }
+
+    return sBuf;
+}
+
+// Json to Pb
 class CJsonToPb
 {
 public:
@@ -1165,8 +1271,40 @@ private:
         CASE_FIELD_JSON_TO_PB_TYPE(UINT32, UInt32, Uint)
         CASE_FIELD_JSON_TO_PB_TYPE(INT64, Int64, Int64)
         CASE_FIELD_JSON_TO_PB_TYPE(UINT64, UInt64, Uint64)
-        CASE_FIELD_JSON_TO_PB_TYPE(STRING, String, String)
 #undef CASE_FIELD_JSON_TO_PB_TYPE
+
+        case ::google::protobuf::FieldDescriptor::TYPE_STRING:
+        {
+            if (field->is_repeated())
+            {
+                uint32_t count = pValue->Size();
+                for (uint32_t i = 0; i < count; ++ i)
+                {
+                    rapidjson::Value& oVal = (*pValue)[i];
+                    if (!oVal.IsString())
+                        return true;
+                    if (field->type() == google::protobuf::FieldDescriptor::TYPE_BYTES)
+                    {
+                        std::string s = Base64Decode(oVal.GetString(), oVal.GetStringLength());
+                        reflection->AddString(pMsg, field, s);
+                    }
+                    else
+                        reflection->AddString(pMsg, field, oVal.GetString());
+                }
+            }
+            else
+            {
+                if (!pValue->IsString())
+                    return true;
+                if (field->type() == google::protobuf::FieldDescriptor::TYPE_BYTES)
+                {
+                    std::string s = Base64Decode(pValue->GetString(), pValue->GetStringLength());
+                    reflection->SetString(pMsg, field, s);
+                }
+                else
+                    reflection->SetString(pMsg, field, pValue->GetString());
+            }
+        }
 
         case ::google::protobuf::FieldDescriptor::FieldDescriptor::CPPTYPE_FLOAT:
         {

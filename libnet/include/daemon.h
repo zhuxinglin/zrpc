@@ -30,8 +30,9 @@ public:
 	// @Param argc 参数数量
 	// @Param args 参数列表
 	// @Param 收到退出信号回调函数
+	// @Param iMonitor 0后台执行，并且存在守护进程，1后台执行，没有守护进程，2前台执行
 	// 函数托离终端
-	static int DoDaemon(void (*)(int, const char**), int argc, const char** args, void (*)(int) = 0, bool bIsMonitor = true);
+	static int DoDaemon(void (*)(int, const char**), int argc, const char** args, void (*)(int) = 0, int iMonitor = 0);
 	// @Param pszProcCmd args[0]
 	// 通知退出进程
 	static void Quit(const char* pszProcCmd);

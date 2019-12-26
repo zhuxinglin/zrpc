@@ -66,6 +66,10 @@ void PorcErr(int iErr)
         fprintf(stderr, "child restert %d\n", getpid());
         g_pSvc->Stop();
     }
+    else if (iErr == SIGINT)
+    {
+        g_pSvc->Stop();
+    }
     else
     {
         fprintf(stderr, "process runing\n");
@@ -110,8 +114,8 @@ int main(int argc, char const *argv[])
             printf("-m not monitor\n");
             printf("-c terminal operation\n");
             printf("-t check config file\n");
-            printf("-HUP restart child process\n");
-            printf("-QUIT quit process\n");
+            printf("-HUP restart child process(no guardian process, stop process)\n");
+            printf("-QUIT quit process(only guardian process)\n");
             printf("-v version\n");
             printf("-h help\n");
             return 0;
@@ -123,12 +127,7 @@ int main(int argc, char const *argv[])
         }
     }
 
-    if (iMonitor == 1)
-        CDaemon::DoDaemon(DoMain, argc, argv, 0, false);
-    else if (iMonitor == 2)
-        DoMain(argc, argv);
-    else
-        CDaemon::DoDaemon(DoMain, argc, argv, PorcErr);
+    CDaemon::DoDaemon(DoMain, argc, argv, PorcErr, iMonitor);
     return 0;
 }
 

@@ -52,11 +52,11 @@ CNet::CNet()
 CNet::~CNet()
 {
     m_bIsMainExit = false;
-    if (g_pContext)
-        g_pContext->m_oNetPool.GetUse(this, &CNet::FreeListenFd);
-
     if (!g_pContext)
         return;
+
+    if (g_pContext)
+        g_pContext->m_oNetPool.GetUse(this, &CNet::FreeListenFd);
 
     delete g_pContext;
     g_pContext = nullptr;
@@ -696,6 +696,26 @@ void CNet::Stop()
 
     CFileFd &oFd(g_pContext->m_oEvent);
     oFd.Close();
+
+    if (g_pContext->m_pSchedule)
+    {
+        g_pContext->m_pSchedule->Exit([](void*){
+            g_pContext->m_pSchedule->Close();
+        });
+    }
+
+    if (g_pContext->m_pGo)
+    {
+        for (uint32_t i = 0; i < g_pContext->m_dwWorkThreadCount; ++i)
+            g_pContext->m_pGo[i].Exit();
+
+        for (uint32_t i = 0; i < g_pContext->m_dwWorkThreadCount; ++i)
+            g_pContext->m_pGo[i].Exit([](void *p) {
+                CContext* th = reinterpret_cast<CContext*>(p);
+                for (uint32_t i = 0; i < th->m_dwWorkThreadCount; ++i)
+                    CGoPost::Post();
+            }, g_pContext);
+    }
 }
 
 int CNet::FreeListenFd(void *pEvent, void* pData)

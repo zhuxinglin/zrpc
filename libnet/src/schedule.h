@@ -33,6 +33,7 @@ public:
 public:
     std::string GetErr();
     virtual int PushMsg(uint32_t dwId, uint32_t dwMsgType, int iMsgLen, void *pMsg);
+    void Close();
 
 private:
     virtual int Initialize(void* pUserData);

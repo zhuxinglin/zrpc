@@ -55,6 +55,12 @@ std::string CSchedule::GetErr()
     return m_oEvent.GetErr();
 }
 
+void CSchedule::Close()
+{
+    CFileFd &oFd(m_oEvent);
+    oFd.Close();
+}
+
 void CSchedule::Run(uint32_t dwId)
 {
     struct epoll_event ev[256];
@@ -76,10 +82,10 @@ void CSchedule::Run(uint32_t dwId)
 
         uint64_t qwCurTime = CTimerFd::GetNs();
         uint32_t dwTimeout = qwCurTime - qwLastTime;
-        if (dwTimeout < 1e6)
+        if (dwTimeout < 1e6L)
             continue;
-		
-		qwLastTime = qwCurTime;
+
+        qwLastTime = qwCurTime;
 
         iRet = pTaskQueue->SwapTimerToExec(qwCurTime);
         if (iRet == 0)
