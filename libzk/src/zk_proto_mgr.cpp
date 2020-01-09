@@ -33,6 +33,7 @@ using namespace zkproto;
 ZkProtoMgr::ZkProtoMgr() : m_iCurrHostIndex(0)
 {
     m_iXid = time(0);
+    m_wExitMode = MANUAL_EXIT_MODE;
 }
 
 ZkProtoMgr::~ZkProtoMgr()
@@ -105,7 +106,11 @@ void ZkProtoMgr::Close()
     // 等待退出
     m_oChan >> oRes;
     if (m_pEvent)
+    {
         m_pEvent->Exit();
+        m_pEvent->CloseCo();
+    }
+    CloseCo();
 }
 
 int ZkProtoMgr::setConnectAddr(const char *pszHost)

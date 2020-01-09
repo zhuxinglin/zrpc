@@ -51,7 +51,8 @@ ITaskBase::ITaskBase() : m_oPtr(this),
                          m_wProtocol(0),
                          m_wIsRuning(true),
                          m_wRunStatus(RUN_INIT),
-                         m_wRunStatusLock(0)
+                         m_wRunStatusLock(0),
+                         m_wExitMode(AUTO_EXIT_MODE)
 {
 }
 
@@ -165,4 +166,13 @@ uint32_t ITaskBase::GetSubCId(uint64_t qwCid)
 bool ITaskBase::IsExitCo() const
 {
     return m_wRunStatus & RUN_EXIT;
+}
+
+void ITaskBase::CloseCo()
+{
+    if (m_wExitMode == MANUAL_EXIT_MODE)
+    {
+        std::shared_ptr<ITaskBase> optr(m_oPtr);
+        m_oPtr = nullptr;
+    }
 }

@@ -42,7 +42,7 @@ int DaoConfig::Init(const char* pszDbAddr)
         m_oMysql[i].pSqlCli = new mysqlcli::MysqlCli;
         if (m_oMysql[i].pSqlCli->Connect(pszDbAddr) < 0)
         {
-            LOGE_BIZ() << m_oMysql[i].pSqlCli->GetErr();
+            LOGE_BIZ(INIT) << m_oMysql[i].pSqlCli->GetErr();
             return -1;
         }
     }

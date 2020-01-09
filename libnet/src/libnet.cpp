@@ -548,6 +548,7 @@ ITaskBase *CNet::NewTask(ITaskBase *pBase, void *pData, uint16_t wProtocol, uint
     if (pBase->m_wRunStatus != ITaskBase::RUN_NOW)
         pBase->m_wRunStatus = ITaskBase::RUN_INIT;
 
+    pBase->m_wExitMode = ITaskBase::AUTO_EXIT_MODE;
     pBase->m_dwTimeout = dwTimeoutUs;
     pBase->m_qwConnectTime = CTimerFd::GetNs();
     pBase->m_pData = pData;
@@ -794,7 +795,7 @@ bool CNet::IsExitCo(uint64_t qwCid) const
         return true;
     if (qwCid == 0)
     {
-        if (!pCx->m_pCo || !pCx->m_pCo->GetTaskBase())
+        if (!pCx->m_pCo)
             return true;
         return pCx->m_pCo->GetTaskBase()->IsExitCo();
     }

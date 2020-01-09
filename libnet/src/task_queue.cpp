@@ -280,7 +280,6 @@ void CTaskQueue::SwapTimerToExec(uint64_t qwCurTime, int iIndex, int& iSu)
     for (; it != pRb->oTaskRb.end();)
     {
         const CTaskKey& oKey = it->first;
-
         CTaskNode *pTaskNode = it->second;
         ITaskBase *pBase = pTaskNode->pTask;
 

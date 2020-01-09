@@ -44,6 +44,7 @@ struct ITaskBase
     int Yield(uint32_t dwTimeoutMs = 0xFFFFFFFF, uint8_t wRunStatus = RUN_WAIT);
     static int Sleep(uint32_t dwTimeoutMs = 0xFFFFFFFF);
     bool IsExitCo() const;
+    void CloseCo();
 
     enum _YieldOpt
     {
@@ -116,6 +117,13 @@ struct ITaskBase
     uint8_t m_wIsRuning;
     uint8_t m_wRunStatus;
     uint8_t m_wRunStatusLock;
+    // ===============public ===========
+    enum
+    {
+        AUTO_EXIT_MODE  = 0,    // 自动退出，退出后清楚协程对象
+        MANUAL_EXIT_MODE = 1,   // 手动模式，退出由应用控制
+    };
+    uint8_t m_wExitMode;        // 默认自动
 };
 
 using SharedTask = std::shared_ptr<ITaskBase>;

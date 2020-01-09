@@ -107,9 +107,15 @@ void CGo::Run(uint32_t dwId)
                 continue;
             }
 
+            if (pTask->m_wExitMode == ITaskBase::AUTO_EXIT_MODE)
             {
                 std::shared_ptr<ITaskBase> optr(pTask->m_oPtr);
                 pTask->m_oPtr = nullptr;
+            }
+            else
+            {
+                pTaskQueue->DelWaitTask(pTaskNode);
+                pTask->m_pTaskQueue = nullptr;
             }
         }
 

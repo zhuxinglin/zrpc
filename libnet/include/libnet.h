@@ -37,7 +37,8 @@ public:
     static void Release();
     int Init(uint32_t dwWorkThread = 0, uint32_t dwSp = 0);
     int Register(NEWOBJ(ITaskBase, pCb), void *pData, uint16_t wProtocol, uint16_t wPort, const char *pszIP,
-                 uint16_t wVer, uint32_t dwTimeoutMs, const char* pszServerName, const char *pszSslCert = 0, const char *pszSslKey = 0, const char* pszPass = 0);
+                 uint16_t wVer, uint32_t dwTimeoutMs, const char* pszServerName,
+                 const char *pszSslCert = 0, const char *pszSslKey = 0, const char* pszPass = 0);
     int Register(NEWOBJ(ITaskBase, pCb), void* pData, uint16_t wProtocol, uint32_t dwTimeoutMs);
     int Register(ITaskBase *pBase, void* pData, uint16_t wProtocol, int iFd, uint32_t dwTimeoutMs);
     int Register(NEWOBJ(ITaskBase, pCb), void* pData, uint16_t wProtocol, int iFd, uint32_t dwTimeoutMs);
@@ -51,7 +52,7 @@ public:
     uint64_t GetCurCid() const;
     ITaskBase* GetCurTask();
     // 本函数不会清理保存栈中的堆内存，这样会发生内存泄漏，设置退
-	// 出时会执行一次Co
+    // 出时会执行一次Co
     void ExitCo(uint64_t qwCid = 0);
     bool IsExitCo(uint64_t qwCid = 0) const;
 
