@@ -548,7 +548,6 @@ ITaskBase *CNet::NewTask(ITaskBase *pBase, void *pData, uint16_t wProtocol, uint
     if (pBase->m_wRunStatus != ITaskBase::RUN_NOW)
         pBase->m_wRunStatus = ITaskBase::RUN_INIT;
 
-    pBase->m_wExitMode = ITaskBase::AUTO_EXIT_MODE;
     pBase->m_dwTimeout = dwTimeoutUs;
     pBase->m_qwConnectTime = CTimerFd::GetNs();
     pBase->m_pData = pData;
