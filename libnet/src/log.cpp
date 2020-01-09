@@ -44,7 +44,7 @@ CLog::~CLog()
 {
 	m_bExit = false;
 	m_oSem.Post();
-	Exit();
+	Exit([](void* p){});
 
 	if (m_pFile)
 	{
