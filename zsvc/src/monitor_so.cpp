@@ -164,7 +164,7 @@ void CMonitorSo::MonitorLoadSo()
         pSoUninstall->SetPluginObj(pSoPlugin);
         CNet::GetObj()->Register(pSoUninstall, pSoPlugin, ITaskBase::PROTOCOL_TIMER, -1, g_dwSoUninstallInterval * 1e3);
     }
-    delete ie;
+    delete []ie;
 }
 
 void CMonitorSo::Stop(CSoPlugin *pPlugin)

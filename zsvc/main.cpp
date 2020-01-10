@@ -33,18 +33,28 @@ static std::string GetConfig(const char* pszProcName)
     return sConf;
 }
 
-void DoMain(int argc, const char** argv)
+static int Init(const char* argv)
 {
-    std::string sConfName = GetConfig(argv[0]);
+    std::string sConfName = GetConfig(argv);
     CConfig oConf;
     if (oConf.Parse(sConfName.c_str()) < 0)
-        return ;
+        return -1;
 
     if (g_pSvc)
-        return ;
+        return -1;
 
     g_pSvc = new (std::nothrow)CJSvc;
+    if (!g_pSvc)
+        return -1;
+
     if (g_pSvc->Init(&oConf) < 0)
+        return -1;
+    return 0;
+}
+
+void DoMain(int argc, const char** argv)
+{
+    if (Init(argv[0]) < 0)
         return ;
 
     g_pSvc->Start();

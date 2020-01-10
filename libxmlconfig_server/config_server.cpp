@@ -82,6 +82,7 @@ int ConfigServer::Process(znet::SharedTask& oCo, CControllerBase* pController, u
 void ConfigServer::Release()
 {
     LOGI_BIZ(CLOSE) << "libxmlconfig_server exit .....";
+	delete this;
 }
 
 int ConfigServer::getConnectConfig(std::string& sMysqlConfig)

@@ -91,6 +91,7 @@ void ConfigServer::Release()
     LOGI_BIZ(CLOSE) << "libshmconfig_server exit .....";
     if(m_pZkApi)
         m_pZkApi->Close();
+    delete this;
 }
 
 int ConfigServer::getConnectConfig(std::string& sZkConfig, std::string& sMysqlConfig)

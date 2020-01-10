@@ -38,7 +38,11 @@ CSoPlugin::~CSoPlugin()
         Del(m_mapRoute, false);
         delete m_mapRoute;
     }
-    m_mapRoute = 0;
+    m_mapRoute = nullptr;
+
+    if (m_pProc)
+        delete m_pProc;
+    m_pProc = nullptr;
 }
 
 int CSoPlugin::LoadSo(const char *pszPluginPah)
@@ -134,7 +138,7 @@ int CSoPlugin::InnerSo(znet::SharedTask& oCo, CControllerBase* pController, uint
 int CSoPlugin::LoadCallSo(const char *pszSoName)
 {
     set_key* pkey;
-    std::shared_ptr<zplugin::CSharedData> pSo;
+    std::shared_ptr<zplugin::CSharedData> pSo(nullptr);
     CSoFunAddr *pAddr = GetLoadSo(pszSoName, &pkey, pSo);
     if (!pAddr)
     {
@@ -236,9 +240,7 @@ int CSoPlugin::Swap(map_so_info **pmapRoute)
 map_so_info* CSoPlugin::DelAll()
 {
     m_bIsExit = true;
-    map_so_info* pSoInfo = new map_so_info;
     map_so_info* pTemp = m_mapRoute;
-    m_mapRoute = pSoInfo;
     if (pTemp)
     {
         for (map_so_info_it it = pTemp->begin(); it != pTemp->end(); ++ it)

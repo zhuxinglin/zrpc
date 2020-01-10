@@ -47,7 +47,7 @@ void CSoUninstall::Run()
     {
         if (m_pPlugin->Del(m_pmapSo, true) < 0)
         {
-            Yield();
+            Yield(10);
             continue;
         }
         break;
