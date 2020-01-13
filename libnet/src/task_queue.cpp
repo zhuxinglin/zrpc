@@ -26,6 +26,7 @@
 #include <assert.h>
 
 using namespace znet;
+#define CO_EXIT     (ITaskBase::RUN_EXIT)
 
 CTaskQueue::CTaskQueue(uint32_t dwWorkThreadCount)
 {
@@ -229,7 +230,7 @@ CTaskNode* CTaskQueue::UpdateTask(CTaskWaitRb *pRb, uint64_t qwCid, bool bIsLock
     if (bIsLock && pNode->pTask->m_wRunStatus & ITaskBase::RUN_LOCK)
     {
         while (__sync_lock_test_and_set(&pNode->pTask->m_wRunStatusLock, 1));
-        pNode->pTask->m_wRunStatus = (pNode->pTask->m_wRunStatus & ITaskBase::RUN_EXIT) | ITaskBase::RUN_WAIT;
+        pNode->pTask->m_wRunStatus = (pNode->pTask->m_wRunStatus & CO_EXIT) | ITaskBase::RUN_WAIT;
         __sync_lock_release(&pNode->pTask->m_wRunStatusLock);
     }
 
@@ -300,7 +301,7 @@ void CTaskQueue::SwapTimerToExec(uint64_t qwCurTime, int iIndex, int& iSu)
                 if (qwEndTime > 100 * 1e3L)
                 {
                     while (__sync_lock_test_and_set(&pBase->m_wRunStatusLock, 1));
-                    pBase->m_wRunStatus = (ITaskBase::RUN_EXIT & pBase->m_wRunStatus) | ITaskBase::RUN_READY;
+                    pBase->m_wRunStatus = (CO_EXIT & pBase->m_wRunStatus) | ITaskBase::RUN_READY;
                     __sync_lock_release(&pBase->m_wRunStatusLock);
                 }
                 ++ it;
@@ -309,7 +310,7 @@ void CTaskQueue::SwapTimerToExec(uint64_t qwCurTime, int iIndex, int& iSu)
 
             pBase->m_wStatus = ITaskBase::STATUS_TIMEOUT;
             while (__sync_lock_test_and_set(&pBase->m_wRunStatusLock, 1));
-            pBase->m_wRunStatus = (ITaskBase::RUN_EXIT & pBase->m_wRunStatus) | ITaskBase::RUN_READY;
+            pBase->m_wRunStatus = (CO_EXIT & pBase->m_wRunStatus) | ITaskBase::RUN_READY;
             __sync_lock_release(&pBase->m_wRunStatusLock);
 
             it = pRb->oTaskRb.erase(it);
@@ -374,3 +375,5 @@ CTaskNode* CTaskQueue::GetTaskNode(uint64_t qwCid, CTaskWaitRb *pRb)
     pRb->oFdRb.erase(it);
     return nullptr;
 }
+
+#undef CO_EXIT

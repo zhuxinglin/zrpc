@@ -168,11 +168,13 @@ bool ITaskBase::IsExitCo() const
     return m_wRunStatus & RUN_EXIT;
 }
 
+void ITaskBase::SetManualModeExit()
+{
+    m_wExitMode = MANUAL_EXIT_MODE;
+}
+
 void ITaskBase::CloseCo()
 {
     if (m_wExitMode == MANUAL_EXIT_MODE)
-    {
-        std::shared_ptr<ITaskBase> optr(m_oPtr);
-        m_oPtr = nullptr;
-    }
+        g_pContext->m_pTaskQueue->AddExecTask((CTaskNode*)m_pTaskQueue);
 }

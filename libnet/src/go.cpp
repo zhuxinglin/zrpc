@@ -29,6 +29,7 @@
 using namespace znet;
 
 extern CContext* g_pContext;
+#define CO_EXIT     (ITaskBase::RUN_EXIT)
 
 CGo::CGo()
 {
@@ -91,9 +92,16 @@ void CGo::Run(uint32_t dwId)
                 continue;
             }
 
+            if (pTask->m_wExitMode == ITaskBase::MANUAL_EXIT_MODE && pTask->m_wExitMode & CO_EXIT)
+            {
+                std::shared_ptr<ITaskBase> optr(pTask->m_oPtr);
+                pTask->m_oPtr = nullptr;
+                continue;
+            }
+
             pTask->m_wIsRuning = false;
             pTask->m_pMainCo = &uCon;
-            pTask->m_wRunStatus = (ITaskBase::RUN_EXIT & pTask->m_wRunStatus) | ITaskBase::RUN_EXEC;
+            pTask->m_wRunStatus = (CO_EXIT & pTask->m_wRunStatus) | ITaskBase::RUN_EXEC;
             //printf("call start 2222222222222222222222222 %li  %lu    %p   %u\n", syscall(SYS_gettid), pTask->m_qwCid, pTask, pTask->m_wRunStatus);
             pCor->Swap(pTask);
             /*int iType = uCon.uc_mcontext.gregs[1];
@@ -111,11 +119,6 @@ void CGo::Run(uint32_t dwId)
             {
                 std::shared_ptr<ITaskBase> optr(pTask->m_oPtr);
                 pTask->m_oPtr = nullptr;
-            }
-            else
-            {
-                pTaskQueue->DelWaitTask(pTaskNode);
-                pTask->m_pTaskQueue = nullptr;
             }
         }
 
@@ -137,3 +140,5 @@ void CGo::ExitAllCoroutine()
         }
     }
 }
+
+#undef CO_EXIT

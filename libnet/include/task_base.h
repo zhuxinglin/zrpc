@@ -44,6 +44,7 @@ struct ITaskBase
     int Yield(uint32_t dwTimeoutMs = 0xFFFFFFFF, uint8_t wRunStatus = RUN_WAIT);
     static int Sleep(uint32_t dwTimeoutMs = 0xFFFFFFFF);
     bool IsExitCo() const;
+    void SetManualModeExit();
     void CloseCo();
 
     enum _YieldOpt

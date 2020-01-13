@@ -21,7 +21,6 @@ using namespace zkapi;
 
 WatcherEvent::WatcherEvent()
 {
-    m_wExitMode = ITaskBase::MANUAL_EXIT_MODE;
 }
 
 WatcherEvent::~WatcherEvent()
@@ -48,6 +47,7 @@ void WatcherEvent::Exit()
     if (!m_bIsInit)
         return;
 
+    SetManualModeExit();
     m_bIsExit = false;
     ZkEvent oEv;
     oEv.type = -1;
