@@ -965,7 +965,6 @@ void CTcpsReliableFd::Close(int iFd)
 
 int CTcpsReliableFd::Read(char *pszBuf, int iBufLen)
 {
-    SslClearError();
     int iRes = SSL_read(m_pSsl, pszBuf, iBufLen);
     if (iRes <= 0)
     {
@@ -979,7 +978,6 @@ int CTcpsReliableFd::Read(char *pszBuf, int iBufLen)
 
 int CTcpsReliableFd::Write(const char *pszBuf, int iBufLen)
 {
-    SslClearError();
     int iRes = SSL_write(m_pSsl, pszBuf, iBufLen);
     if (iRes <= 0)
     {
@@ -998,7 +996,6 @@ int CTcpsReliableFd::Accept(uint32_t dwTimeout, ITaskBase *pTask)
         SetErr("SSL_new failed");
         return -1;
     }
-
     int iRes = SSL_set_fd(m_pSsl, m_iFd);
     if (iRes != 1)
     {
@@ -1007,7 +1004,6 @@ int CTcpsReliableFd::Accept(uint32_t dwTimeout, ITaskBase *pTask)
     }
     m_pTask = pTask;
     SSL_set_accept_state(m_pSsl);
-    SslClearError();
     while ((iRes = SSL_do_handshake(m_pSsl)) != 1)
     {
         int iErr = SSL_get_error(m_pSsl, iRes);
@@ -1033,7 +1029,6 @@ int CTcpsReliableFd::Accept(uint32_t dwTimeout, ITaskBase *pTask)
             return -1;
         }
     }
-    SslClearError();
     return X509NameOneline() < 0 ? -1 : m_iFd;
 }
 
@@ -1279,7 +1274,6 @@ int CTcpsCli::Create(const char *pszAddr, uint16_t wPort, const char *pszCacert,
 
     m_pTask = pTask;
     SSL_set_connect_state(m_pSsl);
-    SslClearError();
     while ((iRes = SSL_do_handshake(m_pSsl)) != 1)
     {
         int iErr = SSL_get_error(m_pSsl, iRes);
