@@ -24,6 +24,7 @@ using namespace zplugin;
 ConfigZk::ConfigZk(zkapi::IZkApi* zk)
 {
     m_pZkApi = zk;
+    m_sCoName = "zk_shmconfig_agent";
 }
 
 ConfigZk::~ConfigZk()

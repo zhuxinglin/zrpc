@@ -43,9 +43,9 @@ CContext* g_pContext = 0;
 CNet::CNet()
 {
     m_bIsMainExit = true;
-    SSL_library_init();
-    SSL_load_error_strings();
     OpenSSL_add_all_algorithms();
+    SSL_load_error_strings();
+    OpenSSL_add_ssl_algorithms();
     m_pContext = nullptr;
 }
 
@@ -60,6 +60,9 @@ CNet::~CNet()
 
     delete g_pContext;
     g_pContext = nullptr;
+    EVP_cleanup();
+    ERR_free_strings();
+    SSL_COMP_free_compression_methods();
 }
 
 CNet *CNet::GetObj()

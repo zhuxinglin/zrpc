@@ -22,6 +22,7 @@ using namespace zplugin;
 
 ZkConfig::ZkConfig(zkapi::IZkApi* zk) : m_pZkApi(zk)
 {
+    m_sCoName = "zk_shmconfig_server";
 }
 
 ZkConfig::~ZkConfig()

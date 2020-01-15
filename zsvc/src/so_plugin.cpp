@@ -239,7 +239,6 @@ int CSoPlugin::Swap(map_so_info **pmapRoute)
 
 map_so_info* CSoPlugin::DelAll()
 {
-    m_bIsExit = true;
     map_so_info* pTemp = m_mapRoute;
     if (pTemp)
     {
@@ -247,7 +246,7 @@ map_so_info* CSoPlugin::DelAll()
             it->first->iDelFlag = 1;
     }
     m_mapRoute = nullptr;
-
+    m_bIsExit = true;
     return pTemp;
 }
 

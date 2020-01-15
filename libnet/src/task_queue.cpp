@@ -61,9 +61,8 @@ CTaskNode *CTaskQueue::AddExecTask(CTaskNode *pNode, bool bIsExist)
     {
         if (!AddWaitTask(pNode))
             return 0;
-    }
-    if (bIsExist)
         return AddTask(pNode, ITaskBase::RUN_EXEC);
+    }
 
     return AddTask(pNode, ITaskBase::RUN_NOW);
 }

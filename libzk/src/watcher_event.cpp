@@ -21,6 +21,7 @@ using namespace zkapi;
 
 WatcherEvent::WatcherEvent()
 {
+    m_sCoName = "zk_event";
 }
 
 WatcherEvent::~WatcherEvent()
@@ -53,6 +54,8 @@ void WatcherEvent::Exit()
     oEv.type = -1;
     m_oChan << oEv;
     m_oSem.Wait();
+    // µÈ´ýÍË³ö
+    conet::ITaskBase::Sleep(10);
 }
 
 void WatcherEvent::Run()

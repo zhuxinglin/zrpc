@@ -33,6 +33,7 @@ using namespace zkproto;
 ZkProtoMgr::ZkProtoMgr() : m_iCurrHostIndex(0)
 {
     m_iXid = time(0);
+    m_sCoName = "zk_mgr";
 }
 
 ZkProtoMgr::~ZkProtoMgr()
@@ -111,6 +112,8 @@ void ZkProtoMgr::Close()
         m_pEvent->CloseCo();
     }
     CloseCo();
+    // 等待退出
+    conet::ITaskBase::Sleep(10);
 }
 
 int ZkProtoMgr::setConnectAddr(const char *pszHost)
