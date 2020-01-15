@@ -965,6 +965,7 @@ void CTcpsReliableFd::Close(int iFd)
 
 int CTcpsReliableFd::Read(char *pszBuf, int iBufLen)
 {
+    SslClearError();
     int iRes = SSL_read(m_pSsl, pszBuf, iBufLen);
     if (iRes <= 0)
     {
@@ -978,6 +979,7 @@ int CTcpsReliableFd::Read(char *pszBuf, int iBufLen)
 
 int CTcpsReliableFd::Write(const char *pszBuf, int iBufLen)
 {
+    SslClearError();
     int iRes = SSL_write(m_pSsl, pszBuf, iBufLen);
     if (iRes <= 0)
     {
@@ -1005,6 +1007,7 @@ int CTcpsReliableFd::Accept(uint32_t dwTimeout, ITaskBase *pTask)
     }
     m_pTask = pTask;
     SSL_set_accept_state(m_pSsl);
+    SslClearError();
     while ((iRes = SSL_do_handshake(m_pSsl)) != 1)
     {
         int iErr = SSL_get_error(m_pSsl, iRes);
@@ -1030,6 +1033,7 @@ int CTcpsReliableFd::Accept(uint32_t dwTimeout, ITaskBase *pTask)
             return -1;
         }
     }
+    SslClearError();
     return X509NameOneline() < 0 ? -1 : m_iFd;
 }
 
@@ -1079,6 +1083,12 @@ int CTcpsReliableFd::X509NameOneline()
     return iRet;
 }
 
+void CTcpsReliableFd::SslClearError()
+{
+    while(ERR_peek_error());
+    ERR_clear_error();
+}
+
 //============================================================================
 //
 //
@@ -1119,7 +1129,6 @@ int CTcpsSvc::Create(const char *pszAddr, uint16_t wPort, uint32_t dwListen, con
         SetErr("function SSL_CTX_new fail");
         return -1;
     }
-    SSL_CTX_set_options(m_pCtx, SSL_OP_ALL);
     SSL_CTX_set_quiet_shutdown(m_pCtx, 1);
 
     if (pszPass)
@@ -1131,11 +1140,13 @@ int CTcpsSvc::Create(const char *pszAddr, uint16_t wPort, uint32_t dwListen, con
         std::string sErr = "SSL_CTX_use_certificate_file '";
         sErr.append(pszCert).append("' failed");
         SetErr(sErr);
+        ERR_clear_error();
         return -1;
     }
     iRet = SSL_CTX_use_PrivateKey_file(m_pCtx, pszKey, SSL_FILETYPE_PEM);
     if (iRet != 1)
     {
+        ERR_clear_error();
         std::string sErr = "SSL_CTX_use_PrivateKey_file '";
         sErr.append(pszKey).append("' failed");
         SetErr(sErr);
@@ -1177,6 +1188,7 @@ int CTcpsCli::Create(const char *pszAddr, uint16_t wPort, const char *pszCacert,
 {
     m_dwVer = wVer;
     CTcpCli oCli;
+    int iRes;
     if (oCli.Create(pszAddr, wPort, dwTimeout, pTask, wVer) < 0)
     {
         return -1;
@@ -1191,8 +1203,6 @@ int CTcpsCli::Create(const char *pszAddr, uint16_t wPort, const char *pszCacert,
         SetErr("new ssl CTX fail");
         return -1;
     }
-    SSL_CTX_set_options(m_pCtx, SSL_OP_ALL);
-    SSL_CTX_set_quiet_shutdown(m_pCtx, 1);
 
     m_pSsl = SSL_new(m_pCtx);
     if (!m_pSsl)
@@ -1207,8 +1217,10 @@ int CTcpsCli::Create(const char *pszAddr, uint16_t wPort, const char *pszCacert,
         // 设置为验证对方
         SSL_CTX_set_verify(m_pCtx, SSL_VERIFY_PEER, NULL);
         // 验证对方证书
-        if (SSL_CTX_load_verify_locations(m_pCtx, pszCacert, NULL) != 1)
+        iRes = SSL_CTX_load_verify_locations(m_pCtx, pszCacert, NULL);
+        if (iRes != 1)
         {
+            ERR_clear_error();
             SetErr("SSL_CTX_load_verify_locations failed!");
             return -1;
         }
@@ -1221,15 +1233,19 @@ int CTcpsCli::Create(const char *pszAddr, uint16_t wPort, const char *pszCacert,
     if (pszCert && pszKey)
     {
         //加载本地证书文件
-        if (1 != SSL_CTX_use_certificate_file(m_pCtx, pszCert, SSL_FILETYPE_PEM))
+        iRes = SSL_CTX_use_certificate_file(m_pCtx, pszCert, SSL_FILETYPE_PEM);
+        if (1 != iRes)
         {
             SetErr("SSL_CTX_use_certificate_file failed!");
+            ERR_clear_error();
             return -1;
         }
 
         // 加载私钥文件
-        if (0 != SSL_CTX_use_PrivateKey_file(m_pCtx, pszKey, SSL_FILETYPE_PEM))
+        iRes = SSL_CTX_use_PrivateKey_file(m_pCtx, pszKey, SSL_FILETYPE_PEM);
+        if (0 != iRes)
         {
+            ERR_clear_error();
             SetErr("SSL_CTX_use_PrivateKey_file failed!");
             return -1;
         }
@@ -1237,6 +1253,7 @@ int CTcpsCli::Create(const char *pszAddr, uint16_t wPort, const char *pszCacert,
         // 检查证书和私钥是否匹配
         if (SSL_CTX_check_private_key(m_pCtx) != 1)
         {
+            ERR_clear_error();
             SetErr("Private key does not match the certificate public key");
             return -1;
         }
@@ -1249,8 +1266,6 @@ int CTcpsCli::Create(const char *pszAddr, uint16_t wPort, const char *pszCacert,
     SSL_set_mode(m_pSsl, SSL_MODE_AUTO_RETRY);
 
     // 连接验证服务器
-    int iRes;
-
     if (!m_bAsync)
     {
         iRes = SSL_connect(m_pSsl);
@@ -1264,7 +1279,7 @@ int CTcpsCli::Create(const char *pszAddr, uint16_t wPort, const char *pszCacert,
 
     m_pTask = pTask;
     SSL_set_connect_state(m_pSsl);
-
+    SslClearError();
     while ((iRes = SSL_do_handshake(m_pSsl)) != 1)
     {
         int iErr = SSL_get_error(m_pSsl, iRes);

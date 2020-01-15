@@ -170,7 +170,6 @@ void CMonitorSo::MonitorLoadSo()
 
 void CMonitorSo::Stop(CSoPlugin *pPlugin)
 {
-    LOGI << "monitorso exit ..............";
     m_bIsExit = false;
     map_so_info* pSoInfo = pPlugin->DelAll();
     if (!pSoInfo)
