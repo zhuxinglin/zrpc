@@ -1222,11 +1222,11 @@ int CTcpsCli::Create(const char *pszAddr, uint16_t wPort, const char *pszCacert,
         SSL_CTX_set_verify_depth(m_pCtx, 1);
     }
 
-    if (pszPass)
-        SSL_CTX_set_default_passwd_cb_userdata(m_pCtx, (void *)pszPass);
-
     if (pszCert && pszKey)
     {
+        if (pszPass)
+            SSL_CTX_set_default_passwd_cb_userdata(m_pCtx, (void *)pszPass);
+
         //加载本地证书文件
         iRes = SSL_CTX_use_certificate_file(m_pCtx, pszCert, SSL_FILETYPE_PEM);
         if (1 != iRes)
