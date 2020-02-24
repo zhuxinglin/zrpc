@@ -49,17 +49,17 @@ struct ITaskBase
 
     enum _YieldOpt
     {
-        YIELD_ADD = 0,
-        YIELD_MOD = 1,
-        YIELD_DEL = 2,
+        YIELD_ADD = 0,  // 添加
+        YIELD_MOD = 1,  // 修改
+        YIELD_DEL = 2,  // 删除
     };
 
     enum _YieldEvent
     {
-        YIELD_ET_IN = 0,
-        YIELD_ET_OUT = 1,
-        YIELD_IN = 2,
-        YIELD_OUT = 3,
+        YIELD_ET_IN = 0,    // 边缘读
+        YIELD_ET_OUT = 1,   // 边缘写
+        YIELD_IN = 2,       // 水平读
+        YIELD_OUT = 3,      // 水平写
     };
 
     int Yield(uint32_t dwTimeoutMs, int iFd, int iSetOpt, int iRestoreOpt, int iSetEvent, int iRestoreEvent, uint8_t wRunStatus);
