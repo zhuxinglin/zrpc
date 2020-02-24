@@ -32,17 +32,17 @@ public:
 public:
     enum _SetCtlOpt
     {
-        EPOLL_ADD = 0,
-        EPOLL_MOD = 1,
-        EPOLL_DEL = 2,
+        EPOLL_ADD = 0,      // 添加
+        EPOLL_MOD = 1,      // 修改
+        EPOLL_DEL = 2,      // 删除
     };
 
     enum _SetCtlEvent
     {
-        EPOLL_ET_IN = 0,
-        EPOLL_ET_OUT = 1,
-        EPOLL_IN = 2,
-        EPOLL_OUT = 3,
+        EPOLL_ET_READ = 0,    // 边沿触发读
+        EPOLL_ET_WRITE = 1,   // 边沿触发写
+        EPOLL_READ = 2,       // 水平触发读
+        EPOLL_WRITE = 3,      // 水平触发写
     };
 
 public:

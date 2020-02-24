@@ -60,6 +60,11 @@ CNet::~CNet()
 
     delete g_pContext;
     g_pContext = nullptr;
+    EVP_cleanup();
+    CRYPTO_cleanup_all_ex_data();
+    ERR_remove_thread_state(NULL);
+    ERR_free_strings();
+    SSL_COMP_free_compression_methods();
 }
 
 CNet *CNet::GetObj()
@@ -219,7 +224,7 @@ int CNet::Register(NEWOBJ(ITaskBase, pCb), void *pData, uint16_t wProtocol, uint
     memset(pEvent->szServerName, 0, sizeof(pEvent->szServerName));
     memcpy(pEvent->szServerName, pszServerName, iSvcNameLen);
 
-    iRet = pCx->m_oEvent.SetCtl(pFd->GetFd(), 0, CEventEpoll::EPOLL_IN, pEvent);
+    iRet = pCx->m_oEvent.SetCtl(pFd->GetFd(), 0, CEventEpoll::EPOLL_READ, pEvent);
     if (iRet < 0)
     {
         pCx->m_sErr = pCx->m_oEvent.GetErr();
@@ -664,7 +669,7 @@ int CNet::Start()
             }
 
             uint32_t dwRunstatus = pTask->m_wRunStatus;
-            iRet = pCx->m_pSchedule->PushMsg(iFd, CEventEpoll::EPOLL_ADD, CEventEpoll::EPOLL_ET_IN, (void *)pTask->m_qwCid);
+            iRet = pCx->m_pSchedule->PushMsg(iFd, CEventEpoll::EPOLL_ADD, CEventEpoll::EPOLL_ET_READ, (void *)pTask->m_qwCid);
             if (iRet < 0)
             {
                 pTask->Error(pCx->m_pSchedule->GetErr().c_str());
