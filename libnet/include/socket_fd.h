@@ -31,6 +31,7 @@ class CSockFd : public CFileFd
 {
 public:
     CSockFd();
+    using CFileFd::CFileFd;
     ~CSockFd();
 
 public:
