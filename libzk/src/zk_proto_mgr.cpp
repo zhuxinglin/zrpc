@@ -33,7 +33,7 @@ using namespace zkproto;
 ZkProtoMgr::ZkProtoMgr() : m_iCurrHostIndex(0)
 {
     m_iXid = time(0);
-    m_wExitMode = MANUAL_EXIT_MODE;
+    m_sCoName = "zk_mgr";
 }
 
 ZkProtoMgr::~ZkProtoMgr()
@@ -94,6 +94,7 @@ int ZkProtoMgr::Init(const char *pszHost, IWatcher *pWatcher, uint32_t dwTimeout
 
 void ZkProtoMgr::Close()
 {
+    SetManualModeExit();
     m_bIsExit = false;
     if (!m_bIsConnect)
     {
@@ -111,6 +112,8 @@ void ZkProtoMgr::Close()
         m_pEvent->CloseCo();
     }
     CloseCo();
+    // 等待退出
+    conet::ITaskBase::Sleep(10);
 }
 
 int ZkProtoMgr::setConnectAddr(const char *pszHost)

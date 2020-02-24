@@ -130,8 +130,10 @@ void CHttpSvc::SetUri()
 
     if (m_oHttpReq.sMethod.compare("GET") == 0)
     {
-        m_oHttpReq.szBody = ++ c;
-        m_oHttpReq.sUri.resize(c - s - 1);
+        m_oHttpReq.sUri.resize(c - s);
+        if (*c == '?')
+            ++ c;
+        m_oHttpReq.szBody = c;
     }
 }
 

@@ -22,6 +22,7 @@ using namespace zrpc;
 
 CSoUninstall::CSoUninstall() : m_pPlugin(0), m_pmapSo(0)
 {
+    m_sCoName = "so_uninstall";
 }
 
 CSoUninstall::~CSoUninstall()
@@ -45,9 +46,9 @@ void CSoUninstall::Run()
     
     do
     {
-        if (m_pPlugin->Del(m_pmapSo, true) < 0)
+        if (m_pmapSo && m_pPlugin->Del(m_pmapSo, true) < 0)
         {
-            Yield();
+            Yield(10);
             continue;
         }
         break;

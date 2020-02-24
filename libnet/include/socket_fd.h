@@ -233,6 +233,7 @@ public:
 protected:
     virtual void Close(int iFd = -1);
     int X509NameOneline();
+    void SslClearError();
 
 private:
     int WaitSslAccept(int iEvent, int iRestoreEvent, uint32_t dwTimeoutMs);

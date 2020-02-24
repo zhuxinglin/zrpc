@@ -29,6 +29,7 @@
 using namespace znet;
 
 extern CContext* g_pContext;
+#define CO_EXIT     (ITaskBase::RUN_EXIT)
 
 CGo::CGo()
 {
@@ -91,31 +92,36 @@ void CGo::Run(uint32_t dwId)
                 continue;
             }
 
+            if ((pTask->m_wExitMode == ITaskBase::MANUAL_EXIT_SO) && (pTask->m_wRunStatus & CO_EXIT))
+            {
+                //printf("delete end 4444444444444444444444 %li  %lu    %p   %d  %u  %s\n", syscall(SYS_gettid), pTask->m_qwCid, pTask, pTask->m_wRunStatus, pTask->m_wExitMode, pTask->m_sCoName.c_str());
+                std::shared_ptr<ITaskBase> optr(pTask->m_oPtr);
+                pTask->m_oPtr = nullptr;
+                continue;
+            }
+
             pTask->m_wIsRuning = false;
             pTask->m_pMainCo = &uCon;
-            pTask->m_wRunStatus = (ITaskBase::RUN_EXIT & pTask->m_wRunStatus) | ITaskBase::RUN_EXEC;
-            //printf("call start 2222222222222222222222222 %li  %lu    %p   %u\n", syscall(SYS_gettid), pTask->m_qwCid, pTask, pTask->m_wRunStatus);
+            pTask->m_wRunStatus = (CO_EXIT & pTask->m_wRunStatus) | ITaskBase::RUN_EXEC;
+            //printf("call start ssssssssssssssssssssssss %li  %lu    %p   %u  %u %s\n", syscall(SYS_gettid), pTask->m_qwCid, pTask, pTask->m_wRunStatus, pTask->m_wExitMode, pTask->m_sCoName.c_str());
             pCor->Swap(pTask);
             /*int iType = uCon.uc_mcontext.gregs[1];
             int iFd = uCon.uc_mcontext.gregs[2];
             int iMod = uCon.uc_mcontext.gregs[3];
             int iEvent = uCon.uc_mcontext.gregs[4];*/
-            //printf("call end 00000000000000000000000000 %li  %lu    %p   %d\n", syscall(SYS_gettid), pTask->m_qwCid, pTask, pTask->m_wRunStatus);
+            //printf("call end eeeeeeeeeeeeeeeeeeeeeeeee %li  %lu    %p   %d  %u  %s\n", syscall(SYS_gettid), pTask->m_qwCid, pTask, pTask->m_wRunStatus, pTask->m_wExitMode, pTask->m_sCoName.c_str());
             if (!(pTask->m_wRunStatus & ITaskBase::RUN_EXIT))
             {
                 pTaskQueue->AddWaitExecTask(pTaskNode);
                 continue;
             }
 
-            if (pTask->m_wExitMode == ITaskBase::AUTO_EXIT_MODE)
+            if (pTask->m_wExitMode == ITaskBase::MANUAL_EXIT_SO)
+                continue;
+
             {
                 std::shared_ptr<ITaskBase> optr(pTask->m_oPtr);
                 pTask->m_oPtr = nullptr;
-            }
-            else
-            {
-                pTaskQueue->DelWaitTask(pTaskNode);
-                pTask->m_pTaskQueue = nullptr;
             }
         }
 
@@ -137,3 +143,5 @@ void CGo::ExitAllCoroutine()
         }
     }
 }
+
+#undef CO_EXIT

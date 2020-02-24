@@ -52,7 +52,7 @@ ITaskBase::ITaskBase() : m_oPtr(this),
                          m_wIsRuning(true),
                          m_wRunStatus(RUN_INIT),
                          m_wRunStatusLock(0),
-                         m_wExitMode(AUTO_EXIT_MODE)
+                         m_wExitMode(AUTO_EXIT)
 {
 }
 
@@ -168,11 +168,17 @@ bool ITaskBase::IsExitCo() const
     return m_wRunStatus & RUN_EXIT;
 }
 
+void ITaskBase::SetManualModeExit(uint8_t dwExitMode)
+{
+    m_wExitMode = dwExitMode;
+}
+
 void ITaskBase::CloseCo()
 {
-    if (m_wExitMode == MANUAL_EXIT_MODE)
+    if (m_wExitMode == MANUAL_EXIT_SO)
     {
-        std::shared_ptr<ITaskBase> optr(m_oPtr);
-        m_oPtr = nullptr;
+        g_pContext->m_pTaskQueue->AddExecTask((CTaskNode*)m_pTaskQueue, false);
+        CGoPost::Post();
+        return ;
     }
 }

@@ -31,6 +31,7 @@ CMonitorSo::CMonitorSo() : m_iFd(-1),
                            m_iIw(-1)
 {
     m_wRunStatus = RUN_NOW;
+    m_sCoName = "monitor_so";
 }
 
 CMonitorSo::~CMonitorSo()
@@ -164,20 +165,21 @@ void CMonitorSo::MonitorLoadSo()
         pSoUninstall->SetPluginObj(pSoPlugin);
         CNet::GetObj()->Register(pSoUninstall, pSoPlugin, ITaskBase::PROTOCOL_TIMER, -1, g_dwSoUninstallInterval * 1e3);
     }
-    delete ie;
+    delete []ie;
 }
 
 void CMonitorSo::Stop(CSoPlugin *pPlugin)
 {
-    LOGI << "monitorso exit ..............";
-    CSoUninstall* pSoUninstall = new CSoUninstall();
+    m_bIsExit = false;
     map_so_info* pSoInfo = pPlugin->DelAll();
+    if (!pSoInfo)
+        return;
+    CSoUninstall* pSoUninstall = new CSoUninstall();
     pSoUninstall->SetSoMap(pSoInfo);
     pSoUninstall->SetPluginObj(pPlugin);
     CNet::GetObj()->Register(pSoUninstall, pPlugin, ITaskBase::PROTOCOL_TIMER, -1, 0);
     // 等待退出
-    while (pPlugin->IsExit()) usleep(10);
-    m_bIsExit = false;
+    while (pPlugin->IsExit()) usleep(10000);
     CNet::GetObj()->ExitCo(m_qwCid);
     usleep(100);
 }

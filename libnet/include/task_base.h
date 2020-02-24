@@ -44,6 +44,7 @@ struct ITaskBase
     int Yield(uint32_t dwTimeoutMs = 0xFFFFFFFF, uint8_t wRunStatus = RUN_WAIT);
     static int Sleep(uint32_t dwTimeoutMs = 0xFFFFFFFF);
     bool IsExitCo() const;
+    void SetManualModeExit(uint8_t dwExitMode = MANUAL_EXIT_SO);
     void CloseCo();
 
     enum _YieldOpt
@@ -67,6 +68,7 @@ struct ITaskBase
     static uint32_t GetSubCId(uint64_t qwCid);
 
     std::shared_ptr<ITaskBase> m_oPtr;
+    std::string m_sCoName;
 
 // ==========private===============
     void *m_pSp;
@@ -117,11 +119,10 @@ struct ITaskBase
     uint8_t m_wIsRuning;
     uint8_t m_wRunStatus;
     uint8_t m_wRunStatusLock;
-    // ===============public ===========
     enum
     {
-        AUTO_EXIT_MODE  = 0,    // 自动退出，退出后清楚协程对象
-        MANUAL_EXIT_MODE = 1,   // 手动模式，退出由应用控制
+        AUTO_EXIT  = 0,    // 自动退出，退出后清楚协程对象
+        MANUAL_EXIT_SO = 1,   // 手动退出动态库模式，退出由应用控制
     };
     uint8_t m_wExitMode;        // 默认自动
 };

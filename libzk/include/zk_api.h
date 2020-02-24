@@ -58,7 +58,8 @@ enum class WatcherType : int
 
 struct IWatcher
 {
-    virtual void OnWatcher(int type, znet::ITaskBase* pTask, const std::string& path) = 0;
+    virtual ~IWatcher(){};
+    virtual void OnWatcher(int type, conet::ITaskBase* pTask, const std::string& path) = 0;
 };
 
 struct clientid_t

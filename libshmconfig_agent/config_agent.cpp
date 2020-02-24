@@ -59,6 +59,7 @@ void ConfigAgent::Release()
     if (g_pZkApi)
         g_pZkApi->Close();
     g_pZkApi = nullptr;
+    delete this;
 }
 
 zplugin::CPluginBase *SoPlugin()

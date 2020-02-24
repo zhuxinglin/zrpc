@@ -37,9 +37,9 @@ int CConfig::Parse(const char *pszFileName)
     if (!pszContent)
         return -1;
 
-    std::unique_ptr<char> oPtr(pszContent);
-
-    return ParseContent(pszContent);
+    int iRet = ParseContent(pszContent);
+    delete []pszContent;
+    return iRet;
 }
 
 char *CConfig::GetContent(const char *pszFileName)
@@ -57,15 +57,16 @@ char *CConfig::GetContent(const char *pszFileName)
     pszBuf = new char[dwLen + 1];
     fread(pszBuf, 1U, dwLen, pFile);
     fclose(pFile);
+    pszBuf[dwLen] = 0;
     return pszBuf;
 }
 
 int CConfig::ParseContent(char *pszContent)
 {
-    char* s = pszContent;
+    const char* s = pszContent;
     int iRow = 1;
     std::stack<char> oFun;
-    char* c = 0;
+    const char* c = 0;
     std::string sFun;
     std::string sKey;
     std::string sValue;

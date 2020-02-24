@@ -24,6 +24,7 @@ using namespace zplugin;
 ConfigZk::ConfigZk(zkapi::IZkApi* zk)
 {
     m_pZkApi = zk;
+    m_sCoName = "zk_shmconfig_agent";
 }
 
 ConfigZk::~ConfigZk()
@@ -59,6 +60,7 @@ int ConfigZk::Init(const char* pZkAddrFileName)
         ++p;
     }
     m_sZkAddr = pBuf;
+    delete []pBuf;
     LOGI_BIZ(AGENT_INIT) << "zk address : " << m_sZkAddr;
 
     m_pConfWatch = new ConfigWatcher(m_pZkApi);

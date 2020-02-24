@@ -91,6 +91,7 @@ void ConfigServer::Release()
     LOGI_BIZ(CLOSE) << "libshmconfig_server exit .....";
     if(m_pZkApi)
         m_pZkApi->Close();
+    delete this;
 }
 
 int ConfigServer::getConnectConfig(std::string& sZkConfig, std::string& sMysqlConfig)
@@ -120,7 +121,7 @@ int ConfigServer::getConnectConfig(std::string& sZkConfig, std::string& sMysqlCo
         }
     }
     fclose(fp);
-    delete szBuf;
+    delete []szBuf;
     LOGI_BIZ(INIT) << "key : mysql, value : " << sMysqlConfig;
     LOGI_BIZ(INIT) << "key : zookeeper, value : " << sZkConfig;
 
