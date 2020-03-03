@@ -76,7 +76,7 @@ CTaskNode *CTaskQueue::GetFirstExecTask()
 {
     CTaskNode *pNode;
     {
-        CSpinLock oLock(m_oExec.dwSync);
+        CSpinLock<> oLock(m_oExec.dwSync);
         if (!m_oExec.pHead)
             return 0;
 
@@ -107,7 +107,7 @@ CTaskNode *CTaskQueue::AddWaitTask(CTaskNode *pNode)
         CTaskKey oKey(CTimerFd::GetNs(), pNode->pTask->m_dwTimeout);
         pNode->pTask->m_qwBeginTime = oKey.qwTimeNs;
 
-        CSpinLock oLock(&pRb->dwSync);
+        CSpinLock<> oLock(&pRb->dwSync);
         if (!pRb->oFdRb.insert(pNode->pTask->m_qwCid, oKey))
             return 0;
 
@@ -155,7 +155,7 @@ void CTaskQueue::UpdateTimeout(uint64_t qwCid)
 void CTaskQueue::ExitTask(uint64_t qwCid)
 {
     CTaskWaitRb *pRb = GetWaitRb(qwCid);
-    CSpinLock oLock(&pRb->dwSync);
+    CSpinLock<> oLock(&pRb->dwSync);
 
     CTaskNode *pNode = GetTaskNode(qwCid, pRb);
     if (!pNode)
@@ -170,7 +170,7 @@ void CTaskQueue::ExitTask(uint64_t qwCid)
 bool CTaskQueue::IsExitTask(uint64_t qwCid)
 {
     CTaskWaitRb *pRb = GetWaitRb(qwCid);
-    CSpinLock oLock(&pRb->dwSync);
+    CSpinLock<> oLock(&pRb->dwSync);
     CTaskNode *pNode = GetTaskNode(qwCid, pRb);
     if (!pNode)
         return true;
@@ -179,7 +179,7 @@ bool CTaskQueue::IsExitTask(uint64_t qwCid)
 
 CTaskNode *CTaskQueue::AddTask(CTaskNode *pNode, int iRunStatus)
 {
-    CSpinLock oLock(m_oExec.dwSync);
+    CSpinLock<> oLock(m_oExec.dwSync);
     if (iRunStatus == ITaskBase::RUN_WAIT)
     {
         //__sync_fetch_and_sub(&pNode->dwRef, 1);
@@ -213,7 +213,7 @@ CTaskNode *CTaskQueue::AddTask(CTaskNode *pNode, int iRunStatus)
 
 CTaskNode* CTaskQueue::UpdateTask(CTaskWaitRb *pRb, uint64_t qwCid, bool bIsLock)
 {
-    CSpinLock oLock(&pRb->dwSync);
+    CSpinLock<> oLock(&pRb->dwSync);
     CTaskWaitRb::FdIt *it = pRb->oFdRb.find(qwCid);
     if (!it)
         return 0;
@@ -238,7 +238,7 @@ CTaskNode* CTaskQueue::UpdateTask(CTaskWaitRb *pRb, uint64_t qwCid, bool bIsLock
 
 int CTaskQueue::DelRbTask(CTaskWaitRb *pRb, CTaskNode *pNode)
 {
-    CSpinLock oLock(&pRb->dwSync);
+    CSpinLock<> oLock(&pRb->dwSync);
     CTaskKey oKey(pNode->pTask->m_qwBeginTime, pNode->pTask->m_dwTimeout);
     pRb->oFdRb.erase(pNode->pTask->m_qwCid);
     DelMultiMap(pRb, oKey, pNode->pTask->m_qwCid);
@@ -275,7 +275,7 @@ int CTaskQueue::SwapTimerToExec(uint64_t qwCurTime)
 void CTaskQueue::SwapTimerToExec(uint64_t qwCurTime, int iIndex, int& iSu)
 {
     CTaskWaitRb *pRb = &m_pWait[iIndex];
-    CSpinLock oLock(pRb->dwSync);
+    CSpinLock<> oLock(pRb->dwSync);
     CTaskWaitRb::TaskIt it = pRb->oTaskRb.begin();
     for (; it != pRb->oTaskRb.end();)
     {
@@ -342,7 +342,7 @@ void CTaskQueue::AddAllToExec()
     for (int i = 0; i < (int)m_dwSumCpu; ++i)
     {
         CTaskWaitRb *pRb = &m_pWait[i];
-        CSpinLock oLock(pRb->dwSync);
+        CSpinLock<> oLock(pRb->dwSync);
         CTaskWaitRb::TaskIt it = pRb->oTaskRb.begin();
         for (; it != pRb->oTaskRb.end(); ++it)
         {

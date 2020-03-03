@@ -14,7 +14,6 @@
 #include <string.h>
 #include <errno.h>
 #include "thread.h"
-#include "uconfig.h"
 #include <stdio.h>
 
 using namespace znet;
@@ -35,7 +34,7 @@ CThread::~CThread()
 {
 }
 
-int CThread::Start(std::string sThreadName, bool bExitMode, void *pUserData, uint32_t dwId)
+int CThread::Start(const std::string& sThreadName, bool bExitMode, void *pUserData, uint32_t dwId)
 {
     if (Initialize(pUserData) < 0)
     {
@@ -53,6 +52,7 @@ int CThread::Start(std::string sThreadName, bool bExitMode, void *pUserData, uin
         return -1;
     }
 
+    m_sName = sThreadName;
     pthread_setname_np(m_tid, sThreadName.c_str());
     if (bExitMode)
         m_tid = 0;
@@ -192,25 +192,6 @@ void CLock::Lock()
 void CLock::Unlock()
 {
     pthread_mutex_unlock(&m_Mutex);
-}
-
-CSpinLock::CSpinLock(volatile uint32_t &dwSync)
-{
-    m_pSync = &dwSync;
-    while (__sync_lock_test_and_set(&dwSync, 1))
-        _usleep_();
-}
-
-CSpinLock::CSpinLock(volatile uint32_t *pSync)
-{
-    m_pSync = pSync;
-    while (__sync_lock_test_and_set(pSync, 1))
-        _usleep_();
-}
-
-CSpinLock::~CSpinLock()
-{
-    __sync_lock_release(m_pSync);
 }
 
 CCond::CCond()

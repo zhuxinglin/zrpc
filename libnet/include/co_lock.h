@@ -34,13 +34,13 @@ public:
     void Unlock();
 
 private:
-    void Push();
     uint64_t Pop();
 
 private:
     typedef std::queue<uint64_t> LockQueue;
     LockQueue m_oLock;
-    volatile uint32_t m_dwLock;
+    volatile uint16_t m_wLock;
+    volatile uint16_t m_wSync;
 };
 
 class CCoLocalLock

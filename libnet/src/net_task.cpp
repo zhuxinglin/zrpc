@@ -284,7 +284,7 @@ void CNetTask::Run()
         if (m_wProtocol == ITaskBase::PROTOCOL_TCPS)
         {
             CTcpsReliableFd *pSsl = (CTcpsReliableFd *)m_pFd;
-            if (pSsl->Accept(3e3, this) < 0)
+            if (pSsl->Accept(3e3L, this) < 0)
                 break;
         }
         Go();

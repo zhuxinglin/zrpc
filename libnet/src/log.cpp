@@ -124,7 +124,7 @@ bool CLog::Create(CLogConfig *pConfig)
 		if (OpenNet(pConfig->sNetAddr.c_str(), CLogConfig::LOG_UDP, true) < 0)
 			return false;
 	}
-	Start("log_thread", false, 0, 45);
+	Start("log_thread", false, nullptr, 45);
 	m_bIsInit = true;
 	return true;
 }
@@ -167,7 +167,7 @@ int CLog::Write(CLogMessage<> *pMessage, uint32_t dwCurLevel)
 	else
 	{
 		{
-			CSpinLock oLock(&m_dwSync);
+			CSpinLock<> oLock(&m_dwSync);
 			m_oMsgQueue.push(pMessage);
 		}
 		m_oSem.Post();
@@ -186,7 +186,7 @@ void CLog::Run(uint32_t)
 			CLogMessage<> *pMessage = m_oMsgQueue.front();
 			do
 			{
-				CSpinLock oLock(&m_dwSync);
+				CSpinLock<> oLock(&m_dwSync);
 				m_oMsgQueue.pop();
 			}while(0);
 

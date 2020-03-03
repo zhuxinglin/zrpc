@@ -19,6 +19,7 @@
 #include <semaphore.h>
 #include <inttypes.h>
 #include <string>
+#include "uconfig.h"
 
 namespace znet
 {
@@ -30,7 +31,7 @@ public:
     virtual ~CThread();
 
 public:
-    int Start(std::string sThreadName = "", bool bExitMode = false, void* pUserData = nullptr, uint32_t dwId = 0);
+    int Start(const std::string& sThreadName = "", bool bExitMode = false, void* pUserData = nullptr, uint32_t dwId = 0);
     void Exit(void (*Notif)(void*) = nullptr, void* p = nullptr);
     virtual int PushMsg(uint32_t dwId, uint32_t dwMsgType, int iMsgLen, void *pMsg);
     virtual void Release();
@@ -48,6 +49,7 @@ private:
 protected:
     bool volatile m_bExit;
     pthread_t m_tid;
+    std::string m_sName;
 };
 
 class CSem
@@ -104,15 +106,31 @@ private:
     T *m_pLock;
 };
 
+template <class T = uint32_t>
 class CSpinLock
 {
 public:
-    explicit CSpinLock(volatile uint32_t& dwSync);
-    explicit CSpinLock(volatile uint32_t *pSync);
-    ~CSpinLock();
+    explicit CSpinLock(volatile T& dwSync)
+    {
+        m_pSync = &dwSync;
+        while (__sync_lock_test_and_set(&dwSync, 1))
+            _usleep_();
+    }
+
+    explicit CSpinLock(volatile T *pSync)
+    {
+        m_pSync = pSync;
+        while (__sync_lock_test_and_set(pSync, 1))
+            _usleep_();
+    }
+
+    ~CSpinLock()
+    {
+        __sync_lock_release(m_pSync);
+    }
 
 private:
-    volatile uint32_t* m_pSync;
+    volatile T* m_pSync;
 };
 
 class CCond

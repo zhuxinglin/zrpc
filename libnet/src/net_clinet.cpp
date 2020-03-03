@@ -53,9 +53,6 @@ int CNetClient::Connect(const char *pszAddr, uint16_t wPort, uint16_t wProtocol,
 
 int CNetClient::Reconnect()
 {
-    if (IsClose())
-        return -1;
-
     if (m_pFd)
         return -1;
 
@@ -310,7 +307,7 @@ int CNetClient::TcpsWrite(const char *pszBuf, int iLen, uint32_t dwTimeoutMs)
 
 bool CNetClient::IsOpen()
 {
-    CSpinLock oLock(m_dwSync);
+    CSpinLock<> oLock(m_dwSync);
     if (m_dwCloseRef == 0)
         return true;
     ++ m_dwCloseRef;
@@ -321,7 +318,7 @@ bool CNetClient::IsClose()
 {
     if (m_dwCloseRef != 0)
     {
-        CSpinLock oLock(m_dwSync);
+        CSpinLock<> oLock(m_dwSync);
         -- m_dwCloseRef;
         if (m_dwCloseRef != 0)
             return true;

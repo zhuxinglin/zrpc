@@ -37,7 +37,7 @@ void CCoCond::Signal()
 {
     uint64_t qwCoId;
     {
-        CSpinLock oLock(m_dwLock);
+        CSpinLock<> oLock(m_dwLock);
         if (m_oCond.empty())
             return;
 
@@ -55,7 +55,7 @@ void CCoCond::Broadcast()
     {
         uint64_t qwCoId;
         {
-            CSpinLock oLock(m_dwLock);
+            CSpinLock<> oLock(m_dwLock);
             qwCoId = m_oCond.front();
             m_oCond.pop();
         }

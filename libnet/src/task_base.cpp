@@ -22,6 +22,7 @@
 #include "timer_fd.h"
 #include "event_epoll.h"
 #include "context.h"
+#include "go_post.h"
 
 using namespace znet;
 

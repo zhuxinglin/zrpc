@@ -36,7 +36,7 @@ void CCoSem::Post()
 {
     uint64_t qwCid;
     {
-        CSpinLock oLock(m_dwLock);
+        CSpinLock<> oLock(m_dwLock);
         m_dwCount ++;
         if (m_oQueue.empty())
             return;
@@ -53,7 +53,7 @@ bool CCoSem::Wait(uint32_t dwTimeout)
 {
     ITaskBase *pTask = g_pContext->m_pCo->GetTaskBase();
     {
-        CSpinLock oLock(m_dwLock);
+        CSpinLock<> oLock(m_dwLock);
         if (m_dwCount != 0)
         {
             --m_dwCount;
@@ -66,13 +66,13 @@ bool CCoSem::Wait(uint32_t dwTimeout)
     {
         if (pTask->Yield(dwTimeout, ITaskBase::RUN_LOCK) < 0)
         {
-            CSpinLock oLock(m_dwLock);
+            CSpinLock<> oLock(m_dwLock);
             m_oQueue.erase(pTask->m_qwCid);
             return false;
         }
 
         {
-            CSpinLock oLock(m_dwLock);
+            CSpinLock<> oLock(m_dwLock);
             if (m_dwCount == 0)
                 continue;
 
@@ -85,7 +85,7 @@ bool CCoSem::Wait(uint32_t dwTimeout)
 
 bool CCoSem::TryWait()
 {
-    CSpinLock oLock(m_dwLock);
+    CSpinLock<> oLock(m_dwLock);
     if (m_dwCount != 0)
         return true;
     return false;
